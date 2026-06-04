@@ -48,6 +48,12 @@ class ExcelStorage(BaseStorage):
     def append_boulder(self, record: BoulderRecord) -> BoulderRecord:
         """Append one boulder record to the workbook and persist it."""
 
+        self.append_boulders([record])
+        return record
+
+    def append_boulders(self, records: list[BoulderRecord]) -> list[BoulderRecord]:
+        """Append boulder records to the workbook and persist them."""
+
         if not self.workbook_path.exists():
             raise ExcelStorageError(f"Workbook does not exist: {self.workbook_path}")
         try:
@@ -55,21 +61,16 @@ class ExcelStorage(BaseStorage):
             worksheet = workbook.worksheets[0]
             self._validate_headers(worksheet)
             next_row = self._next_source_row(worksheet)
-            worksheet.cell(next_row, 1, record.name)
-            worksheet.cell(next_row, 2, record.grade_27crags)
-            worksheet.cell(next_row, 3, record.guide_grade)
-            worksheet.cell(next_row, 4, record.my_grade)
-            worksheet.cell(next_row, 5, record.area)
-            worksheet.cell(next_row, 6, 1 if record.flash else 0)
-            date_cell = worksheet.cell(next_row, 7, to_excel_date(record.climbed_on))
-            date_cell.number_format = "yyyy-mm-dd"
+            for record in records:
+                self._write_record_row(worksheet, next_row, record)
+                next_row += 1
             workbook.save(self.workbook_path)
-            logger.info("Appended boulder %s to %s", record.name, self.workbook_path)
+            logger.info("Appended %s boulders to %s", len(records), self.workbook_path)
         except ExcelStorageError:
             raise
         except Exception as exc:
-            raise ExcelStorageError(f"Failed to append boulder: {exc}") from exc
-        return record
+            raise ExcelStorageError(f"Failed to append boulders: {exc}") from exc
+        return records
 
     def _load_worksheet(self) -> Worksheet:
         if not self.workbook_path.exists():
@@ -107,6 +108,21 @@ class ExcelStorage(BaseStorage):
         while worksheet.cell(row_number, 1).value not in (None, ""):
             row_number += 1
         return row_number
+
+    def _write_record_row(
+        self,
+        worksheet: Worksheet,
+        row_number: int,
+        record: BoulderRecord,
+    ) -> None:
+        worksheet.cell(row_number, 1, record.name)
+        worksheet.cell(row_number, 2, record.grade_27crags)
+        worksheet.cell(row_number, 3, record.guide_grade)
+        worksheet.cell(row_number, 4, record.my_grade)
+        worksheet.cell(row_number, 5, record.area)
+        worksheet.cell(row_number, 6, 1 if record.flash else 0)
+        date_cell = worksheet.cell(row_number, 7, to_excel_date(record.climbed_on))
+        date_cell.number_format = "yyyy-mm-dd"
 
     def _text(self, value: object) -> str:
         return "" if value is None else str(value).strip()

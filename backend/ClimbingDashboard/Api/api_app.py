@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ClimbingDashboard.Api.api_router import router
 from ClimbingDashboard.Api.api_service import ApiService
+from ClimbingDashboard.Api.import_service import ImportService
 from ClimbingDashboard.Config.app_settings import AppSettings
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,7 @@ def create_app(excel_path: str | Path | None = None) -> FastAPI:
     )
     app = FastAPI(title=settings.app_name)
     app.state.api_service = ApiService(selected_excel_path)
+    app.state.import_service = ImportService(selected_excel_path)
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):51\d{2}$",
@@ -41,6 +43,8 @@ def create_app(excel_path: str | Path | None = None) -> FastAPI:
             "routes": {
                 "health": "/health",
                 "boulders": "/api/boulders",
+                "import_preview": "/api/imports/{source}/preview",
+                "import_confirm": "/api/imports/{source}/confirm",
                 "docs": "/docs",
             },
         }
