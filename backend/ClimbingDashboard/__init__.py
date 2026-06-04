@@ -1,0 +1,1 @@
+"""Climbing dashboard backend package."""

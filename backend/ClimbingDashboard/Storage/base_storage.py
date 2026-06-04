@@ -1,0 +1,17 @@
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+from ClimbingDashboard.Models.boulder_record import BoulderRecord
+
+
+class BaseStorage(ABC):
+    """Interface for boulder persistence implementations."""
+
+    @abstractmethod
+    def read_boulders(self) -> list[BoulderRecord]:
+        """Read all stored boulder records."""
+
+    @abstractmethod
+    def append_boulder(self, record: BoulderRecord) -> BoulderRecord:
+        """Append and persist one boulder record."""
