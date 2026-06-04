@@ -9,34 +9,13 @@ from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
 from ClimbingDashboard.Exceptions.excel_storage_error import ExcelStorageError
 from ClimbingDashboard.Models.area_grade_matrix_row import AreaGradeMatrixRow
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
-from ClimbingDashboard.Models.dashboard_stats import AreaCount, DashboardStats, GradeCount
-from ClimbingDashboard.Storage.excel_storage import ExcelStorage
-
-GRADE_ORDER = (
-    "4",
-    "4+",
-    "5",
-    "5+",
-    "6a",
-    "6a+",
-    "6b",
-    "6b+",
-    "6c",
-    "6c+",
-    "7a",
-    "7a+",
-    "7b",
-    "7b+",
-    "7c",
-    "7c+",
-    "8a",
-    "8a+",
-    "8b",
-    "8b+",
-    "8c",
-    "8c+",
-    "9a",
+from ClimbingDashboard.Models.dashboard_stats import (
+    AreaCount,
+    DashboardStats,
+    GradeCount,
 )
+from ClimbingDashboard.Storage.excel_storage import ExcelStorage
+from ClimbingDashboard.Config.constants import GRADE_ORDER
 
 
 class ApiService(BaseApiService):
@@ -102,7 +81,10 @@ class ApiService(BaseApiService):
         return DashboardStats(
             total=len(records),
             flash_count=flash_count,
-            areas=[AreaCount(area=area, count=count) for area, count in by_area.most_common()],
+            areas=[
+                AreaCount(area=area, count=count)
+                for area, count in by_area.most_common()
+            ],
             grade_counts=grade_counts,
             area_counts_by_grade_source={
                 field_name: self._area_counts(records, attribute)
@@ -137,7 +119,9 @@ class ApiService(BaseApiService):
             for record in records
             if record.area and getattr(record, grade_attribute)
         )
-        return [AreaCount(area=area, count=count) for area, count in counts.most_common()]
+        return [
+            AreaCount(area=area, count=count) for area, count in counts.most_common()
+        ]
 
     def _area_grade_matrix(
         self,
