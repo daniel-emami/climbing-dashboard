@@ -12,7 +12,6 @@ backend/ClimbingDashboard/Storage    Excel read/write layer
 backend/ClimbingDashboard/Models     Boulder domain model
 backend/ClimbingDashboard/Utilities  Date conversion helpers
 frontend/src                         Vite React dashboard
-docs/CODE_FLOW_GUIDE.md              Personal guide to how the code works
 ```
 
 ## Run Locally
