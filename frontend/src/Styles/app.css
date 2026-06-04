@@ -333,6 +333,31 @@ table {
   font-size: 0.86rem;
 }
 
+.logbook-table {
+  table-layout: fixed;
+  min-width: 860px;
+}
+
+.logbook-name-column {
+  width: 30%;
+}
+
+.logbook-area-column {
+  width: 18%;
+}
+
+.logbook-grade-column {
+  width: 11%;
+}
+
+.logbook-flash-column {
+  width: 9%;
+}
+
+.logbook-date-column {
+  width: 10%;
+}
+
 th,
 td {
   border-bottom: 1px solid #e2e8f0;
@@ -356,6 +381,38 @@ thead th {
   font-weight: 900;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.table-sort-button {
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  text-align: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  font: inherit;
+}
+
+.table-sort-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-sort-indicator {
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+}
+
+.table-sort-button:hover {
+  color: #0f766e;
 }
 
 tbody th {
