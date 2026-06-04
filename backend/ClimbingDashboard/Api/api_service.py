@@ -7,6 +7,7 @@ from ClimbingDashboard.Api.api_models import BoulderCreateRequest, BouldersPaylo
 from ClimbingDashboard.Api.base_api_service import BaseApiService
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
 from ClimbingDashboard.Exceptions.excel_storage_error import ExcelStorageError
+from ClimbingDashboard.Models.area_grade_matrix_row import AreaGradeMatrixRow
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Storage.excel_storage import ExcelStorage
 
@@ -123,10 +124,9 @@ class ApiService(BaseApiService):
             if record.area and record.min_grade:
                 matrix[record.area][record.min_grade] += 1
 
-        rows = []
-        for area in sorted(matrix):
-            row: dict[str, object] = {"area": area}
-            row.update({grade: matrix[area].get(grade, 0) for grade in GRADE_ORDER})
-            row["total"] = sum(matrix[area].values())
-            rows.append(row)
-        return sorted(rows, key=lambda row: int(row["total"]), reverse=True)
+        rows = [
+            AreaGradeMatrixRow(area=area, grade_counts=grade_counts)
+            for area, grade_counts in matrix.items()
+        ]
+        sorted_rows = sorted(rows, key=lambda row: row.total, reverse=True)
+        return [row.to_payload(GRADE_ORDER) for row in sorted_rows]
