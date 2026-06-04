@@ -1,9 +1,14 @@
 type AreaGradeMatrixProps = {
   rows: Array<Record<string, number | string>>;
   grades: string[];
+  gradeSourceLabel: string;
 };
 
-export default function AreaGradeMatrix({ rows, grades }: AreaGradeMatrixProps) {
+export default function AreaGradeMatrix({
+  rows,
+  grades,
+  gradeSourceLabel
+}: AreaGradeMatrixProps) {
   const visibleGrades = grades.filter((grade) =>
     rows.some((row) => Number(row[grade] ?? 0) > 0)
   );
@@ -12,7 +17,7 @@ export default function AreaGradeMatrix({ rows, grades }: AreaGradeMatrixProps) 
     <section className="panel matrix-panel">
       <div className="panel-heading">
         <span className="section-kicker">Map</span>
-        <h2>Areas by my grade</h2>
+        <h2>Areas by {gradeSourceLabel.toLowerCase()}</h2>
       </div>
       <div className="table-wrap">
         <table>

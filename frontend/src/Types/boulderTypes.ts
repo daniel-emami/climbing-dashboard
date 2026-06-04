@@ -28,7 +28,16 @@ export type DashboardStats = {
     guide_grade: GradeCount[];
     my_grade: GradeCount[];
   };
-  area_grade_matrix: Array<Record<string, number | string>>;
+  area_counts_by_grade_source: {
+    grade_27crags: AreaCount[];
+    guide_grade: AreaCount[];
+    my_grade: AreaCount[];
+  };
+  area_grade_matrix_by_grade_source: {
+    grade_27crags: Array<Record<string, number | string>>;
+    guide_grade: Array<Record<string, number | string>>;
+    my_grade: Array<Record<string, number | string>>;
+  };
 };
 
 export type BouldersResponse = {

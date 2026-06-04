@@ -58,6 +58,8 @@ export default function App() {
     [data]
   );
 
+  const activeGradeLabel = GRADE_FIELD_LABELS[activeGradeField];
+
   const handleAddBoulder = async (request: BoulderCreateRequest) => {
     setIsSaving(true);
     try {
@@ -132,13 +134,20 @@ export default function App() {
 
               <div className="insight-grid">
                 <GradeChart
-                  title={`Boulders by ${GRADE_FIELD_LABELS[activeGradeField].toLowerCase()}`}
+                  title={`Boulders by ${activeGradeLabel.toLowerCase()}`}
                   data={data.stats.grade_counts[activeGradeField]}
                 />
-                <AreaChart data={data.stats.areas} />
+                <AreaChart
+                  data={data.stats.area_counts_by_grade_source[activeGradeField]}
+                  gradeSourceLabel={activeGradeLabel}
+                />
               </div>
 
-              <AreaGradeMatrix rows={data.stats.area_grade_matrix} grades={data.grade_order} />
+              <AreaGradeMatrix
+                rows={data.stats.area_grade_matrix_by_grade_source[activeGradeField]}
+                grades={data.grade_order}
+                gradeSourceLabel={activeGradeLabel}
+              />
               <BoulderTable records={data.records} />
             </>
           )}

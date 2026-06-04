@@ -11,14 +11,15 @@ import type { AreaCount } from "../Types/boulderTypes";
 
 type AreaChartProps = {
   data: AreaCount[];
+  gradeSourceLabel: string;
 };
 
-export default function AreaChart({ data }: AreaChartProps) {
+export default function AreaChart({ data, gradeSourceLabel }: AreaChartProps) {
   return (
     <section className="panel chart-panel">
       <div className="panel-heading">
         <span className="section-kicker">Areas</span>
-        <h2>Boulders by area</h2>
+        <h2>Areas by {gradeSourceLabel.toLowerCase()}</h2>
       </div>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart

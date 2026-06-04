@@ -9,6 +9,7 @@ from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
 from ClimbingDashboard.Exceptions.excel_storage_error import ExcelStorageError
 from ClimbingDashboard.Models.area_grade_matrix_row import AreaGradeMatrixRow
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
+from ClimbingDashboard.Models.dashboard_stats import AreaCount, DashboardStats, GradeCount
 from ClimbingDashboard.Storage.excel_storage import ExcelStorage
 
 GRADE_ORDER = (
@@ -33,6 +34,8 @@ GRADE_ORDER = (
     "8b",
     "8b+",
     "8c",
+    "8c+",
+    "9a",
 )
 
 
@@ -50,7 +53,7 @@ class ApiService(BaseApiService):
         records = self._read_records()
         return {
             "records": [record.to_payload() for record in records],
-            "stats": self._build_stats(records),
+            "stats": self._build_stats(records).to_payload(),
             "grade_order": list(GRADE_ORDER),
         }
 
@@ -78,7 +81,7 @@ class ApiService(BaseApiService):
         except ExcelStorageError as exc:
             raise ApiDataError(f"Could not read boulders: {exc}") from exc
 
-    def _build_stats(self, records: list[BoulderRecord]) -> dict[str, object]:
+    def _build_stats(self, records: list[BoulderRecord]) -> DashboardStats:
         by_area = Counter(record.area for record in records if record.area)
         flash_count = sum(1 for record in records if record.flash)
         grade_fields = {
@@ -96,37 +99,59 @@ class ApiService(BaseApiService):
             )
             for field_name, attribute in grade_fields.items()
         }
-        area_grade_matrix = self._area_grade_matrix(records)
-        return {
-            "total": len(records),
-            "flash_count": flash_count,
-            "flash_rate": round(flash_count / len(records), 3) if records else 0,
-            "areas": [{"area": area, "count": count} for area, count in by_area.most_common()],
-            "grade_counts": grade_counts,
-            "area_grade_matrix": area_grade_matrix,
-        }
+        return DashboardStats(
+            total=len(records),
+            flash_count=flash_count,
+            areas=[AreaCount(area=area, count=count) for area, count in by_area.most_common()],
+            grade_counts=grade_counts,
+            area_counts_by_grade_source={
+                field_name: self._area_counts(records, attribute)
+                for field_name, attribute in grade_fields.items()
+            },
+            area_grade_matrix_by_grade_source={
+                field_name: self._area_grade_matrix(records, attribute)
+                for field_name, attribute in grade_fields.items()
+            },
+            grade_order=GRADE_ORDER,
+        )
 
-    def _ordered_counts(self, counts: Counter[str]) -> list[dict[str, object]]:
+    def _ordered_counts(self, counts: Counter[str]) -> list[GradeCount]:
         known = [
-            {"grade": grade, "count": counts.pop(grade)}
+            GradeCount(grade=grade, count=counts.pop(grade))
             for grade in GRADE_ORDER
             if counts.get(grade, 0) > 0
         ]
         unknown = [
-            {"grade": grade, "count": count}
+            GradeCount(grade=grade, count=count)
             for grade, count in sorted(counts.items(), key=lambda item: item[0])
         ]
         return known + unknown
 
-    def _area_grade_matrix(self, records: list[BoulderRecord]) -> list[dict[str, object]]:
+    def _area_counts(
+        self,
+        records: list[BoulderRecord],
+        grade_attribute: str,
+    ) -> list[AreaCount]:
+        counts = Counter(
+            record.area
+            for record in records
+            if record.area and getattr(record, grade_attribute)
+        )
+        return [AreaCount(area=area, count=count) for area, count in counts.most_common()]
+
+    def _area_grade_matrix(
+        self,
+        records: list[BoulderRecord],
+        grade_attribute: str,
+    ) -> list[AreaGradeMatrixRow]:
         matrix: dict[str, Counter[str]] = defaultdict(Counter)
         for record in records:
-            if record.area and record.my_grade:
-                matrix[record.area][record.my_grade] += 1
+            grade = getattr(record, grade_attribute)
+            if record.area and grade:
+                matrix[record.area][grade] += 1
 
         rows = [
             AreaGradeMatrixRow(area=area, grade_counts=grade_counts)
             for area, grade_counts in matrix.items()
         ]
-        sorted_rows = sorted(rows, key=lambda row: row.total, reverse=True)
-        return [row.to_payload(GRADE_ORDER) for row in sorted_rows]
+        return sorted(rows, key=lambda row: row.total, reverse=True)
