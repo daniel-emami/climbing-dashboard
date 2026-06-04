@@ -5,6 +5,7 @@ from pathlib import Path
 
 from ClimbingDashboard.Api.api_models import BoulderCreateRequest, BouldersPayload
 from ClimbingDashboard.Api.base_api_service import BaseApiService
+from ClimbingDashboard.Config.constants import GRADE_ORDER
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
 from ClimbingDashboard.Exceptions.excel_storage_error import ExcelStorageError
 from ClimbingDashboard.Models.area_grade_matrix_row import AreaGradeMatrixRow
@@ -15,7 +16,6 @@ from ClimbingDashboard.Models.dashboard_stats import (
     GradeCount,
 )
 from ClimbingDashboard.Storage.excel_storage import ExcelStorage
-from ClimbingDashboard.Config.constants import GRADE_ORDER
 
 
 class ApiService(BaseApiService):

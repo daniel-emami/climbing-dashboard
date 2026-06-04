@@ -14,12 +14,12 @@ type AreaChartProps = {
   gradeSourceLabel: string;
 };
 
-export default function AreaChart({ data, gradeSourceLabel }: AreaChartProps) {
+export default function AreaChart({ data }: AreaChartProps) {
   return (
     <section className="panel chart-panel">
       <div className="panel-heading">
         <span className="section-kicker">Areas</span>
-        <h2>Areas by {gradeSourceLabel.toLowerCase()}</h2>
+        <h2>Areas by grade</h2>
       </div>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart
