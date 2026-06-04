@@ -5,35 +5,17 @@ from pathlib import Path
 
 from ClimbingDashboard.Api.api_models import BoulderCreateRequest, BouldersPayload
 from ClimbingDashboard.Api.base_api_service import BaseApiService
+from ClimbingDashboard.Config.constants import GRADE_ORDER, GRADE_SOURCE_FIELDS
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
 from ClimbingDashboard.Exceptions.excel_storage_error import ExcelStorageError
 from ClimbingDashboard.Models.area_grade_matrix_row import AreaGradeMatrixRow
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
-from ClimbingDashboard.Storage.excel_storage import ExcelStorage
-
-GRADE_ORDER = (
-    "4",
-    "4+",
-    "5",
-    "5+",
-    "6a",
-    "6a+",
-    "6b",
-    "6b+",
-    "6c",
-    "6c+",
-    "7a",
-    "7a+",
-    "7b",
-    "7b+",
-    "7c",
-    "7c+",
-    "8a",
-    "8a+",
-    "8b",
-    "8b+",
-    "8c",
+from ClimbingDashboard.Models.dashboard_stats import (
+    AreaCount,
+    DashboardStats,
+    GradeCount,
 )
+from ClimbingDashboard.Storage.excel_storage import ExcelStorage
 
 
 class ApiService(BaseApiService):
@@ -50,7 +32,7 @@ class ApiService(BaseApiService):
         records = self._read_records()
         return {
             "records": [record.to_payload() for record in records],
-            "stats": self._build_stats(records),
+            "stats": self._build_stats(records).to_payload(),
             "grade_order": list(GRADE_ORDER),
         }
 
@@ -61,7 +43,7 @@ class ApiService(BaseApiService):
             name=request.name,
             grade_27crags=request.grade_27crags,
             guide_grade=request.guide_grade,
-            min_grade=request.min_grade,
+            my_grade=request.my_grade,
             area=request.area,
             flash=request.flash,
             climbed_on=request.climbed_on,
@@ -78,55 +60,77 @@ class ApiService(BaseApiService):
         except ExcelStorageError as exc:
             raise ApiDataError(f"Could not read boulders: {exc}") from exc
 
-    def _build_stats(self, records: list[BoulderRecord]) -> dict[str, object]:
+    def _build_stats(self, records: list[BoulderRecord]) -> DashboardStats:
         by_area = Counter(record.area for record in records if record.area)
         flash_count = sum(1 for record in records if record.flash)
-        grade_fields = {
-            "grade_27crags": "grade_27crags",
-            "guide_grade": "guide_grade",
-            "min_grade": "min_grade",
-        }
         grade_counts = {
             field_name: self._ordered_counts(
                 Counter(
-                    getattr(record, attribute)
+                    getattr(record, field_name)
                     for record in records
-                    if getattr(record, attribute)
+                    if getattr(record, field_name)
                 )
             )
-            for field_name, attribute in grade_fields.items()
+            for field_name in GRADE_SOURCE_FIELDS
         }
-        area_grade_matrix = self._area_grade_matrix(records)
-        return {
-            "total": len(records),
-            "flash_count": flash_count,
-            "flash_rate": round(flash_count / len(records), 3) if records else 0,
-            "areas": [{"area": area, "count": count} for area, count in by_area.most_common()],
-            "grade_counts": grade_counts,
-            "area_grade_matrix": area_grade_matrix,
-        }
+        return DashboardStats(
+            total=len(records),
+            flash_count=flash_count,
+            areas=[
+                AreaCount(area=area, count=count)
+                for area, count in by_area.most_common()
+            ],
+            grade_counts=grade_counts,
+            area_counts_by_grade_source={
+                field_name: self._area_counts(records, field_name)
+                for field_name in GRADE_SOURCE_FIELDS
+            },
+            area_grade_matrix_by_grade_source={
+                field_name: self._area_grade_matrix(records, field_name)
+                for field_name in GRADE_SOURCE_FIELDS
+            },
+            grade_order=GRADE_ORDER,
+        )
 
-    def _ordered_counts(self, counts: Counter[str]) -> list[dict[str, object]]:
+    def _ordered_counts(self, counts: Counter[str]) -> list[GradeCount]:
         known = [
-            {"grade": grade, "count": counts.pop(grade)}
+            GradeCount(grade=grade, count=counts.pop(grade))
             for grade in GRADE_ORDER
             if counts.get(grade, 0) > 0
         ]
         unknown = [
-            {"grade": grade, "count": count}
+            GradeCount(grade=grade, count=count)
             for grade, count in sorted(counts.items(), key=lambda item: item[0])
         ]
         return known + unknown
 
-    def _area_grade_matrix(self, records: list[BoulderRecord]) -> list[dict[str, object]]:
+    def _area_counts(
+        self,
+        records: list[BoulderRecord],
+        grade_attribute: str,
+    ) -> list[AreaCount]:
+        counts = Counter(
+            record.area
+            for record in records
+            if record.area and getattr(record, grade_attribute)
+        )
+        return [
+            AreaCount(area=area, count=count) for area, count in counts.most_common()
+        ]
+
+    def _area_grade_matrix(
+        self,
+        records: list[BoulderRecord],
+        grade_attribute: str,
+    ) -> list[AreaGradeMatrixRow]:
         matrix: dict[str, Counter[str]] = defaultdict(Counter)
         for record in records:
-            if record.area and record.min_grade:
-                matrix[record.area][record.min_grade] += 1
+            grade = getattr(record, grade_attribute)
+            if record.area and grade:
+                matrix[record.area][grade] += 1
 
         rows = [
             AreaGradeMatrixRow(area=area, grade_counts=grade_counts)
             for area, grade_counts in matrix.items()
         ]
-        sorted_rows = sorted(rows, key=lambda row: row.total, reverse=True)
-        return [row.to_payload(GRADE_ORDER) for row in sorted_rows]
+        return sorted(rows, key=lambda row: row.total, reverse=True)

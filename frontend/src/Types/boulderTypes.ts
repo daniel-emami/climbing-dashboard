@@ -2,7 +2,7 @@ export type BoulderRecord = {
   name: string;
   grade_27crags: string;
   guide_grade: string;
-  min_grade: string;
+  my_grade: string;
   area: string;
   flash: boolean;
   climbed_on: string | null;
@@ -26,9 +26,18 @@ export type DashboardStats = {
   grade_counts: {
     grade_27crags: GradeCount[];
     guide_grade: GradeCount[];
-    min_grade: GradeCount[];
+    my_grade: GradeCount[];
   };
-  area_grade_matrix: Array<Record<string, number | string>>;
+  area_counts_by_grade_source: {
+    grade_27crags: AreaCount[];
+    guide_grade: AreaCount[];
+    my_grade: AreaCount[];
+  };
+  area_grade_matrix_by_grade_source: {
+    grade_27crags: Array<Record<string, number | string>>;
+    guide_grade: Array<Record<string, number | string>>;
+    my_grade: Array<Record<string, number | string>>;
+  };
 };
 
 export type BouldersResponse = {
@@ -41,10 +50,10 @@ export type BoulderCreateRequest = {
   name: string;
   grade_27crags: string;
   guide_grade: string;
-  min_grade: string;
+  my_grade: string;
   area: string;
   flash: boolean;
   climbed_on: string | null;
 };
 
-export type GradeField = "grade_27crags" | "guide_grade" | "min_grade";
+export type GradeField = "grade_27crags" | "guide_grade" | "my_grade";

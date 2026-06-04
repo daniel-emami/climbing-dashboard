@@ -18,7 +18,7 @@ SOURCE_COLUMNS = {
     "A": "Navn",
     "B": "27Crags grade",
     "C": "Guide grade",
-    "D": "Min grade",
+    "D": "My grade",
     "E": "Område",
     "F": "Flash",
     "G": "Dato",
@@ -58,7 +58,7 @@ class ExcelStorage(BaseStorage):
             worksheet.cell(next_row, 1, record.name)
             worksheet.cell(next_row, 2, record.grade_27crags)
             worksheet.cell(next_row, 3, record.guide_grade)
-            worksheet.cell(next_row, 4, record.min_grade)
+            worksheet.cell(next_row, 4, record.my_grade)
             worksheet.cell(next_row, 5, record.area)
             worksheet.cell(next_row, 6, 1 if record.flash else 0)
             date_cell = worksheet.cell(next_row, 7, to_excel_date(record.climbed_on))
@@ -94,7 +94,7 @@ class ExcelStorage(BaseStorage):
                 name=self._text(row[0]),
                 grade_27crags=self._text(row[1]),
                 guide_grade=self._text(row[2]),
-                min_grade=self._text(row[3]),
+                my_grade=self._text(row[3]),
                 area=self._text(row[4]),
                 flash=self._bool(row[5]),
                 climbed_on=parse_excel_date(row[6]),

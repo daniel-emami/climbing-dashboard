@@ -11,6 +11,7 @@ import type { AreaCount } from "../Types/boulderTypes";
 
 type AreaChartProps = {
   data: AreaCount[];
+  gradeSourceLabel: string;
 };
 
 export default function AreaChart({ data }: AreaChartProps) {
@@ -18,7 +19,7 @@ export default function AreaChart({ data }: AreaChartProps) {
     <section className="panel chart-panel">
       <div className="panel-heading">
         <span className="section-kicker">Areas</span>
-        <h2>Boulders by area</h2>
+        <h2>Areas by grade</h2>
       </div>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart
@@ -30,7 +31,7 @@ export default function AreaChart({ data }: AreaChartProps) {
           <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
           <YAxis type="category" dataKey="area" width={78} tickLine={false} axisLine={false} />
           <Tooltip cursor={{ fill: "#eef6f5" }} />
-          <Bar dataKey="count" fill="#3564a8" radius={[0, 4, 4, 0]} />
+          <Bar dataKey="count" fill="#cc4f4f" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </section>

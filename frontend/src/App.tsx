@@ -5,16 +5,16 @@ import AreaGradeMatrix from "./Components/AreaGradeMatrix";
 import BoulderForm from "./Components/BoulderForm";
 import BoulderTable from "./Components/BoulderTable";
 import ErrorState from "./Components/ErrorState";
-import GradeChart from "./Components/GradeChart";
+import GradeChart, { type GradeChartSeries } from "./Components/GradeChart";
 import LoadingState from "./Components/LoadingState";
 import SummaryStrip from "./Components/SummaryStrip";
+import {
+  GRADE_SOURCE_COLORS,
+  GRADE_SOURCE_FIELDS,
+  GRADE_SOURCE_LABELS,
+  type GradeChartMode
+} from "./Config/gradeSources";
 import type { BoulderCreateRequest, BouldersResponse, GradeField } from "./Types/boulderTypes";
-
-const GRADE_FIELD_LABELS: Record<GradeField, string> = {
-  grade_27crags: "27Crags grade",
-  guide_grade: "Guide grade",
-  min_grade: "Min grade"
-};
 
 function formatRefreshTime(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -26,7 +26,8 @@ export default function App() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [activeGradeField, setActiveGradeField] = useState<GradeField>("min_grade");
+  const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("my_grade");
+  const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("my_grade");
 
   const loadStoredData = useCallback(async () => {
     try {
@@ -53,10 +54,28 @@ export default function App() {
   const knownGrades = useMemo(
     () =>
       data?.grade_order.filter((grade) =>
-        data.stats.grade_counts.min_grade.some((entry) => entry.grade === grade)
+        data.stats.grade_counts.my_grade.some((entry) => entry.grade === grade)
       ) ?? [],
     [data]
   );
+
+  const activeAreaMapGradeLabel = GRADE_SOURCE_LABELS[activeAreaMapGradeField];
+  const gradeChartSeries = useMemo<GradeChartSeries[]>(() => {
+    if (!data) {
+      return [];
+    }
+    const fields = gradeChartMode === "all" ? GRADE_SOURCE_FIELDS : [gradeChartMode];
+    return fields.map((field) => ({
+      key: field,
+      label: GRADE_SOURCE_LABELS[field],
+      color: GRADE_SOURCE_COLORS[field],
+      data: data.stats.grade_counts[field]
+    }));
+  }, [data, gradeChartMode]);
+  const gradeChartTitle =
+    gradeChartMode === "all"
+      ? "Boulders by all grade sources"
+      : `Boulders by ${GRADE_SOURCE_LABELS[gradeChartMode].toLowerCase()}`;
 
   const handleAddBoulder = async (request: BoulderCreateRequest) => {
     setIsSaving(true);
@@ -114,33 +133,50 @@ export default function App() {
 
               <section className="panel grade-controls-panel">
                 <div className="panel-heading">
-                  <span className="section-kicker">Display</span>
-                  <h2>Grade source</h2>
+                  <span className="section-kicker">Select Grade Source</span>
                 </div>
                 <div className="segmented-control" role="group" aria-label="Grade source">
-                  {(Object.keys(GRADE_FIELD_LABELS) as GradeField[]).map((field) => (
+                  {GRADE_SOURCE_FIELDS.map((field) => (
                     <button
-                      className={field === activeGradeField ? "active" : ""}
+                      className={field === gradeChartMode ? "active" : ""}
                       key={field}
                       type="button"
-                      onClick={() => setActiveGradeField(field)}
+                      onClick={() => {
+                        setActiveAreaMapGradeField(field);
+                        setGradeChartMode(field);
+                      }}
                     >
-                      {GRADE_FIELD_LABELS[field]}
+                      {GRADE_SOURCE_LABELS[field]}
                     </button>
                   ))}
+                  <button
+                    className={gradeChartMode === "all" ? "active" : ""}
+                    type="button"
+                    onClick={() => setGradeChartMode("all")}
+                  >
+                    All
+                  </button>
                 </div>
               </section>
 
               <div className="insight-grid">
                 <GradeChart
-                  title={`Boulders by ${GRADE_FIELD_LABELS[activeGradeField].toLowerCase()}`}
-                  data={data.stats.grade_counts[activeGradeField]}
+                  title={gradeChartTitle}
+                  gradeOrder={data.grade_order}
+                  series={gradeChartSeries}
                 />
-                <AreaChart data={data.stats.areas} />
+                <AreaChart
+                  data={data.stats.area_counts_by_grade_source[activeAreaMapGradeField]}
+                  gradeSourceLabel={activeAreaMapGradeLabel}
+                />
               </div>
 
-              <AreaGradeMatrix rows={data.stats.area_grade_matrix} grades={data.grade_order} />
-              <BoulderTable records={data.records} />
+              <AreaGradeMatrix
+                rows={data.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
+                grades={data.grade_order}
+                gradeSourceLabel={activeAreaMapGradeLabel}
+              />
+              <BoulderTable records={data.records} gradeOrder={data.grade_order} />
             </>
           )}
         </section>
