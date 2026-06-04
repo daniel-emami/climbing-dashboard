@@ -13,5 +13,5 @@ class BaseApiService(ABC):
         """Return climbed boulders and calculated dashboard statistics."""
 
     @abstractmethod
-    def add_boulder(self, request: BoulderCreateRequest) -> BouldersPayload:
+    def save_boulder(self, request: BoulderCreateRequest) -> BouldersPayload:
         """Persist a climbed boulder and return the refreshed dashboard payload."""

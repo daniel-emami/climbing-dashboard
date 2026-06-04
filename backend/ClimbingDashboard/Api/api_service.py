@@ -36,7 +36,7 @@ class ApiService(BaseApiService):
             "grade_order": list(GRADE_ORDER),
         }
 
-    def add_boulder(self, request: BoulderCreateRequest) -> BouldersPayload:
+    def save_boulder(self, request: BoulderCreateRequest) -> BouldersPayload:
         """Append one boulder, then return the refreshed dashboard payload."""
 
         record = BoulderRecord(

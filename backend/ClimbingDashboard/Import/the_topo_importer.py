@@ -25,10 +25,10 @@ class TheTopoAscentsImporter(BaseAscentsImporter):
         """Return public boulder ascents for one TheTopo username."""
 
         html = self.client.get_boulder_ascents_html(username)
-        ascents, skipped_count = self.parser.parse_boulder_ascents(html)
+        boulders, skipped_count = self.parser.parse_boulder_ascents(html)
         return ImportPreview(
             source=self.source,
             username=username,
-            ascents=ascents,
+            boulders=boulders,
             skipped_count=skipped_count,
         )

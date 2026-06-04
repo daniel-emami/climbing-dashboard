@@ -4,9 +4,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from html import unescape
 from html.parser import HTMLParser
-from urllib.parse import urljoin
 
-from ClimbingDashboard.Import.imported_ascent import ImportedAscent
+from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Utilities.date_utils import parse_excel_date
 
 
@@ -103,31 +102,31 @@ class TheTopoParser:
 
     source = "thetopo"
 
-    def parse_boulder_ascents(self, html: str) -> tuple[list[ImportedAscent], int]:
+    def parse_boulder_ascents(self, html: str) -> tuple[list[BoulderRecord], int]:
         """Parse boulder ascents and return imported ascents plus skipped rows."""
 
         table_parser = TheTopoAscentsTableParser()
         table_parser.feed(html)
-        ascents: list[ImportedAscent] = []
+        boulders: list[BoulderRecord] = []
         skipped_count = 0
         for row in table_parser.rows:
             if self._is_header_row(row):
                 continue
-            ascent = self._parse_row(row)
-            if ascent is None:
+            boulder = self._parse_row(row)
+            if boulder is None:
                 skipped_count += 1
                 continue
-            ascents.append(ascent)
-        return ascents, skipped_count
+            boulders.append(boulder)
+        return boulders, skipped_count
 
-    def _parse_row(self, row: list[ParsedCell]) -> ImportedAscent | None:
+    def _parse_row(self, row: list[ParsedCell]) -> BoulderRecord | None:
         if len(row) < 6:
             return None
         route_cell, grade_cell, crag_cell, type_cell, date_cell, ascent_type_cell = row[:6]
         if type_cell.text.strip().lower() != "boulder":
             return None
 
-        name, source_url = self._route_name_and_url(route_cell)
+        name = self._route_name(route_cell)
         area = self._crag_name(crag_cell)
         if not name or not area:
             return None
@@ -135,32 +134,28 @@ class TheTopoParser:
         my_grade, grade_27crags = self._grades(grade_cell)
         climbed_on = self._date(date_cell.text)
         ascent_type = ascent_type_cell.text
-        return ImportedAscent(
+        return BoulderRecord(
             name=name,
-            area=area,
             grade_27crags=grade_27crags,
             guide_grade="",
             my_grade=my_grade,
+            area=area,
             flash=ascent_type.strip().lower() == "flash",
             climbed_on=climbed_on,
-            ascent_type=ascent_type,
-            source=self.source,
-            source_url=source_url,
         )
 
     def _is_header_row(self, row: list[ParsedCell]) -> bool:
         return bool(row) and row[0].text.strip().lower() == "route"
 
-    def _route_name_and_url(self, cell: ParsedCell) -> tuple[str, str]:
+    def _route_name(self, cell: ParsedCell) -> str:
         route_links = [
-            (href, text)
+            text
             for href, text in cell.links
             if "/routes/" in href and text
         ]
         if not route_links:
-            return "", ""
-        href, text = route_links[-1]
-        return text, urljoin("https://thetopo.com", href)
+            return ""
+        return route_links[-1]
 
     def _crag_name(self, cell: ParsedCell) -> str:
         crag_links = [
@@ -181,8 +176,12 @@ class TheTopoParser:
         if not tokens:
             return "", ""
         if len(tokens) == 1:
-            return tokens[0], tokens[0]
-        return tokens[0], tokens[-1]
+            grade = self._normalize_grade(tokens[0])
+            return grade, grade
+        return self._normalize_grade(tokens[0]), self._normalize_grade(tokens[-1])
+
+    def _normalize_grade(self, value: str) -> str:
+        return value.strip().lower()
 
     def _date(self, value: str) -> date | None:
         try:

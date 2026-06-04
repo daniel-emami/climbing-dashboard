@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ClimbingDashboard.Import.imported_ascent import ImportedAscent
+from ClimbingDashboard.Models.boulder_record import BoulderRecord
 
 
 @dataclass(frozen=True)
@@ -11,14 +11,14 @@ class ImportPreview:
 
     source: str
     username: str
-    ascents: list[ImportedAscent]
+    boulders: list[BoulderRecord]
     skipped_count: int
 
     @property
     def imported_count(self) -> int:
         """Return the number of boulder ascents in this preview."""
 
-        return len(self.ascents)
+        return len(self.boulders)
 
     def to_payload(self) -> dict[str, object]:
         """Return frontend-ready preview data."""
@@ -28,5 +28,5 @@ class ImportPreview:
             "username": self.username,
             "imported_count": self.imported_count,
             "skipped_count": self.skipped_count,
-            "ascents": [ascent.to_payload() for ascent in self.ascents],
+            "boulders": [boulder.to_payload() for boulder in self.boulders],
         }

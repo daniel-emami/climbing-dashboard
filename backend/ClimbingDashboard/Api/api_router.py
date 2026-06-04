@@ -9,7 +9,8 @@ from ClimbingDashboard.Api.api_service import ApiService
 from ClimbingDashboard.Api.import_service import ImportService
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
 from ClimbingDashboard.Exceptions.excel_storage_error import ExcelStorageError
-from ClimbingDashboard.Import.imported_ascent import ImportedAscent
+from ClimbingDashboard.Models.boulder_record import BoulderRecord
+from ClimbingDashboard.Utilities.date_utils import parse_excel_date
 
 router = APIRouter()
 BOULDER_BODY = Body(...)
@@ -47,7 +48,7 @@ def add_boulder(
 
     try:
         boulder = BoulderCreateRequest.from_payload(payload)
-        return get_api_service(request).add_boulder(boulder)
+        return get_api_service(request).save_boulder(boulder)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ApiDataError as exc:
@@ -81,16 +82,28 @@ def confirm_import(
         if source.strip().lower() != str(payload.get("source", source)).strip().lower():
             raise ValueError("Import source in URL and payload must match")
         get_import_service(request).ensure_supported_source(source)
-        ascents_payload = payload.get("ascents", [])
-        if not isinstance(ascents_payload, list):
-            raise ValueError("ascents must be a list")
-        ascents = [
-            ImportedAscent.from_payload(ascent)
-            for ascent in ascents_payload
-            if isinstance(ascent, dict)
+        boulders_payload = payload.get("boulders", [])
+        if not isinstance(boulders_payload, list):
+            raise ValueError("boulders must be a list")
+        boulders = [
+            _boulder_from_payload(boulder)
+            for boulder in boulders_payload
+            if isinstance(boulder, dict)
         ]
-        return get_import_service(request).confirm_import(ascents)
+        return get_import_service(request).confirm_import(boulders)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ExcelStorageError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+def _boulder_from_payload(payload: dict[str, Any]) -> BoulderRecord:
+    return BoulderRecord(
+        name=str(payload.get("name", "")).strip(),
+        grade_27crags=str(payload.get("grade_27crags", "")).strip(),
+        guide_grade=str(payload.get("guide_grade", "")).strip(),
+        my_grade=str(payload.get("my_grade", "")).strip(),
+        area=str(payload.get("area", "")).strip(),
+        flash=bool(payload.get("flash", False)),
+        climbed_on=parse_excel_date(payload.get("climbed_on")),
+    )

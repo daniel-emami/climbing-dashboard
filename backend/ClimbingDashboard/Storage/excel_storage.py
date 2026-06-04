@@ -61,16 +61,24 @@ class ExcelStorage(BaseStorage):
             worksheet = workbook.worksheets[0]
             self._validate_headers(worksheet)
             next_row = self._next_source_row(worksheet)
+            existing_keys = self._existing_boulder_keys(worksheet)
+            appended_records: list[BoulderRecord] = []
             for record in records:
+                record_key = self._boulder_key(record.name, record.area)
+                if record_key in existing_keys:
+                    logger.info("Skipping duplicate boulder %s in %s", record.name, record.area)
+                    continue
                 self._write_record_row(worksheet, next_row, record)
+                existing_keys.add(record_key)
+                appended_records.append(record)
                 next_row += 1
             workbook.save(self.workbook_path)
-            logger.info("Appended %s boulders to %s", len(records), self.workbook_path)
+            logger.info("Appended %s boulders to %s", len(appended_records), self.workbook_path)
         except ExcelStorageError:
             raise
         except Exception as exc:
             raise ExcelStorageError(f"Failed to append boulders: {exc}") from exc
-        return records
+        return appended_records
 
     def _load_worksheet(self) -> Worksheet:
         if not self.workbook_path.exists():
@@ -123,6 +131,18 @@ class ExcelStorage(BaseStorage):
         worksheet.cell(row_number, 6, 1 if record.flash else 0)
         date_cell = worksheet.cell(row_number, 7, to_excel_date(record.climbed_on))
         date_cell.number_format = "yyyy-mm-dd"
+
+    def _existing_boulder_keys(self, worksheet: Worksheet) -> set[tuple[str, str]]:
+        keys: set[tuple[str, str]] = set()
+        for row in worksheet.iter_rows(min_row=2, max_col=5, values_only=True):
+            name = self._text(row[0])
+            area = self._text(row[4])
+            if name and area:
+                keys.add(self._boulder_key(name, area))
+        return keys
+
+    def _boulder_key(self, name: str, area: str) -> tuple[str, str]:
+        return (name.strip().casefold(), area.strip().casefold())
 
     def _text(self, value: object) -> str:
         return "" if value is None else str(value).strip()
