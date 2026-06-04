@@ -5,7 +5,7 @@ const EMPTY_FORM: BoulderCreateRequest = {
   name: "",
   grade_27crags: "",
   guide_grade: "",
-  min_grade: "",
+  my_grade: "",
   area: "",
   flash: false,
   climbed_on: new Date().toISOString().slice(0, 10)
@@ -76,11 +76,11 @@ export default function BoulderForm({
           />
         </label>
         <label>
-          Min
+          My
           <input
             list="known-grades"
-            value={form.min_grade}
-            onChange={(event) => updateForm("min_grade", event.target.value)}
+            value={form.my_grade}
+            onChange={(event) => updateForm("my_grade", event.target.value)}
           />
         </label>
       </div>

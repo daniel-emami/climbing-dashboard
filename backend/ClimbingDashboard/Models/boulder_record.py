@@ -11,7 +11,7 @@ class BoulderRecord:
     name: str
     grade_27crags: str
     guide_grade: str
-    min_grade: str
+    my_grade: str
     area: str
     flash: bool
     climbed_on: date | None
@@ -23,7 +23,7 @@ class BoulderRecord:
             "name": self.name,
             "grade_27crags": self.grade_27crags,
             "guide_grade": self.guide_grade,
-            "min_grade": self.min_grade,
+            "my_grade": self.my_grade,
             "area": self.area,
             "flash": self.flash,
             "climbed_on": self.climbed_on.isoformat() if self.climbed_on else None,

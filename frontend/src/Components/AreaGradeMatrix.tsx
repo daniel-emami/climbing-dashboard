@@ -12,7 +12,7 @@ export default function AreaGradeMatrix({ rows, grades }: AreaGradeMatrixProps) 
     <section className="panel matrix-panel">
       <div className="panel-heading">
         <span className="section-kicker">Map</span>
-        <h2>Areas by min grade</h2>
+        <h2>Areas by my grade</h2>
       </div>
       <div className="table-wrap">
         <table>

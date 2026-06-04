@@ -61,7 +61,7 @@ class ApiService(BaseApiService):
             name=request.name,
             grade_27crags=request.grade_27crags,
             guide_grade=request.guide_grade,
-            min_grade=request.min_grade,
+            my_grade=request.my_grade,
             area=request.area,
             flash=request.flash,
             climbed_on=request.climbed_on,
@@ -84,7 +84,7 @@ class ApiService(BaseApiService):
         grade_fields = {
             "grade_27crags": "grade_27crags",
             "guide_grade": "guide_grade",
-            "min_grade": "min_grade",
+            "my_grade": "my_grade",
         }
         grade_counts = {
             field_name: self._ordered_counts(
@@ -121,8 +121,8 @@ class ApiService(BaseApiService):
     def _area_grade_matrix(self, records: list[BoulderRecord]) -> list[dict[str, object]]:
         matrix: dict[str, Counter[str]] = defaultdict(Counter)
         for record in records:
-            if record.area and record.min_grade:
-                matrix[record.area][record.min_grade] += 1
+            if record.area and record.my_grade:
+                matrix[record.area][record.my_grade] += 1
 
         rows = [
             AreaGradeMatrixRow(area=area, grade_counts=grade_counts)

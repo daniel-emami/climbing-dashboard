@@ -50,7 +50,7 @@ Open `http://localhost:5173`.
 The backend currently expects these headers in row 1 of `data/Boulders_Ticklist.xlsx`:
 
 ```text
-Navn | 27Crags grade | Guide grade | Min grade | Område | Flash | Dato
+Navn | 27Crags grade | Guide grade | My grade | Område | Flash | Dato
 ```
 
 Normal formulas and workbook content are preserved when new rows are appended. `openpyxl` may remove unsupported Excel-only extensions if the workbook uses them, so keep a backup before heavy editing.

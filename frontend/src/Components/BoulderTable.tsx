@@ -19,7 +19,7 @@ export default function BoulderTable({ records }: BoulderTableProps) {
               <th>Area</th>
               <th>27Crags</th>
               <th>Guide</th>
-              <th>Min</th>
+              <th>My</th>
               <th>Flash</th>
               <th>Date</th>
             </tr>
@@ -35,7 +35,7 @@ export default function BoulderTable({ records }: BoulderTableProps) {
                   <td>{record.area}</td>
                   <td>{record.grade_27crags}</td>
                   <td>{record.guide_grade}</td>
-                  <td>{record.min_grade}</td>
+                  <td>{record.my_grade}</td>
                   <td>{record.flash ? "Yes" : ""}</td>
                   <td>{record.climbed_on ?? ""}</td>
                 </tr>

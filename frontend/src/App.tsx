@@ -13,7 +13,7 @@ import type { BoulderCreateRequest, BouldersResponse, GradeField } from "./Types
 const GRADE_FIELD_LABELS: Record<GradeField, string> = {
   grade_27crags: "27Crags grade",
   guide_grade: "Guide grade",
-  min_grade: "Min grade"
+  my_grade: "My grade"
 };
 
 function formatRefreshTime(): string {
@@ -26,7 +26,7 @@ export default function App() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [activeGradeField, setActiveGradeField] = useState<GradeField>("min_grade");
+  const [activeGradeField, setActiveGradeField] = useState<GradeField>("my_grade");
 
   const loadStoredData = useCallback(async () => {
     try {
@@ -53,7 +53,7 @@ export default function App() {
   const knownGrades = useMemo(
     () =>
       data?.grade_order.filter((grade) =>
-        data.stats.grade_counts.min_grade.some((entry) => entry.grade === grade)
+        data.stats.grade_counts.my_grade.some((entry) => entry.grade === grade)
       ) ?? [],
     [data]
   );
@@ -114,8 +114,7 @@ export default function App() {
 
               <section className="panel grade-controls-panel">
                 <div className="panel-heading">
-                  <span className="section-kicker">Display</span>
-                  <h2>Grade source</h2>
+                  <span className="section-kicker">Select Grade Source</span>
                 </div>
                 <div className="segmented-control" role="group" aria-label="Grade source">
                   {(Object.keys(GRADE_FIELD_LABELS) as GradeField[]).map((field) => (
