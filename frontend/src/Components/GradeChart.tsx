@@ -49,7 +49,7 @@ export default function GradeChart({ title, gradeOrder, series }: GradeChartProp
         <h2>{title}</h2>
       </div>
       <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={chartData} margin={{ top: 12, right: 12, left: -18, bottom: 0 }}>
+        <BarChart data={chartData} barCategoryGap="22%" margin={{ top: 12, right: 12, left: -18, bottom: 0 }}>
           <CartesianGrid stroke="#e2e8f0" vertical={false} />
           <XAxis dataKey="grade" tickLine={false} axisLine={false} />
           <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
