@@ -31,7 +31,7 @@ export default function AreaChart({ data }: AreaChartProps) {
           <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
           <YAxis type="category" dataKey="area" width={78} tickLine={false} axisLine={false} />
           <Tooltip cursor={{ fill: "#eef6f5" }} />
-          <Bar dataKey="count" fill="#da6969" radius={[0, 4, 4, 0]} />
+          <Bar dataKey="count" fill="#cc4f4f" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </section>

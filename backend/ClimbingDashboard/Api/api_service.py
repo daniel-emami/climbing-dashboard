@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ClimbingDashboard.Api.api_models import BoulderCreateRequest, BouldersPayload
 from ClimbingDashboard.Api.base_api_service import BaseApiService
-from ClimbingDashboard.Config.constants import GRADE_ORDER
+from ClimbingDashboard.Config.constants import GRADE_ORDER, GRADE_SOURCE_FIELDS
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
 from ClimbingDashboard.Exceptions.excel_storage_error import ExcelStorageError
 from ClimbingDashboard.Models.area_grade_matrix_row import AreaGradeMatrixRow
@@ -63,20 +63,15 @@ class ApiService(BaseApiService):
     def _build_stats(self, records: list[BoulderRecord]) -> DashboardStats:
         by_area = Counter(record.area for record in records if record.area)
         flash_count = sum(1 for record in records if record.flash)
-        grade_fields = {
-            "grade_27crags": "grade_27crags",
-            "guide_grade": "guide_grade",
-            "my_grade": "my_grade",
-        }
         grade_counts = {
             field_name: self._ordered_counts(
                 Counter(
-                    getattr(record, attribute)
+                    getattr(record, field_name)
                     for record in records
-                    if getattr(record, attribute)
+                    if getattr(record, field_name)
                 )
             )
-            for field_name, attribute in grade_fields.items()
+            for field_name in GRADE_SOURCE_FIELDS
         }
         return DashboardStats(
             total=len(records),
@@ -87,12 +82,12 @@ class ApiService(BaseApiService):
             ],
             grade_counts=grade_counts,
             area_counts_by_grade_source={
-                field_name: self._area_counts(records, attribute)
-                for field_name, attribute in grade_fields.items()
+                field_name: self._area_counts(records, field_name)
+                for field_name in GRADE_SOURCE_FIELDS
             },
             area_grade_matrix_by_grade_source={
-                field_name: self._area_grade_matrix(records, attribute)
-                for field_name, attribute in grade_fields.items()
+                field_name: self._area_grade_matrix(records, field_name)
+                for field_name in GRADE_SOURCE_FIELDS
             },
             grade_order=GRADE_ORDER,
         )

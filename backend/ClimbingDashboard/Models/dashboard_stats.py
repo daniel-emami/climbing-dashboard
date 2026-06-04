@@ -31,28 +31,17 @@ class GradeCount:
         return {"grade": self.grade, "count": self.count}
 
 
+@dataclass(frozen=True)
 class DashboardStats:
     """Calculated dashboard statistics for climbed boulders."""
 
-    def __init__(
-        self,
-        total: int,
-        flash_count: int,
-        areas: list[AreaCount],
-        grade_counts: dict[str, list[GradeCount]],
-        area_counts_by_grade_source: dict[str, list[AreaCount]],
-        area_grade_matrix_by_grade_source: dict[str, list[AreaGradeMatrixRow]],
-        grade_order: tuple[str, ...],
-    ) -> None:
-        """Create a typed dashboard stats object."""
-
-        self.total = total
-        self.flash_count = flash_count
-        self.areas = areas
-        self.grade_counts = grade_counts
-        self.area_counts_by_grade_source = area_counts_by_grade_source
-        self.area_grade_matrix_by_grade_source = area_grade_matrix_by_grade_source
-        self.grade_order = grade_order
+    total: int
+    flash_count: int
+    areas: list[AreaCount]
+    grade_counts: dict[str, list[GradeCount]]
+    area_counts_by_grade_source: dict[str, list[AreaCount]]
+    area_grade_matrix_by_grade_source: dict[str, list[AreaGradeMatrixRow]]
+    grade_order: tuple[str, ...]
 
     @property
     def flash_rate(self) -> float:

@@ -23,3 +23,9 @@ GRADE_ORDER = (
     "8c+",
     "9a",
 )
+
+GRADE_SOURCE_FIELDS = (
+    "grade_27crags",
+    "guide_grade",
+    "my_grade",
+)

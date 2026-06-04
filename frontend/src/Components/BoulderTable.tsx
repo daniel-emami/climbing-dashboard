@@ -3,6 +3,7 @@ import type { BoulderRecord } from "../Types/boulderTypes";
 
 type BoulderTableProps = {
   records: BoulderRecord[];
+  gradeOrder: string[];
 };
 
 type SortKey =
@@ -21,34 +22,6 @@ type SortState = {
   direction: SortDirection;
 };
 
-const GRADE_ORDER = [
-  "4",
-  "4+",
-  "5",
-  "5+",
-  "6a",
-  "6a+",
-  "6b",
-  "6b+",
-  "6c",
-  "6c+",
-  "7a",
-  "7a+",
-  "7b",
-  "7b+",
-  "7c",
-  "7c+",
-  "8a",
-  "8a+",
-  "8b",
-  "8b+",
-  "8c",
-  "8c+",
-  "9a",
-];
-
-const GRADE_RANK = new Map(GRADE_ORDER.map((grade, index) => [grade, index]));
-
 const HEADERS: Array<{ key: SortKey; label: string }> = [
   { key: "name", label: "Name" },
   { key: "area", label: "Area" },
@@ -63,9 +36,9 @@ function compareText(left: string, right: string): number {
   return left.localeCompare(right, undefined, { sensitivity: "base" });
 }
 
-function compareGrades(left: string, right: string): number {
-  const leftRank = GRADE_RANK.get(left);
-  const rightRank = GRADE_RANK.get(right);
+function compareGrades(left: string, right: string, gradeRank: Map<string, number>): number {
+  const leftRank = gradeRank.get(left);
+  const rightRank = gradeRank.get(right);
   if (leftRank !== undefined && rightRank !== undefined) {
     return leftRank - rightRank;
   }
@@ -78,7 +51,12 @@ function compareGrades(left: string, right: string): number {
   return compareText(left, right);
 }
 
-function compareRecords(left: BoulderRecord, right: BoulderRecord, sortKey: SortKey): number {
+function compareRecords(
+  left: BoulderRecord,
+  right: BoulderRecord,
+  sortKey: SortKey,
+  gradeRank: Map<string, number>
+): number {
   if (sortKey === "flash") {
     return Number(left.flash) - Number(right.flash);
   }
@@ -86,20 +64,27 @@ function compareRecords(left: BoulderRecord, right: BoulderRecord, sortKey: Sort
     return compareText(left.climbed_on ?? "", right.climbed_on ?? "");
   }
   if (sortKey === "grade_27crags" || sortKey === "guide_grade" || sortKey === "my_grade") {
-    return compareGrades(left[sortKey], right[sortKey]);
+    return compareGrades(left[sortKey], right[sortKey], gradeRank);
   }
   return compareText(left[sortKey], right[sortKey]);
 }
 
-export default function BoulderTable({ records }: BoulderTableProps) {
+export default function BoulderTable({ records, gradeOrder }: BoulderTableProps) {
   const [sort, setSort] = useState<SortState>({ key: "climbed_on", direction: "desc" });
+  const gradeRank = useMemo(
+    () => new Map(gradeOrder.map((grade, index) => [grade, index])),
+    [gradeOrder]
+  );
 
   const sortedRecords = useMemo(() => {
     const directionMultiplier = sort.direction === "asc" ? 1 : -1;
     return records
       .slice()
-      .sort((left, right) => compareRecords(left, right, sort.key) * directionMultiplier);
-  }, [records, sort]);
+      .sort(
+        (left, right) =>
+          compareRecords(left, right, sort.key, gradeRank) * directionMultiplier
+      );
+  }, [gradeRank, records, sort]);
 
   const handleSort = (key: SortKey) => {
     setSort((current) => {
