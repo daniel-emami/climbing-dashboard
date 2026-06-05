@@ -32,6 +32,8 @@ const HEADERS: Array<{ key: SortKey; label: string }> = [
   { key: "climbed_on", label: "Date" }
 ];
 
+const PAGE_SIZE = 15;
+
 function compareText(left: string, right: string): number {
   return left.localeCompare(right, undefined, { sensitivity: "base" });
 }
@@ -71,6 +73,7 @@ function compareRecords(
 
 export default function BoulderTable({ records, gradeOrder }: BoulderTableProps) {
   const [sort, setSort] = useState<SortState>({ key: "climbed_on", direction: "desc" });
+  const [page, setPage] = useState(1);
   const gradeRank = useMemo(
     () => new Map(gradeOrder.map((grade, index) => [grade, index])),
     [gradeOrder]
@@ -86,6 +89,15 @@ export default function BoulderTable({ records, gradeOrder }: BoulderTableProps)
       );
   }, [gradeRank, records, sort]);
 
+  const pageCount = Math.max(1, Math.ceil(sortedRecords.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pagedRecords = sortedRecords.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+  const firstVisibleRecord = sortedRecords.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const lastVisibleRecord = Math.min(currentPage * PAGE_SIZE, sortedRecords.length);
+
   const handleSort = (key: SortKey) => {
     setSort((current) => {
       if (current.key !== key) {
@@ -93,6 +105,7 @@ export default function BoulderTable({ records, gradeOrder }: BoulderTableProps)
       }
       return { key, direction: current.direction === "asc" ? "desc" : "asc" };
     });
+    setPage(1);
   };
 
   const sortIndicator = (key: SortKey): string => {
@@ -107,6 +120,25 @@ export default function BoulderTable({ records, gradeOrder }: BoulderTableProps)
       <div className="panel-heading">
         <span className="section-kicker">Logbook</span>
         <h2>Recent climbs</h2>
+        <div className="pagination-controls" aria-label="Logbook pagination">
+          <span>
+            {firstVisibleRecord}-{lastVisibleRecord} of {sortedRecords.length}
+          </span>
+          <button
+            disabled={currentPage === 1}
+            type="button"
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+          >
+            Previous
+          </button>
+          <button
+            disabled={currentPage === pageCount}
+            type="button"
+            onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+          >
+            Next
+          </button>
+        </div>
       </div>
       <div className="table-wrap">
         <table className="logbook-table">
@@ -138,7 +170,7 @@ export default function BoulderTable({ records, gradeOrder }: BoulderTableProps)
             </tr>
           </thead>
           <tbody>
-            {sortedRecords.map((record) => (
+            {pagedRecords.map((record) => (
               <tr key={`${record.name}-${record.area}-${record.climbed_on}`}>
                 <th>{record.name}</th>
                 <td>{record.area}</td>

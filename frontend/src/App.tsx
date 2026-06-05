@@ -8,6 +8,7 @@ import ErrorState from "./Components/ErrorState";
 import GradeChart, { type GradeChartSeries } from "./Components/GradeChart";
 import LoadingState from "./Components/LoadingState";
 import SummaryStrip from "./Components/SummaryStrip";
+import TheTopoImportPanel from "./Components/TheTopoImportPanel";
 import {
   GRADE_SOURCE_COLORS,
   GRADE_SOURCE_FIELDS,
@@ -91,6 +92,12 @@ export default function App() {
     }
   };
 
+  const handleImportedBoulders = (payload: BouldersResponse) => {
+    setData(payload);
+    setError(null);
+    setLastUpdated(formatRefreshTime());
+  };
+
   return (
     <main className="app-shell">
       <header className="workspace-header">
@@ -121,6 +128,10 @@ export default function App() {
             knownAreas={knownAreas}
             knownGrades={knownGrades}
             onSubmit={handleAddBoulder}
+          />
+          <TheTopoImportPanel
+            onImported={handleImportedBoulders}
+            onError={setError}
           />
         </aside>
 
