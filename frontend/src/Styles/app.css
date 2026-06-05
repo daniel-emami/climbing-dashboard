@@ -132,12 +132,19 @@ h2 {
 .control-rail {
   position: sticky;
   top: 16px;
+  display: grid;
+  gap: 16px;
 }
 
 .control-panel {
   display: grid;
   gap: 14px;
   padding: 14px;
+}
+
+.import-form {
+  display: grid;
+  gap: 14px;
 }
 
 .control-heading,
@@ -196,6 +203,74 @@ h2 {
 .checkbox-row input {
   width: 18px;
   min-height: 18px;
+}
+
+.import-preview {
+  display: grid;
+  gap: 12px;
+}
+
+.import-preview-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: #475569;
+  font-size: 0.78rem;
+}
+
+.import-preview-summary strong {
+  color: #111827;
+}
+
+.import-preview-list {
+  display: grid;
+  max-height: 210px;
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.import-preview-row {
+  display: grid !important;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px !important;
+  padding: 7px 9px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #172033 !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+}
+
+.import-preview-row:last-child {
+  border-bottom: 0;
+}
+
+.import-preview-row input {
+  width: 18px;
+  min-height: 18px;
+  margin-top: 2px;
+}
+
+.import-preview-row span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.import-preview-row strong,
+.import-preview-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-preview-row small {
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 750;
 }
 
 .control-panel button,
@@ -322,6 +397,37 @@ h2 {
   margin-bottom: 12px;
 }
 
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.pagination-controls button {
+  min-height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #233044;
+  padding: 0 9px;
+  font-weight: 850;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+  border-color: #0f766e;
+  background: #d9f3ee;
+  color: #0f3f3a;
+}
+
+.pagination-controls button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
 .table-wrap {
   width: 100%;
   overflow: auto;
@@ -436,6 +542,10 @@ tbody tr:hover td {
   .grade-controls-panel {
     display: grid;
     align-items: stretch;
+  }
+
+  .pagination-controls {
+    margin-left: 0;
   }
 
   .control-rail {

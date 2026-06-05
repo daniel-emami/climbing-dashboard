@@ -43,6 +43,8 @@ Open `http://localhost:5173`.
 - `GET /health` checks that the backend is running.
 - `GET /api/boulders` returns workbook rows plus dashboard statistics.
 - `POST /api/boulders` appends a climbed boulder to `Boulders_Ticklist.xlsx`.
+- `POST /api/imports/thetopo/preview` previews public TheTopo boulders for a username.
+- `POST /api/imports/thetopo/confirm` saves selected preview boulders to the workbook.
 
 ## Workbook Columns
 
