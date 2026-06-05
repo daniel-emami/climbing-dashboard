@@ -46,7 +46,7 @@ export default function BoulderForm({
     <form className="control-panel" onSubmit={(event) => void handleSubmit(event)}>
       <div className="control-heading">
         <span>Log climb</span>
-        <strong>New boulder</strong>
+        <strong>New Boulder</strong>
       </div>
 
       <label>
@@ -125,7 +125,7 @@ export default function BoulderForm({
       </datalist>
 
       <button className="primary-button" disabled={isSaving} type="submit">
-        {isSaving ? "Saving..." : "Save boulder"}
+        {isSaving ? "Saving..." : "Save Boulder"}
       </button>
     </form>
   );

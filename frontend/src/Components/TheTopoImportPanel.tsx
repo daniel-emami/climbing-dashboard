@@ -87,7 +87,7 @@ export default function TheTopoImportPanel({ onImported, onError }: TheTopoImpor
           />
         </label>
         <button className="primary-button" disabled={isPreviewing} type="submit">
-          {isPreviewing ? "Previewing..." : "Preview boulders"}
+          {isPreviewing ? "Previewing..." : "Preview Boulders"}
         </button>
       </form>
 
@@ -103,7 +103,7 @@ export default function TheTopoImportPanel({ onImported, onError }: TheTopoImpor
             type="button"
             onClick={() => void handleConfirm()}
           >
-            {isConfirming ? "Importing..." : "Import selected"}
+            {isConfirming ? "Importing..." : "Import Selected"}
           </button>
           <div className="import-preview-list">
             {preview.boulders.map((boulder) => (

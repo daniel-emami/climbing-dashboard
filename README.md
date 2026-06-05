@@ -38,11 +38,29 @@ npm run dev
 
 Open `http://localhost:5173`.
 
+## Run With Docker
+
+Install Docker Desktop, then run this from the project root:
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:5173`.
+
+The backend runs at `http://localhost:8000`. The `data/` folder is mounted into the
+backend container, so edits made in the app are saved to your local
+`data/Boulders_Ticklist.xlsx` file.
+
+To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
+
 ## API
 
 - `GET /health` checks that the backend is running.
 - `GET /api/boulders` returns workbook rows plus dashboard statistics.
 - `POST /api/boulders` appends a climbed boulder to `Boulders_Ticklist.xlsx`.
+- `PUT /api/boulders` updates a boulder matched by its original name and area.
+- `DELETE /api/boulders` removes a boulder matched by name and area.
 - `POST /api/imports/thetopo/preview` previews public TheTopo boulders for a username.
 - `POST /api/imports/thetopo/confirm` saves selected preview boulders to the workbook.
 

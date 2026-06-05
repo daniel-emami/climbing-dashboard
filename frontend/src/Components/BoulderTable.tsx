@@ -204,7 +204,6 @@ export default function BoulderTable({
     <section className="panel">
       <div className="panel-heading">
         <span className="section-kicker">Logbook</span>
-        <h2>Recent climbs</h2>
         <div className="pagination-controls" aria-label="Logbook pagination">
           <span>
             {firstVisibleRecord}-{lastVisibleRecord} of {sortedRecords.length}

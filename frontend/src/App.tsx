@@ -142,7 +142,7 @@ export default function App() {
       <header className="workspace-header">
         <div>
           <p className="eyebrow">Outdoor boulders</p>
-          <h1>Climbing dashboard</h1>
+          <h1>Climbing Dashboard</h1>
         </div>
         <dl className="workspace-status" aria-label="Loaded data status">
           <div>
@@ -162,19 +162,20 @@ export default function App() {
 
       <div className="dashboard-layout">
         <aside className="control-rail">
+          <TheTopoImportPanel
+            onImported={handleImportedBoulders}
+            onError={setError}
+          />
           <BoulderForm
             isSaving={isSaving}
             knownAreas={knownAreas}
             knownGrades={knownGrades}
             onSubmit={handleAddBoulder}
           />
-          <TheTopoImportPanel
-            onImported={handleImportedBoulders}
-            onError={setError}
-          />
+
         </aside>
 
-        <section className="dashboard-main" aria-label="Climbing dashboard">
+        <section className="dashboard-main" aria-label="Climbing Dashboard">
           {isInitialLoading && <LoadingState />}
           {error && <ErrorState message={error} />}
           {data && !isInitialLoading && (
@@ -204,7 +205,7 @@ export default function App() {
                     type="button"
                     onClick={() => setGradeChartMode("all")}
                   >
-                    All
+                    Combined
                   </button>
                 </div>
               </section>
