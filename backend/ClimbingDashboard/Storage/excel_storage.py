@@ -80,6 +80,60 @@ class ExcelStorage(BaseStorage):
             raise ExcelStorageError(f"Failed to append boulders: {exc}") from exc
         return appended_records
 
+    def update_boulder(
+        self,
+        original_name: str,
+        original_area: str,
+        record: BoulderRecord,
+    ) -> BoulderRecord:
+        """Update one boulder matched by its original name and area."""
+
+        if not self.workbook_path.exists():
+            raise ExcelStorageError(f"Workbook does not exist: {self.workbook_path}")
+        try:
+            workbook = load_workbook(self.workbook_path)
+            worksheet = workbook.worksheets[0]
+            self._validate_headers(worksheet)
+            target_row = self._find_boulder_row(worksheet, original_name, original_area)
+            if target_row is None:
+                raise ExcelStorageError(
+                    f"Boulder does not exist: {original_name} in {original_area}"
+                )
+
+            updated_key = self._boulder_key(record.name, record.area)
+            existing_keys = self._existing_boulder_keys(worksheet, excluded_row=target_row)
+            if updated_key in existing_keys:
+                raise ExcelStorageError(f"Boulder already exists: {record.name} in {record.area}")
+
+            self._write_record_row(worksheet, target_row, record)
+            workbook.save(self.workbook_path)
+            logger.info("Updated boulder %s in %s", record.name, record.area)
+        except ExcelStorageError:
+            raise
+        except Exception as exc:
+            raise ExcelStorageError(f"Failed to update boulder: {exc}") from exc
+        return record
+
+    def delete_boulder(self, name: str, area: str) -> None:
+        """Delete one boulder matched by name and area."""
+
+        if not self.workbook_path.exists():
+            raise ExcelStorageError(f"Workbook does not exist: {self.workbook_path}")
+        try:
+            workbook = load_workbook(self.workbook_path)
+            worksheet = workbook.worksheets[0]
+            self._validate_headers(worksheet)
+            target_row = self._find_boulder_row(worksheet, name, area)
+            if target_row is None:
+                raise ExcelStorageError(f"Boulder does not exist: {name} in {area}")
+            worksheet.delete_rows(target_row, 1)
+            workbook.save(self.workbook_path)
+            logger.info("Deleted boulder %s in %s", name, area)
+        except ExcelStorageError:
+            raise
+        except Exception as exc:
+            raise ExcelStorageError(f"Failed to delete boulder: {exc}") from exc
+
     def _load_worksheet(self) -> Worksheet:
         if not self.workbook_path.exists():
             raise ExcelStorageError(f"Workbook does not exist: {self.workbook_path}")
@@ -132,14 +186,37 @@ class ExcelStorage(BaseStorage):
         date_cell = worksheet.cell(row_number, 7, to_excel_date(record.climbed_on))
         date_cell.number_format = "yyyy-mm-dd"
 
-    def _existing_boulder_keys(self, worksheet: Worksheet) -> set[tuple[str, str]]:
+    def _existing_boulder_keys(
+        self,
+        worksheet: Worksheet,
+        excluded_row: int | None = None,
+    ) -> set[tuple[str, str]]:
         keys: set[tuple[str, str]] = set()
-        for row in worksheet.iter_rows(min_row=2, max_col=5, values_only=True):
+        for row_number, row in enumerate(
+            worksheet.iter_rows(min_row=2, max_col=5, values_only=True),
+            start=2,
+        ):
+            if row_number == excluded_row:
+                continue
             name = self._text(row[0])
             area = self._text(row[4])
             if name and area:
                 keys.add(self._boulder_key(name, area))
         return keys
+
+    def _find_boulder_row(
+        self,
+        worksheet: Worksheet,
+        name: str,
+        area: str,
+    ) -> int | None:
+        target_key = self._boulder_key(name, area)
+        for row_number in range(2, worksheet.max_row + 1):
+            row_name = self._text(worksheet.cell(row_number, 1).value)
+            row_area = self._text(worksheet.cell(row_number, 5).value)
+            if row_name and row_area and self._boulder_key(row_name, row_area) == target_key:
+                return row_number
+        return None
 
     def _boulder_key(self, name: str, area: str) -> tuple[str, str]:
         return (name.strip().casefold(), area.strip().casefold())

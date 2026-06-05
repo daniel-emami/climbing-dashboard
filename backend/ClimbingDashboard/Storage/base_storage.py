@@ -19,3 +19,16 @@ class BaseStorage(ABC):
     @abstractmethod
     def append_boulders(self, records: list[BoulderRecord]) -> list[BoulderRecord]:
         """Append and persist multiple boulder records."""
+
+    @abstractmethod
+    def update_boulder(
+        self,
+        original_name: str,
+        original_area: str,
+        record: BoulderRecord,
+    ) -> BoulderRecord:
+        """Update one persisted boulder record."""
+
+    @abstractmethod
+    def delete_boulder(self, name: str, area: str) -> None:
+        """Delete one persisted boulder record."""

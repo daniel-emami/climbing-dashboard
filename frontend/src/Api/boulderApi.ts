@@ -1,4 +1,9 @@
-import type { BoulderCreateRequest, BouldersResponse } from "../Types/boulderTypes";
+import type {
+  BoulderCreateRequest,
+  BoulderIdentity,
+  BouldersResponse,
+  BoulderUpdateRequest
+} from "../Types/boulderTypes";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
@@ -18,6 +23,28 @@ export async function fetchBoulders(): Promise<BouldersResponse> {
 export async function addBoulder(request: BoulderCreateRequest): Promise<BouldersResponse> {
   const response = await fetch(`${API_BASE_URL}/api/boulders`, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+  return parseResponse(response);
+}
+
+export async function updateBoulder(request: BoulderUpdateRequest): Promise<BouldersResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/boulders`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(request)
+  });
+  return parseResponse(response);
+}
+
+export async function deleteBoulder(request: BoulderIdentity): Promise<BouldersResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/boulders`, {
+    method: "DELETE",
     headers: {
       "Content-Type": "application/json"
     },

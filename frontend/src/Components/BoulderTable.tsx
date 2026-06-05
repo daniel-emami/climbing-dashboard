@@ -1,9 +1,16 @@
 import { useMemo, useState } from "react";
-import type { BoulderRecord } from "../Types/boulderTypes";
+import type {
+  BoulderCreateRequest,
+  BoulderIdentity,
+  BoulderRecord
+} from "../Types/boulderTypes";
 
 type BoulderTableProps = {
   records: BoulderRecord[];
   gradeOrder: string[];
+  isSaving: boolean;
+  onDelete: (request: BoulderIdentity) => Promise<void>;
+  onUpdate: (original: BoulderIdentity, boulder: BoulderCreateRequest) => Promise<void>;
 };
 
 type SortKey =
@@ -33,6 +40,22 @@ const HEADERS: Array<{ key: SortKey; label: string }> = [
 ];
 
 const PAGE_SIZE = 15;
+
+function recordKey(record: BoulderRecord): string {
+  return `${record.name}::${record.area}`;
+}
+
+function recordToDraft(record: BoulderRecord): BoulderCreateRequest {
+  return {
+    name: record.name,
+    grade_27crags: record.grade_27crags,
+    guide_grade: record.guide_grade,
+    my_grade: record.my_grade,
+    area: record.area,
+    flash: record.flash,
+    climbed_on: record.climbed_on
+  };
+}
 
 function compareText(left: string, right: string): number {
   return left.localeCompare(right, undefined, { sensitivity: "base" });
@@ -71,9 +94,17 @@ function compareRecords(
   return compareText(left[sortKey], right[sortKey]);
 }
 
-export default function BoulderTable({ records, gradeOrder }: BoulderTableProps) {
+export default function BoulderTable({
+  records,
+  gradeOrder,
+  isSaving,
+  onDelete,
+  onUpdate
+}: BoulderTableProps) {
   const [sort, setSort] = useState<SortState>({ key: "climbed_on", direction: "desc" });
   const [page, setPage] = useState(1);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [draft, setDraft] = useState<BoulderCreateRequest | null>(null);
   const gradeRank = useMemo(
     () => new Map(gradeOrder.map((grade, index) => [grade, index])),
     [gradeOrder]
@@ -115,6 +146,60 @@ export default function BoulderTable({ records, gradeOrder }: BoulderTableProps)
     return sort.direction === "asc" ? "▲" : "▼";
   };
 
+  const startEditing = (record: BoulderRecord) => {
+    setEditingKey(recordKey(record));
+    setDraft(recordToDraft(record));
+  };
+
+  const updateDraft = <K extends keyof BoulderCreateRequest>(
+    key: K,
+    value: BoulderCreateRequest[K]
+  ) => {
+    setDraft((current) => (current ? { ...current, [key]: value } : current));
+  };
+
+  const cancelEditing = () => {
+    setEditingKey(null);
+    setDraft(null);
+  };
+
+  const saveEditing = async (record: BoulderRecord) => {
+    if (!draft) {
+      return;
+    }
+    if (!draft.name.trim() || !draft.area.trim()) {
+      window.alert("Name and area are required.");
+      return;
+    }
+    try {
+      await onUpdate(
+        { name: record.name, area: record.area },
+        {
+          ...draft,
+          climbed_on: draft.climbed_on || null
+        }
+      );
+      cancelEditing();
+    } catch {
+      return;
+    }
+  };
+
+  const deleteRecord = async (record: BoulderRecord) => {
+    const shouldDelete = window.confirm(`Remove ${record.name} from ${record.area}?`);
+    if (!shouldDelete) {
+      return;
+    }
+    try {
+      await onDelete({ name: record.name, area: record.area });
+      if (editingKey === recordKey(record)) {
+        cancelEditing();
+      }
+    } catch {
+      return;
+    }
+  };
+
   return (
     <section className="panel">
       <div className="panel-heading">
@@ -150,6 +235,7 @@ export default function BoulderTable({ records, gradeOrder }: BoulderTableProps)
             <col className="logbook-grade-column" />
             <col className="logbook-flash-column" />
             <col className="logbook-date-column" />
+            <col className="logbook-actions-column" />
           </colgroup>
           <thead>
             <tr>
@@ -167,20 +253,145 @@ export default function BoulderTable({ records, gradeOrder }: BoulderTableProps)
                   </button>
                 </th>
               ))}
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {pagedRecords.map((record) => (
-              <tr key={`${record.name}-${record.area}-${record.climbed_on}`}>
-                <th>{record.name}</th>
-                <td>{record.area}</td>
-                <td>{record.grade_27crags}</td>
-                <td>{record.guide_grade}</td>
-                <td>{record.my_grade}</td>
-                <td>{record.flash ? "Yes" : ""}</td>
-                <td>{record.climbed_on ?? ""}</td>
-              </tr>
-            ))}
+            {pagedRecords.map((record) => {
+              const isEditing = editingKey === recordKey(record);
+              const editableRecord = isEditing && draft ? draft : record;
+
+              return (
+                <tr key={`${record.name}-${record.area}-${record.climbed_on}`}>
+                  <th>
+                    {isEditing ? (
+                      <input
+                        aria-label="Boulder name"
+                        className="table-inline-input"
+                        required
+                        value={editableRecord.name}
+                        onChange={(event) => updateDraft("name", event.target.value)}
+                      />
+                    ) : (
+                      record.name
+                    )}
+                  </th>
+                  <td>
+                    {isEditing ? (
+                      <input
+                        aria-label="Area"
+                        className="table-inline-input"
+                        required
+                        value={editableRecord.area}
+                        onChange={(event) => updateDraft("area", event.target.value)}
+                      />
+                    ) : (
+                      record.area
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <input
+                        aria-label="27Crags grade"
+                        className="table-inline-input"
+                        value={editableRecord.grade_27crags}
+                        onChange={(event) => updateDraft("grade_27crags", event.target.value)}
+                      />
+                    ) : (
+                      record.grade_27crags
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <input
+                        aria-label="Guide grade"
+                        className="table-inline-input"
+                        value={editableRecord.guide_grade}
+                        onChange={(event) => updateDraft("guide_grade", event.target.value)}
+                      />
+                    ) : (
+                      record.guide_grade
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <input
+                        aria-label="My grade"
+                        className="table-inline-input"
+                        value={editableRecord.my_grade}
+                        onChange={(event) => updateDraft("my_grade", event.target.value)}
+                      />
+                    ) : (
+                      record.my_grade
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <input
+                        aria-label="Flash"
+                        className="table-inline-checkbox"
+                        checked={editableRecord.flash}
+                        type="checkbox"
+                        onChange={(event) => updateDraft("flash", event.target.checked)}
+                      />
+                    ) : record.flash ? (
+                      "Yes"
+                    ) : (
+                      ""
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <input
+                        aria-label="Climbed date"
+                        className="table-inline-input"
+                        type="date"
+                        value={editableRecord.climbed_on ?? ""}
+                        onChange={(event) => updateDraft("climbed_on", event.target.value)}
+                      />
+                    ) : (
+                      record.climbed_on ?? ""
+                    )}
+                  </td>
+                  <td>
+                    <div className="logbook-action-buttons">
+                      {isEditing ? (
+                        <>
+                          <button
+                            disabled={isSaving}
+                            type="button"
+                            onClick={() => void saveEditing(record)}
+                          >
+                            Save
+                          </button>
+                          <button disabled={isSaving} type="button" onClick={cancelEditing}>
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            disabled={isSaving}
+                            type="button"
+                            onClick={() => startEditing(record)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="danger-button"
+                            disabled={isSaving}
+                            type="button"
+                            onClick={() => void deleteRecord(record)}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -441,27 +441,31 @@ table {
 
 .logbook-table {
   table-layout: fixed;
-  min-width: 860px;
+  min-width: 1040px;
 }
 
 .logbook-name-column {
-  width: 30%;
+  width: 23%;
 }
 
 .logbook-area-column {
-  width: 18%;
+  width: 17%;
 }
 
 .logbook-grade-column {
-  width: 11%;
-}
-
-.logbook-flash-column {
   width: 9%;
 }
 
+.logbook-flash-column {
+  width: 7%;
+}
+
 .logbook-date-column {
-  width: 10%;
+  width: 11%;
+}
+
+.logbook-actions-column {
+  width: 15%;
 }
 
 th,
@@ -528,6 +532,58 @@ tbody th {
 tbody tr:hover th,
 tbody tr:hover td {
   background: #f8fafc;
+}
+
+.table-inline-input {
+  width: 100%;
+  min-width: 0;
+  height: 31px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #172033;
+  padding: 0 8px;
+}
+
+.table-inline-input:focus {
+  border-color: #0f766e;
+  outline: 2px solid rgba(15, 118, 110, 0.16);
+}
+
+.table-inline-checkbox {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  vertical-align: middle;
+}
+
+.logbook-action-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.logbook-action-buttons button {
+  min-height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #233044;
+  padding: 0 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.logbook-action-buttons button:hover:not(:disabled) {
+  border-color: #0f766e;
+  background: #d9f3ee;
+  color: #0f3f3a;
+}
+
+.logbook-action-buttons .danger-button:hover:not(:disabled) {
+  border-color: #dc2626;
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 @media (max-width: 1050px) {

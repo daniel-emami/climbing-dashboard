@@ -55,6 +55,55 @@ def add_boulder(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.put("/api/boulders")
+def update_boulder(
+    request: Request,
+    payload: dict[str, Any] = BOULDER_BODY,
+) -> dict[str, object]:
+    """Update a climbed boulder in the workbook."""
+
+    try:
+        original = payload.get("original", {})
+        if not isinstance(original, dict):
+            raise ValueError("original must be an object")
+        boulder_payload = payload.get("boulder", {})
+        if not isinstance(boulder_payload, dict):
+            raise ValueError("boulder must be an object")
+        boulder = BoulderCreateRequest.from_payload(boulder_payload)
+        original_name = str(original.get("name", "")).strip()
+        original_area = str(original.get("area", "")).strip()
+        if not original_name or not original_area:
+            raise ValueError("original name and area are required")
+        return get_api_service(request).update_boulder(
+            original_name=original_name,
+            original_area=original_area,
+            request=boulder,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.delete("/api/boulders")
+def delete_boulder(
+    request: Request,
+    payload: dict[str, Any] = BOULDER_BODY,
+) -> dict[str, object]:
+    """Delete a climbed boulder from the workbook."""
+
+    try:
+        name = str(payload.get("name", "")).strip()
+        area = str(payload.get("area", "")).strip()
+        if not name or not area:
+            raise ValueError("name and area are required")
+        return get_api_service(request).delete_boulder(name, area)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @router.post("/api/imports/{source}/preview")
 def preview_import(
     source: str,

@@ -39,7 +39,45 @@ class ApiService(BaseApiService):
     def save_boulder(self, request: BoulderCreateRequest) -> BouldersPayload:
         """Append one boulder, then return the refreshed dashboard payload."""
 
-        record = BoulderRecord(
+        record = self._record_from_request(request)
+        try:
+            self.storage.append_boulder(record)
+        except ExcelStorageError as exc:
+            raise ApiDataError(f"Could not save boulder: {exc}") from exc
+        return self.get_boulders()
+
+    def update_boulder(
+        self,
+        original_name: str,
+        original_area: str,
+        request: BoulderCreateRequest,
+    ) -> BouldersPayload:
+        """Update one boulder, then return the refreshed dashboard payload."""
+
+        record = self._record_from_request(request)
+        try:
+            self.storage.update_boulder(original_name, original_area, record)
+        except ExcelStorageError as exc:
+            raise ApiDataError(f"Could not update boulder: {exc}") from exc
+        return self.get_boulders()
+
+    def delete_boulder(self, name: str, area: str) -> BouldersPayload:
+        """Delete one boulder, then return the refreshed dashboard payload."""
+
+        try:
+            self.storage.delete_boulder(name, area)
+        except ExcelStorageError as exc:
+            raise ApiDataError(f"Could not delete boulder: {exc}") from exc
+        return self.get_boulders()
+
+    def _read_records(self) -> list[BoulderRecord]:
+        try:
+            return self.storage.read_boulders()
+        except ExcelStorageError as exc:
+            raise ApiDataError(f"Could not read boulders: {exc}") from exc
+
+    def _record_from_request(self, request: BoulderCreateRequest) -> BoulderRecord:
+        return BoulderRecord(
             name=request.name,
             grade_27crags=request.grade_27crags,
             guide_grade=request.guide_grade,
@@ -48,17 +86,6 @@ class ApiService(BaseApiService):
             flash=request.flash,
             climbed_on=request.climbed_on,
         )
-        try:
-            self.storage.append_boulder(record)
-        except ExcelStorageError as exc:
-            raise ApiDataError(f"Could not save boulder: {exc}") from exc
-        return self.get_boulders()
-
-    def _read_records(self) -> list[BoulderRecord]:
-        try:
-            return self.storage.read_boulders()
-        except ExcelStorageError as exc:
-            raise ApiDataError(f"Could not read boulders: {exc}") from exc
 
     def _build_stats(self, records: list[BoulderRecord]) -> DashboardStats:
         by_area = Counter(record.area for record in records if record.area)

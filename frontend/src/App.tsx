@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { addBoulder, fetchBoulders } from "./Api/boulderApi";
+import { addBoulder, deleteBoulder, fetchBoulders, updateBoulder } from "./Api/boulderApi";
 import AreaChart from "./Components/AreaChart";
 import AreaGradeMatrix from "./Components/AreaGradeMatrix";
 import BoulderForm from "./Components/BoulderForm";
@@ -15,7 +15,12 @@ import {
   GRADE_SOURCE_LABELS,
   type GradeChartMode
 } from "./Config/gradeSources";
-import type { BoulderCreateRequest, BouldersResponse, GradeField } from "./Types/boulderTypes";
+import type {
+  BoulderCreateRequest,
+  BoulderIdentity,
+  BouldersResponse,
+  GradeField
+} from "./Types/boulderTypes";
 
 function formatRefreshTime(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -87,6 +92,40 @@ export default function App() {
       setLastUpdated(formatRefreshTime());
     } catch (unknownError: unknown) {
       setError(unknownError instanceof Error ? unknownError.message : "Unknown error");
+      throw unknownError;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateBoulder = async (
+    original: BoulderIdentity,
+    boulder: BoulderCreateRequest
+  ) => {
+    setIsSaving(true);
+    try {
+      const payload = await updateBoulder({ original, boulder });
+      setData(payload);
+      setError(null);
+      setLastUpdated(formatRefreshTime());
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown error");
+      throw unknownError;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteBoulder = async (request: BoulderIdentity) => {
+    setIsSaving(true);
+    try {
+      const payload = await deleteBoulder(request);
+      setData(payload);
+      setError(null);
+      setLastUpdated(formatRefreshTime());
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown error");
+      throw unknownError;
     } finally {
       setIsSaving(false);
     }
@@ -187,7 +226,13 @@ export default function App() {
                 grades={data.grade_order}
                 gradeSourceLabel={activeAreaMapGradeLabel}
               />
-              <BoulderTable records={data.records} gradeOrder={data.grade_order} />
+              <BoulderTable
+                records={data.records}
+                gradeOrder={data.grade_order}
+                isSaving={isSaving}
+                onDelete={handleDeleteBoulder}
+                onUpdate={handleUpdateBoulder}
+              />
             </>
           )}
         </section>
