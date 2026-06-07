@@ -26,7 +26,8 @@ def create_app(excel_path: str | Path | None = None) -> FastAPI:
     app.state.import_service = ImportService(selected_excel_path)
     app.add_middleware(
         CORSMiddleware,
-        allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):51\d{2}$",
+        allow_origins=settings.allowed_cors_origins,
+        allow_origin_regex=settings.local_frontend_origin_regex,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

@@ -38,6 +38,31 @@ npm run dev
 
 Open `http://localhost:5173`.
 
+## Share From Your Computer
+
+For a public tunnel such as ngrok or Cloudflare Tunnel, run the backend from the
+project root:
+
+```bash
+uv run uvicorn ClimbingDashboard.Api.api_app:app --reload --app-dir backend --host 0.0.0.0 --port 8000
+```
+
+Then run the frontend from the `frontend/` folder:
+
+```bash
+cd frontend
+npm run dev
+```
+
+In a third terminal, expose the frontend:
+
+```bash
+ngrok http 5173
+```
+
+Send the public ngrok frontend URL to your friend. The Vite dev server proxies
+`/api` requests to the backend, so only one public tunnel is needed.
+
 ## Run With Docker
 
 Install Docker Desktop, then run this from the project root:
