@@ -138,7 +138,8 @@ class SqliteStorage(BaseStorage):
                 )
         except sqlite3.IntegrityError as exc:
             raise StorageError(
-                f"Cannot update boulder. The key already exists: {record.name} in {record.area} for {record.climber}"
+                "Cannot update boulder. The key already exists: "
+                f"{record.name} in {record.area} for {record.climber}"
             ) from exc
         except sqlite3.Error as exc:
             raise StorageError(f"Failed to update boulder: {exc}") from exc
