@@ -11,10 +11,10 @@ class AppSettings:
     local_frontend_origin_regex = r"^http://(localhost|127\.0\.0\.1):51\d{2}$"
 
     @property
-    def default_excel_path(self) -> Path:
-        """Return the workbook used as the dashboard source of truth."""
+    def default_database_path(self) -> Path:
+        """Return the SQLite database used as the dashboard source of truth."""
 
-        return Path(__file__).resolve().parents[3] / "data" / "Boulders_Ticklist.xlsx"
+        return Path(__file__).resolve().parents[3] / "data" / "climbing_dashboard.db"
 
     @property
     def allowed_cors_origins(self) -> list[str]:

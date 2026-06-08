@@ -372,6 +372,12 @@ h2 {
   gap: 14px;
 }
 
+.climber-filter-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .climber-filter-panel label {
   display: grid;
   grid-template-columns: auto minmax(180px, 260px);
@@ -380,13 +386,21 @@ h2 {
   gap: 12px;
 }
 
-.climber-filter-panel select {
+.climber-filter-panel select,
+.climber-filter-panel button {
   min-height: 38px;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   background: #ffffff;
   color: #172033;
   padding: 0 10px;
+  font-weight: 850;
+}
+
+.climber-filter-panel button:hover:not(:disabled) {
+  border-color: #0f766e;
+  background: #d9f3ee;
+  color: #0f3f3a;
 }
 
 .segmented-control {
