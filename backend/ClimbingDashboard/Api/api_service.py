@@ -50,22 +50,23 @@ class ApiService(BaseApiService):
         self,
         original_name: str,
         original_area: str,
+        original_climber: str,
         request: BoulderCreateRequest,
     ) -> BouldersPayload:
         """Update one boulder, then return the refreshed dashboard payload."""
 
         record = self._record_from_request(request)
         try:
-            self.storage.update_boulder(original_name, original_area, record)
+            self.storage.update_boulder(original_name, original_area, original_climber, record)
         except ExcelStorageError as exc:
             raise ApiDataError(f"Could not update boulder: {exc}") from exc
         return self.get_boulders()
 
-    def delete_boulder(self, name: str, area: str) -> BouldersPayload:
+    def delete_boulder(self, name: str, area: str, climber: str) -> BouldersPayload:
         """Delete one boulder, then return the refreshed dashboard payload."""
 
         try:
-            self.storage.delete_boulder(name, area)
+            self.storage.delete_boulder(name, area, climber)
         except ExcelStorageError as exc:
             raise ApiDataError(f"Could not delete boulder: {exc}") from exc
         return self.get_boulders()
@@ -83,6 +84,7 @@ class ApiService(BaseApiService):
             guide_grade=request.guide_grade,
             my_grade=request.my_grade,
             area=request.area,
+            climber=request.climber,
             flash=request.flash,
             climbed_on=request.climbed_on,
         )

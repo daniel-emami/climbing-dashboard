@@ -16,14 +16,101 @@ import {
   type GradeChartMode
 } from "./Config/gradeSources";
 import type {
+  AreaCount,
   BoulderCreateRequest,
   BoulderIdentity,
+  BoulderRecord,
   BouldersResponse,
+  DashboardStats,
   GradeField
 } from "./Types/boulderTypes";
 
 function formatRefreshTime(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function orderedGradeCounts(records: BoulderRecord[], field: GradeField, gradeOrder: string[]) {
+  const counts = new Map<string, number>();
+  for (const record of records) {
+    const grade = record[field];
+    if (grade) {
+      counts.set(grade, (counts.get(grade) ?? 0) + 1);
+    }
+  }
+  const known = gradeOrder
+    .filter((grade) => counts.has(grade))
+    .map((grade) => ({ grade, count: counts.get(grade) ?? 0 }));
+  const unknown = Array.from(counts.entries())
+    .filter(([grade]) => !gradeOrder.includes(grade))
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([grade, count]) => ({ grade, count }));
+  return known.concat(unknown);
+}
+
+function areaCounts(records: BoulderRecord[], gradeField?: GradeField): AreaCount[] {
+  const counts = new Map<string, number>();
+  for (const record of records) {
+    if (!record.area || (gradeField && !record[gradeField])) {
+      continue;
+    }
+    counts.set(record.area, (counts.get(record.area) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([area, count]) => ({ area, count }))
+    .sort((left, right) => right.count - left.count);
+}
+
+function areaGradeMatrix(
+  records: BoulderRecord[],
+  gradeField: GradeField
+): Array<Record<string, number | string>> {
+  const matrix = new Map<string, Map<string, number>>();
+  for (const record of records) {
+    const grade = record[gradeField];
+    if (!record.area || !grade) {
+      continue;
+    }
+    const gradeCounts = matrix.get(record.area) ?? new Map<string, number>();
+    gradeCounts.set(grade, (gradeCounts.get(grade) ?? 0) + 1);
+    matrix.set(record.area, gradeCounts);
+  }
+  return Array.from(matrix.entries())
+    .map(([area, gradeCounts]) => {
+      const row: Record<string, number | string> = { area };
+      let total = 0;
+      for (const [grade, count] of gradeCounts.entries()) {
+        row[grade] = count;
+        total += count;
+      }
+      row.total = total;
+      return row;
+    })
+    .sort((left, right) => Number(right.total) - Number(left.total));
+}
+
+function buildStats(records: BoulderRecord[], gradeOrder: string[]): DashboardStats {
+  const flashCount = records.filter((record) => record.flash).length;
+  return {
+    total: records.length,
+    flash_count: flashCount,
+    flash_rate: records.length === 0 ? 0 : flashCount / records.length,
+    areas: areaCounts(records),
+    grade_counts: {
+      grade_27crags: orderedGradeCounts(records, "grade_27crags", gradeOrder),
+      guide_grade: orderedGradeCounts(records, "guide_grade", gradeOrder),
+      my_grade: orderedGradeCounts(records, "my_grade", gradeOrder)
+    },
+    area_counts_by_grade_source: {
+      grade_27crags: areaCounts(records, "grade_27crags"),
+      guide_grade: areaCounts(records, "guide_grade"),
+      my_grade: areaCounts(records, "my_grade")
+    },
+    area_grade_matrix_by_grade_source: {
+      grade_27crags: areaGradeMatrix(records, "grade_27crags"),
+      guide_grade: areaGradeMatrix(records, "guide_grade"),
+      my_grade: areaGradeMatrix(records, "my_grade")
+    }
+  };
 }
 
 export default function App() {
@@ -34,6 +121,7 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("my_grade");
   const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("my_grade");
+  const [selectedClimber, setSelectedClimber] = useState("");
 
   const loadStoredData = useCallback(async () => {
     try {
@@ -57,6 +145,19 @@ export default function App() {
     [data]
   );
 
+  const knownClimbers = useMemo(
+    () =>
+      Array.from(new Set(data?.records.map((record) => record.climber).filter(Boolean) ?? []))
+        .sort((left, right) => left.localeCompare(right)),
+    [data]
+  );
+
+  useEffect(() => {
+    if (selectedClimber && !knownClimbers.includes(selectedClimber)) {
+      setSelectedClimber("");
+    }
+  }, [knownClimbers, selectedClimber]);
+
   const knownGrades = useMemo(
     () =>
       data?.grade_order.filter((grade) =>
@@ -65,9 +166,23 @@ export default function App() {
     [data]
   );
 
+  const visibleData = useMemo<BouldersResponse | null>(() => {
+    if (!data) {
+      return null;
+    }
+    const records = selectedClimber
+      ? data.records.filter((record) => record.climber === selectedClimber)
+      : data.records;
+    return {
+      ...data,
+      records,
+      stats: buildStats(records, data.grade_order)
+    };
+  }, [data, selectedClimber]);
+
   const activeAreaMapGradeLabel = GRADE_SOURCE_LABELS[activeAreaMapGradeField];
   const gradeChartSeries = useMemo<GradeChartSeries[]>(() => {
-    if (!data) {
+    if (!visibleData) {
       return [];
     }
     const fields = gradeChartMode === "all" ? GRADE_SOURCE_FIELDS : [gradeChartMode];
@@ -75,9 +190,9 @@ export default function App() {
       key: field,
       label: GRADE_SOURCE_LABELS[field],
       color: GRADE_SOURCE_COLORS[field],
-      data: data.stats.grade_counts[field]
+      data: visibleData.stats.grade_counts[field]
     }));
-  }, [data, gradeChartMode]);
+  }, [gradeChartMode, visibleData]);
   const gradeChartTitle =
     gradeChartMode === "all"
       ? "Boulders by all grade sources"
@@ -151,7 +266,7 @@ export default function App() {
           </div>
           <div>
             <dt>Rows</dt>
-            <dd>{data?.records.length ?? 0}</dd>
+            <dd>{visibleData?.records.length ?? data?.records.length ?? 0}</dd>
           </div>
           <div>
             <dt>Loaded</dt>
@@ -169,6 +284,7 @@ export default function App() {
           <BoulderForm
             isSaving={isSaving}
             knownAreas={knownAreas}
+            knownClimbers={knownClimbers}
             knownGrades={knownGrades}
             onSubmit={handleAddBoulder}
           />
@@ -178,9 +294,9 @@ export default function App() {
         <section className="dashboard-main" aria-label="Climbing Dashboard">
           {isInitialLoading && <LoadingState />}
           {error && <ErrorState message={error} />}
-          {data && !isInitialLoading && (
+          {visibleData && !isInitialLoading && (
             <>
-              <SummaryStrip data={data} />
+              <SummaryStrip data={visibleData} />
 
               <section className="panel grade-controls-panel">
                 <div className="panel-heading">
@@ -210,26 +326,43 @@ export default function App() {
                 </div>
               </section>
 
+              <section className="panel climber-filter-panel">
+                <label>
+                  <span className="section-kicker">Climber</span>
+                  <select
+                    value={selectedClimber}
+                    onChange={(event) => setSelectedClimber(event.target.value)}
+                  >
+                    <option value="">All climbers</option>
+                    {knownClimbers.map((climber) => (
+                      <option key={climber} value={climber}>
+                        {climber}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </section>
+
               <div className="insight-grid">
                 <GradeChart
                   title={gradeChartTitle}
-                  gradeOrder={data.grade_order}
+                  gradeOrder={visibleData.grade_order}
                   series={gradeChartSeries}
                 />
                 <AreaChart
-                  data={data.stats.area_counts_by_grade_source[activeAreaMapGradeField]}
+                  data={visibleData.stats.area_counts_by_grade_source[activeAreaMapGradeField]}
                   gradeSourceLabel={activeAreaMapGradeLabel}
                 />
               </div>
 
               <AreaGradeMatrix
-                rows={data.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
-                grades={data.grade_order}
+                rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
+                grades={visibleData.grade_order}
                 gradeSourceLabel={activeAreaMapGradeLabel}
               />
               <BoulderTable
-                records={data.records}
-                gradeOrder={data.grade_order}
+                records={visibleData.records}
+                gradeOrder={visibleData.grade_order}
                 isSaving={isSaving}
                 onDelete={handleDeleteBoulder}
                 onUpdate={handleUpdateBoulder}
