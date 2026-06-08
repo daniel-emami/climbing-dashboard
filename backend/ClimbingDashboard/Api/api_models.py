@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from ClimbingDashboard.Utilities.date_utils import parse_excel_date
+from ClimbingDashboard.Utilities.date_utils import parse_climbed_date
 
 
 class BoulderCreateRequest:
@@ -43,7 +43,7 @@ class BoulderCreateRequest:
             area=payload.get("area", ""),
             climber=payload.get("climber", ""),
             flash=payload.get("flash", False),
-            climbed_on=parse_excel_date(payload.get("climbed_on")),
+            climbed_on=parse_climbed_date(payload.get("climbed_on")),
         )
 
     def to_error_payload(self) -> dict[str, object]:

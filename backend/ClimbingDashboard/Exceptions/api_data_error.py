@@ -1,2 +1,2 @@
 class ApiDataError(Exception):
-    """Raised when workbook data cannot be converted into an API response."""
+    """Raised when stored data cannot be converted into an API response."""

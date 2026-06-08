@@ -6,7 +6,7 @@ from ClimbingDashboard.Api.api_service import ApiService
 from ClimbingDashboard.Import.import_preview import ImportPreview
 from ClimbingDashboard.Import.importer_factory import AscentsImporterFactory
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
-from ClimbingDashboard.Storage.excel_storage import ExcelStorage
+from ClimbingDashboard.Storage.sqlite_storage import SqliteStorage
 
 
 class ImportService:
@@ -14,13 +14,13 @@ class ImportService:
 
     def __init__(
         self,
-        excel_path: str | Path,
+        database_path: str | Path,
         importer_factory: AscentsImporterFactory | None = None,
     ) -> None:
         """Create the import service."""
 
-        self.storage = ExcelStorage(excel_path)
-        self.api_service = ApiService(excel_path)
+        self.storage = SqliteStorage(database_path)
+        self.api_service = ApiService(database_path)
         self.importer_factory = (
             importer_factory if importer_factory is not None else AscentsImporterFactory()
         )

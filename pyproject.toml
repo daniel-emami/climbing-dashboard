@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "climbing-dashboard"
 version = "0.1.0"
-description = "Excel-backed API and React dashboard for outdoor boulder ascents."
+description = "SQLite-backed API and React dashboard for outdoor boulder ascents."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [

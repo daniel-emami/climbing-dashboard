@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { addBoulder, deleteBoulder, fetchBoulders, updateBoulder } from "./Api/boulderApi";
+import {
+  addBoulder,
+  deleteBoulder,
+  exportBoulders,
+  fetchBoulders,
+  updateBoulder
+} from "./Api/boulderApi";
 import AreaChart from "./Components/AreaChart";
 import AreaGradeMatrix from "./Components/AreaGradeMatrix";
 import BoulderForm from "./Components/BoulderForm";
@@ -252,6 +258,28 @@ export default function App() {
     setLastUpdated(formatRefreshTime());
   };
 
+  const handleExportVisibleBoulders = async () => {
+    if (!visibleData) {
+      return;
+    }
+    try {
+      const blob = await exportBoulders(visibleData.records);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = selectedClimber
+        ? `climbing-dashboard-${selectedClimber}.xlsx`
+        : "climbing-dashboard-all-climbers.xlsx";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown export error");
+    }
+  };
+
   return (
     <main className="app-shell">
       <header className="workspace-header">
@@ -261,8 +289,8 @@ export default function App() {
         </div>
         <dl className="workspace-status" aria-label="Loaded data status">
           <div>
-            <dt>Workbook</dt>
-            <dd>Boulders_Ticklist.xlsx</dd>
+            <dt>Storage</dt>
+            <dd>SQLite</dd>
           </div>
           <div>
             <dt>Rows</dt>
@@ -341,6 +369,13 @@ export default function App() {
                     ))}
                   </select>
                 </label>
+                <button
+                  disabled={visibleData.records.length === 0}
+                  type="button"
+                  onClick={() => void handleExportVisibleBoulders()}
+                >
+                  Export visible
+                </button>
               </section>
 
               <div className="insight-grid">

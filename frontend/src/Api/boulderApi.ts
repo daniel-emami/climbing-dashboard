@@ -1,6 +1,7 @@
 import type {
   BoulderCreateRequest,
   BoulderIdentity,
+  BoulderRecord,
   BouldersResponse,
   BoulderUpdateRequest
 } from "../Types/boulderTypes";
@@ -51,4 +52,19 @@ export async function deleteBoulder(request: BoulderIdentity): Promise<BouldersR
     body: JSON.stringify(request)
   });
   return parseResponse(response);
+}
+
+export async function exportBoulders(records: BoulderRecord[]): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}/api/exports/boulders`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ boulders: records })
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.detail ?? `Export failed with ${response.status}`);
+  }
+  return response.blob();
 }

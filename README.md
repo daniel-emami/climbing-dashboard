@@ -1,14 +1,14 @@
 # Climbing Dashboard
 
-Excel-backed FastAPI and React dashboard for outdoor boulders you have climbed.
+SQLite-backed FastAPI and React dashboard for outdoor boulders you have climbed.
 
-The workbook `data/Boulders_Ticklist.xlsx` is the source of truth. The backend reads the first seven columns of the first worksheet and appends new climbs to the same sheet. The frontend lets you add climbs and explore grade, area, flash, and area-by-grade summaries.
+The SQLite database `data/climbing_dashboard.db` is the source of truth. The frontend lets you add climbs and explore grade, area, flash, climber, and area-by-grade summaries.
 
 ## Project Shape
 
 ```text
 backend/ClimbingDashboard/Api        FastAPI app, router, API service
-backend/ClimbingDashboard/Storage    Excel read/write layer
+backend/ClimbingDashboard/Storage    SQLite storage and Excel import/export helpers
 backend/ClimbingDashboard/Models     Boulder domain model
 backend/ClimbingDashboard/Utilities  Date conversion helpers
 frontend/src                         Vite React dashboard
@@ -75,31 +75,35 @@ Open `http://localhost:5173`.
 
 The backend runs at `http://localhost:8000`. The `data/` folder is mounted into the
 backend container, so edits made in the app are saved to your local
-`data/Boulders_Ticklist.xlsx` file.
+`data/climbing_dashboard.db` file.
 
 To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 
 ## API
 
 - `GET /health` checks that the backend is running.
-- `GET /api/boulders` returns workbook rows plus dashboard statistics.
-- `POST /api/boulders` appends a climbed boulder to `Boulders_Ticklist.xlsx`.
+- `GET /api/boulders` returns stored rows plus dashboard statistics.
+- `POST /api/boulders` appends a climbed boulder to the SQLite database.
 - `PUT /api/boulders` updates a boulder matched by its original name, area, and climber.
 - `DELETE /api/boulders` removes a boulder matched by name, area, and climber.
 - `POST /api/imports/thetopo/preview` previews public TheTopo boulders for a username.
-- `POST /api/imports/thetopo/confirm` saves selected preview boulders to the workbook.
+- `POST /api/imports/thetopo/confirm` saves selected preview boulders to the database.
+- `POST /api/exports/boulders` exports supplied boulder rows to an Excel workbook.
 
-## Workbook Columns
+## Data Files
 
-The backend currently expects these headers in row 1 of `data/Boulders_Ticklist.xlsx`:
+The app writes current data to:
+
+```text
+data/climbing_dashboard.db
+```
+
+Excel exports use this workbook shape:
 
 ```text
 Navn | 27Crags grade | Guide grade | My grade | Område | Flash | Dato | Climber
 ```
 
 `Climber` is used with `Navn` and `Område` as the unique key, so several climbers
-can log the same boulder without being treated as duplicates. If an older
-workbook is missing the `Climber` header, the backend adds it the next time it
-writes to the workbook.
-
-Normal formulas and workbook content are preserved when new rows are appended. `openpyxl` may remove unsupported Excel-only extensions if the workbook uses them, so keep a backup before heavy editing.
+can log the same boulder without being treated as duplicates. Filtered frontend
+data can be exported back to an `.xlsx` file with the `Export visible` button.

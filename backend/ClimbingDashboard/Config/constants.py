@@ -29,3 +29,14 @@ GRADE_SOURCE_FIELDS = (
     "guide_grade",
     "my_grade",
 )
+
+BOULDER_EXPORT_COLUMNS = (
+    "Navn",
+    "27Crags grade",
+    "Guide grade",
+    "My grade",
+    "Område",
+    "Flash",
+    "Dato",
+    "Climber",
+)

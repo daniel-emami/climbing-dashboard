@@ -3,18 +3,21 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException, Request
+from fastapi.responses import StreamingResponse
 
 from ClimbingDashboard.Api.api_models import BoulderCreateRequest
 from ClimbingDashboard.Api.api_service import ApiService
+from ClimbingDashboard.Api.boulder_payload_mapper import BoulderPayloadMapper
 from ClimbingDashboard.Api.import_service import ImportService
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
-from ClimbingDashboard.Exceptions.excel_storage_error import ExcelStorageError
-from ClimbingDashboard.Models.boulder_record import BoulderRecord
-from ClimbingDashboard.Utilities.date_utils import parse_excel_date
+from ClimbingDashboard.Exceptions.storage_error import StorageError
+from ClimbingDashboard.Storage.excel_exporter import ExcelBoulderExporter
 
 router = APIRouter()
 BOULDER_BODY = Body(...)
 IMPORT_BODY = Body(...)
+BOULDER_PAYLOAD_MAPPER = BoulderPayloadMapper()
+EXCEL_BOULDER_EXPORTER = ExcelBoulderExporter()
 
 
 def get_api_service(request: Request) -> ApiService:
@@ -44,7 +47,7 @@ def add_boulder(
     request: Request,
     payload: dict[str, Any] = BOULDER_BODY,
 ) -> dict[str, object]:
-    """Append a climbed boulder to the workbook."""
+    """Append a climbed boulder to the database."""
 
     try:
         boulder = BoulderCreateRequest.from_payload(payload)
@@ -60,7 +63,7 @@ def update_boulder(
     request: Request,
     payload: dict[str, Any] = BOULDER_BODY,
 ) -> dict[str, object]:
-    """Update a climbed boulder in the workbook."""
+    """Update a climbed boulder in the database."""
 
     try:
         original = payload.get("original", {})
@@ -92,7 +95,7 @@ def delete_boulder(
     request: Request,
     payload: dict[str, Any] = BOULDER_BODY,
 ) -> dict[str, object]:
-    """Delete a climbed boulder from the workbook."""
+    """Delete a climbed boulder from the database."""
 
     try:
         name = str(payload.get("name", "")).strip()
@@ -137,26 +140,30 @@ def confirm_import(
         boulders_payload = payload.get("boulders", [])
         if not isinstance(boulders_payload, list):
             raise ValueError("boulders must be a list")
-        boulders = [
-            _boulder_from_payload(boulder)
-            for boulder in boulders_payload
-            if isinstance(boulder, dict)
-        ]
+        boulders = BOULDER_PAYLOAD_MAPPER.boulders_from_payloads(boulders_payload)
         return get_import_service(request).confirm_import(boulders)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except ExcelStorageError as exc:
+    except StorageError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-def _boulder_from_payload(payload: dict[str, Any]) -> BoulderRecord:
-    return BoulderRecord(
-        name=str(payload.get("name", "")).strip(),
-        grade_27crags=str(payload.get("grade_27crags", "")).strip(),
-        guide_grade=str(payload.get("guide_grade", "")).strip(),
-        my_grade=str(payload.get("my_grade", "")).strip(),
-        area=str(payload.get("area", "")).strip(),
-        climber=str(payload.get("climber", "")).strip(),
-        flash=bool(payload.get("flash", False)),
-        climbed_on=parse_excel_date(payload.get("climbed_on")),
-    )
+@router.post("/api/exports/boulders")
+def export_boulders(payload: dict[str, Any] = BOULDER_BODY) -> StreamingResponse:
+    """Export supplied boulder rows to an Excel workbook."""
+
+    try:
+        boulders_payload = payload.get("boulders", [])
+        if not isinstance(boulders_payload, list):
+            raise ValueError("boulders must be a list")
+        boulders = BOULDER_PAYLOAD_MAPPER.boulders_from_payloads(boulders_payload)
+        stream = EXCEL_BOULDER_EXPORTER.build_workbook(boulders)
+        return StreamingResponse(
+            stream,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": 'attachment; filename="climbing-dashboard-export.xlsx"'
+            },
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
