@@ -374,7 +374,7 @@ export default function App() {
                   type="button"
                   onClick={() => void handleExportVisibleBoulders()}
                 >
-                  Export visible
+                  Export Selected
                 </button>
               </section>
 
