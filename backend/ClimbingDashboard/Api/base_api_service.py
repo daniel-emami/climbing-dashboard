@@ -21,10 +21,11 @@ class BaseApiService(ABC):
         self,
         original_name: str,
         original_area: str,
+        original_climber: str,
         request: BoulderCreateRequest,
     ) -> BouldersPayload:
         """Update a climbed boulder and return the refreshed dashboard payload."""
 
     @abstractmethod
-    def delete_boulder(self, name: str, area: str) -> BouldersPayload:
+    def delete_boulder(self, name: str, area: str, climber: str) -> BouldersPayload:
         """Delete a climbed boulder and return the refreshed dashboard payload."""

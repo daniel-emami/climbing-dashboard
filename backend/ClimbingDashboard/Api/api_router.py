@@ -72,11 +72,13 @@ def update_boulder(
         boulder = BoulderCreateRequest.from_payload(boulder_payload)
         original_name = str(original.get("name", "")).strip()
         original_area = str(original.get("area", "")).strip()
+        original_climber = str(original.get("climber", "")).strip()
         if not original_name or not original_area:
             raise ValueError("original name and area are required")
         return get_api_service(request).update_boulder(
             original_name=original_name,
             original_area=original_area,
+            original_climber=original_climber,
             request=boulder,
         )
     except ValueError as exc:
@@ -95,9 +97,10 @@ def delete_boulder(
     try:
         name = str(payload.get("name", "")).strip()
         area = str(payload.get("area", "")).strip()
+        climber = str(payload.get("climber", "")).strip()
         if not name or not area:
             raise ValueError("name and area are required")
-        return get_api_service(request).delete_boulder(name, area)
+        return get_api_service(request).delete_boulder(name, area, climber)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ApiDataError as exc:
@@ -153,6 +156,7 @@ def _boulder_from_payload(payload: dict[str, Any]) -> BoulderRecord:
         guide_grade=str(payload.get("guide_grade", "")).strip(),
         my_grade=str(payload.get("my_grade", "")).strip(),
         area=str(payload.get("area", "")).strip(),
+        climber=str(payload.get("climber", "")).strip(),
         flash=bool(payload.get("flash", False)),
         climbed_on=parse_excel_date(payload.get("climbed_on")),
     )

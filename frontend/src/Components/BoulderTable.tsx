@@ -16,6 +16,7 @@ type BoulderTableProps = {
 type SortKey =
   | "name"
   | "area"
+  | "climber"
   | "grade_27crags"
   | "guide_grade"
   | "my_grade"
@@ -32,6 +33,7 @@ type SortState = {
 const HEADERS: Array<{ key: SortKey; label: string }> = [
   { key: "name", label: "Name" },
   { key: "area", label: "Area" },
+  { key: "climber", label: "Climber" },
   { key: "grade_27crags", label: "27Crags" },
   { key: "guide_grade", label: "Guide" },
   { key: "my_grade", label: "My" },
@@ -42,7 +44,7 @@ const HEADERS: Array<{ key: SortKey; label: string }> = [
 const PAGE_SIZE = 15;
 
 function recordKey(record: BoulderRecord): string {
-  return `${record.name}::${record.area}`;
+  return `${record.name}::${record.area}::${record.climber}`;
 }
 
 function recordToDraft(record: BoulderRecord): BoulderCreateRequest {
@@ -52,6 +54,7 @@ function recordToDraft(record: BoulderRecord): BoulderCreateRequest {
     guide_grade: record.guide_grade,
     my_grade: record.my_grade,
     area: record.area,
+    climber: record.climber,
     flash: record.flash,
     climbed_on: record.climbed_on
   };
@@ -167,13 +170,13 @@ export default function BoulderTable({
     if (!draft) {
       return;
     }
-    if (!draft.name.trim() || !draft.area.trim()) {
-      window.alert("Name and area are required.");
+    if (!draft.name.trim() || !draft.area.trim() || !draft.climber.trim()) {
+      window.alert("Name, area, and climber are required.");
       return;
     }
     try {
       await onUpdate(
-        { name: record.name, area: record.area },
+        { name: record.name, area: record.area, climber: record.climber },
         {
           ...draft,
           climbed_on: draft.climbed_on || null
@@ -186,12 +189,14 @@ export default function BoulderTable({
   };
 
   const deleteRecord = async (record: BoulderRecord) => {
-    const shouldDelete = window.confirm(`Remove ${record.name} from ${record.area}?`);
+    const shouldDelete = window.confirm(
+      `Remove ${record.name} from ${record.area} for ${record.climber}?`
+    );
     if (!shouldDelete) {
       return;
     }
     try {
-      await onDelete({ name: record.name, area: record.area });
+      await onDelete({ name: record.name, area: record.area, climber: record.climber });
       if (editingKey === recordKey(record)) {
         cancelEditing();
       }
@@ -229,6 +234,7 @@ export default function BoulderTable({
           <colgroup>
             <col className="logbook-name-column" />
             <col className="logbook-area-column" />
+            <col className="logbook-climber-column" />
             <col className="logbook-grade-column" />
             <col className="logbook-grade-column" />
             <col className="logbook-grade-column" />
@@ -261,7 +267,7 @@ export default function BoulderTable({
               const editableRecord = isEditing && draft ? draft : record;
 
               return (
-                <tr key={`${record.name}-${record.area}-${record.climbed_on}`}>
+                <tr key={`${record.name}-${record.area}-${record.climber}-${record.climbed_on}`}>
                   <th>
                     {isEditing ? (
                       <input
@@ -286,6 +292,19 @@ export default function BoulderTable({
                       />
                     ) : (
                       record.area
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <input
+                        aria-label="Climber"
+                        className="table-inline-input"
+                        required
+                        value={editableRecord.climber}
+                        onChange={(event) => updateDraft("climber", event.target.value)}
+                      />
+                    ) : (
+                      record.climber
                     )}
                   </td>
                   <td>

@@ -372,6 +372,23 @@ h2 {
   gap: 14px;
 }
 
+.climber-filter-panel label {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 260px);
+  align-items: center;
+  justify-content: start;
+  gap: 12px;
+}
+
+.climber-filter-panel select {
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #172033;
+  padding: 0 10px;
+}
+
 .segmented-control {
   display: flex;
   flex-wrap: wrap;
@@ -442,31 +459,35 @@ table {
 
 .logbook-table {
   table-layout: fixed;
-  min-width: 1040px;
+  min-width: 1120px;
 }
 
 .logbook-name-column {
-  width: 23%;
+  width: 20%;
 }
 
 .logbook-area-column {
-  width: 17%;
+  width: 16%;
+}
+
+.logbook-climber-column {
+  width: 12%;
 }
 
 .logbook-grade-column {
-  width: 9%;
+  width: 8%;
 }
 
 .logbook-flash-column {
-  width: 7%;
+  width: 6%;
 }
 
 .logbook-date-column {
-  width: 11%;
+  width: 10%;
 }
 
 .logbook-actions-column {
-  width: 15%;
+  width: 12%;
 }
 
 th,

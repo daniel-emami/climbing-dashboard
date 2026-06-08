@@ -84,8 +84,8 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 - `GET /health` checks that the backend is running.
 - `GET /api/boulders` returns workbook rows plus dashboard statistics.
 - `POST /api/boulders` appends a climbed boulder to `Boulders_Ticklist.xlsx`.
-- `PUT /api/boulders` updates a boulder matched by its original name and area.
-- `DELETE /api/boulders` removes a boulder matched by name and area.
+- `PUT /api/boulders` updates a boulder matched by its original name, area, and climber.
+- `DELETE /api/boulders` removes a boulder matched by name, area, and climber.
 - `POST /api/imports/thetopo/preview` previews public TheTopo boulders for a username.
 - `POST /api/imports/thetopo/confirm` saves selected preview boulders to the workbook.
 
@@ -94,7 +94,12 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 The backend currently expects these headers in row 1 of `data/Boulders_Ticklist.xlsx`:
 
 ```text
-Navn | 27Crags grade | Guide grade | My grade | Område | Flash | Dato
+Navn | 27Crags grade | Guide grade | My grade | Område | Flash | Dato | Climber
 ```
+
+`Climber` is used with `Navn` and `Område` as the unique key, so several climbers
+can log the same boulder without being treated as duplicates. If an older
+workbook is missing the `Climber` header, the backend adds it the next time it
+writes to the workbook.
 
 Normal formulas and workbook content are preserved when new rows are appended. `openpyxl` may remove unsupported Excel-only extensions if the workbook uses them, so keep a backup before heavy editing.

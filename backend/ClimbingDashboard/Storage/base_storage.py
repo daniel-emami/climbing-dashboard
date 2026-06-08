@@ -25,10 +25,11 @@ class BaseStorage(ABC):
         self,
         original_name: str,
         original_area: str,
+        original_climber: str,
         record: BoulderRecord,
     ) -> BoulderRecord:
         """Update one persisted boulder record."""
 
     @abstractmethod
-    def delete_boulder(self, name: str, area: str) -> None:
+    def delete_boulder(self, name: str, area: str, climber: str) -> None:
         """Delete one persisted boulder record."""

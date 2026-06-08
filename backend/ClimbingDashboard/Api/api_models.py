@@ -16,6 +16,7 @@ class BoulderCreateRequest:
         guide_grade: str | None,
         my_grade: str | None,
         area: str,
+        climber: str,
         flash: bool = False,
         climbed_on: date | None = None,
     ) -> None:
@@ -26,6 +27,7 @@ class BoulderCreateRequest:
         self.guide_grade = self._optional_text(guide_grade)
         self.my_grade = self._optional_text(my_grade)
         self.area = self._required_text(area, "area")
+        self.climber = self._required_text(climber, "climber")
         self.flash = self._bool(flash)
         self.climbed_on = climbed_on
 
@@ -39,6 +41,7 @@ class BoulderCreateRequest:
             guide_grade=payload.get("guide_grade", ""),
             my_grade=payload.get("my_grade", ""),
             area=payload.get("area", ""),
+            climber=payload.get("climber", ""),
             flash=payload.get("flash", False),
             climbed_on=parse_excel_date(payload.get("climbed_on")),
         )
@@ -52,6 +55,7 @@ class BoulderCreateRequest:
             "guide_grade": self.guide_grade,
             "my_grade": self.my_grade,
             "area": self.area,
+            "climber": self.climber,
             "flash": self.flash,
             "climbed_on": self.climbed_on.isoformat() if self.climbed_on else None,
         }
