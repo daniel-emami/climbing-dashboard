@@ -289,8 +289,8 @@ export default function App() {
         </div>
         <dl className="workspace-status" aria-label="Loaded data status">
           <div>
-            <dt>Workbook</dt>
-            <dd>Boulders_Ticklist.xlsx</dd>
+            <dt>Storage</dt>
+            <dd>SQLite</dd>
           </div>
           <div>
             <dt>Rows</dt>

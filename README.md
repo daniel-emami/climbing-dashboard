@@ -82,7 +82,7 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 ## API
 
 - `GET /health` checks that the backend is running.
-- `GET /api/boulders` returns workbook rows plus dashboard statistics.
+- `GET /api/boulders` returns stored rows plus dashboard statistics.
 - `POST /api/boulders` appends a climbed boulder to the SQLite database.
 - `PUT /api/boulders` updates a boulder matched by its original name, area, and climber.
 - `DELETE /api/boulders` removes a boulder matched by name, area, and climber.

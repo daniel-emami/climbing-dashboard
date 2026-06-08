@@ -7,7 +7,7 @@ from pathlib import Path
 from ClimbingDashboard.Exceptions.storage_error import StorageError
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Storage.base_storage import BaseStorage
-from ClimbingDashboard.Utilities.date_utils import parse_excel_date
+from ClimbingDashboard.Utilities.date_utils import parse_climbed_date
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class SqliteStorage(BaseStorage):
                 area=str(row["area"]),
                 climber=str(row["climber"]),
                 flash=bool(row["flash"]),
-                climbed_on=parse_excel_date(row["climbed_on"]),
+                climbed_on=parse_climbed_date(row["climbed_on"]),
             )
             for row in rows
         ]

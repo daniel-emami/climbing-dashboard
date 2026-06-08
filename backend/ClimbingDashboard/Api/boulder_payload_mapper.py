@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
-from ClimbingDashboard.Utilities.date_utils import parse_excel_date
+from ClimbingDashboard.Utilities.date_utils import parse_climbed_date
 
 
 class BoulderPayloadMapper:
@@ -20,7 +20,7 @@ class BoulderPayloadMapper:
             area=str(payload.get("area", "")).strip(),
             climber=str(payload.get("climber", "")).strip(),
             flash=bool(payload.get("flash", False)),
-            climbed_on=parse_excel_date(payload.get("climbed_on")),
+            climbed_on=parse_climbed_date(payload.get("climbed_on")),
         )
 
     def boulders_from_payloads(self, payloads: list[object]) -> list[BoulderRecord]:
