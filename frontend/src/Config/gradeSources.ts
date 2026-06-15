@@ -9,9 +9,9 @@ export const GRADE_SOURCE_FIELDS: GradeField[] = [
 ];
 
 export const GRADE_SOURCE_LABELS: Record<GradeField, string> = {
-  grade_27crags: "27Crags grade",
-  guide_grade: "Guide grade",
-  my_grade: "My grade"
+  grade_27crags: "27Crags Grade",
+  guide_grade: "Guide Grade",
+  my_grade: "My Grade"
 };
 
 export const GRADE_SOURCE_COLORS: Record<GradeField, string> = {

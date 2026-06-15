@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
-
-EXCEL_EPOCH = date(1899, 12, 30)
+from datetime import date, datetime
 
 
-def parse_excel_date(value: object) -> date | None:
-    """Convert an Excel cell value into a date when possible."""
+def parse_climbed_date(value: object) -> date | None:
+    """Convert an external date value into a date when possible."""
 
     if value in (None, ""):
         return None
@@ -14,8 +12,6 @@ def parse_excel_date(value: object) -> date | None:
         return value.date()
     if isinstance(value, date):
         return value
-    if isinstance(value, int | float):
-        return EXCEL_EPOCH + timedelta(days=int(value))
     if isinstance(value, str):
         stripped = value.strip()
         if not stripped:
@@ -30,9 +26,3 @@ def parse_excel_date(value: object) -> date | None:
             except ValueError:
                 continue
     raise ValueError(f"Could not parse climbed date: {value}")
-
-
-def to_excel_date(value: date | None) -> date | None: # TODO: What the fuck is the purpose for this
-    """Return a value openpyxl should store as a date cell."""
-
-    return value

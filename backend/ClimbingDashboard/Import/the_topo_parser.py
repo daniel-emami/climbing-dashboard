@@ -6,7 +6,7 @@ from html import unescape
 from html.parser import HTMLParser
 
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
-from ClimbingDashboard.Utilities.date_utils import parse_excel_date
+from ClimbingDashboard.Utilities.date_utils import parse_climbed_date
 
 
 @dataclass
@@ -140,6 +140,7 @@ class TheTopoParser:
             guide_grade="",
             my_grade=my_grade,
             area=area,
+            climber="",
             flash=ascent_type.strip().lower() == "flash",
             climbed_on=climbed_on,
         )
@@ -185,6 +186,6 @@ class TheTopoParser:
 
     def _date(self, value: str) -> date | None:
         try:
-            return parse_excel_date(value.split()[0] if value else None)
+            return parse_climbed_date(value.split()[0] if value else None)
         except ValueError:
             return None

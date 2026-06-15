@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 from ClimbingDashboard.Import.base_ascents_importer import BaseAscentsImporter
 from ClimbingDashboard.Import.import_preview import ImportPreview
 from ClimbingDashboard.Import.the_topo_client import TheTopoClient
@@ -26,6 +28,7 @@ class TheTopoAscentsImporter(BaseAscentsImporter):
 
         html = self.client.get_boulder_ascents_html(username)
         boulders, skipped_count = self.parser.parse_boulder_ascents(html)
+        boulders = [replace(boulder, climber=username) for boulder in boulders]
         return ImportPreview(
             source=self.source,
             username=username,

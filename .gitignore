@@ -16,6 +16,11 @@ frontend/dist/
 .env
 .env.*
 
+# Local SQLite data
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
 # Local editor folders
 .idea/
 .vscode/

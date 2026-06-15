@@ -1,0 +1,10 @@
+.DS_Store
+.git
+.ruff_cache
+.venv
+__pycache__
+*.pyc
+frontend/dist
+frontend/node_modules
+backend/**/__pycache__
+tests/**/__pycache__

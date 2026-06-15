@@ -4,6 +4,7 @@ export type BoulderRecord = {
   guide_grade: string;
   my_grade: string;
   area: string;
+  climber: string;
   flash: boolean;
   climbed_on: string | null;
 };
@@ -52,8 +53,20 @@ export type BoulderCreateRequest = {
   guide_grade: string;
   my_grade: string;
   area: string;
+  climber: string;
   flash: boolean;
   climbed_on: string | null;
+};
+
+export type BoulderIdentity = {
+  name: string;
+  area: string;
+  climber: string;
+};
+
+export type BoulderUpdateRequest = {
+  original: BoulderIdentity;
+  boulder: BoulderCreateRequest;
 };
 
 export type GradeField = "grade_27crags" | "guide_grade" | "my_grade";

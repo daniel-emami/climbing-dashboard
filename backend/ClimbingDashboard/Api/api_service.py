@@ -7,7 +7,7 @@ from ClimbingDashboard.Api.api_models import BoulderCreateRequest, BouldersPaylo
 from ClimbingDashboard.Api.base_api_service import BaseApiService
 from ClimbingDashboard.Config.constants import GRADE_ORDER, GRADE_SOURCE_FIELDS
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
-from ClimbingDashboard.Exceptions.excel_storage_error import ExcelStorageError
+from ClimbingDashboard.Exceptions.storage_error import StorageError
 from ClimbingDashboard.Models.area_grade_matrix_row import AreaGradeMatrixRow
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Models.dashboard_stats import (
@@ -15,16 +15,16 @@ from ClimbingDashboard.Models.dashboard_stats import (
     DashboardStats,
     GradeCount,
 )
-from ClimbingDashboard.Storage.excel_storage import ExcelStorage
+from ClimbingDashboard.Storage.sqlite_storage import SqliteStorage
 
 
 class ApiService(BaseApiService):
-    """Reads and writes the Excel source, returning frontend-ready payloads."""
+    """Reads and writes the SQLite source, returning frontend-ready payloads."""
 
-    def __init__(self, excel_path: str | Path) -> None:
-        """Create the API service for a selected workbook path."""
+    def __init__(self, database_path: str | Path) -> None:
+        """Create the API service for a selected database path."""
 
-        self.storage = ExcelStorage(excel_path)
+        self.storage = SqliteStorage(database_path)
 
     def get_boulders(self) -> BouldersPayload:
         """Return boulders with calculated stats."""
@@ -39,26 +39,55 @@ class ApiService(BaseApiService):
     def save_boulder(self, request: BoulderCreateRequest) -> BouldersPayload:
         """Append one boulder, then return the refreshed dashboard payload."""
 
-        record = BoulderRecord(
-            name=request.name,
-            grade_27crags=request.grade_27crags,
-            guide_grade=request.guide_grade,
-            my_grade=request.my_grade,
-            area=request.area,
-            flash=request.flash,
-            climbed_on=request.climbed_on,
-        )
+        record = self._record_from_request(request)
         try:
             self.storage.append_boulder(record)
-        except ExcelStorageError as exc:
+        except StorageError as exc:
             raise ApiDataError(f"Could not save boulder: {exc}") from exc
+        return self.get_boulders()
+
+    def update_boulder(
+        self,
+        original_name: str,
+        original_area: str,
+        original_climber: str,
+        request: BoulderCreateRequest,
+    ) -> BouldersPayload:
+        """Update one boulder, then return the refreshed dashboard payload."""
+
+        record = self._record_from_request(request)
+        try:
+            self.storage.update_boulder(original_name, original_area, original_climber, record)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not update boulder: {exc}") from exc
+        return self.get_boulders()
+
+    def delete_boulder(self, name: str, area: str, climber: str) -> BouldersPayload:
+        """Delete one boulder, then return the refreshed dashboard payload."""
+
+        try:
+            self.storage.delete_boulder(name, area, climber)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not delete boulder: {exc}") from exc
         return self.get_boulders()
 
     def _read_records(self) -> list[BoulderRecord]:
         try:
             return self.storage.read_boulders()
-        except ExcelStorageError as exc:
+        except StorageError as exc:
             raise ApiDataError(f"Could not read boulders: {exc}") from exc
+
+    def _record_from_request(self, request: BoulderCreateRequest) -> BoulderRecord:
+        return BoulderRecord(
+            name=request.name,
+            grade_27crags=request.grade_27crags,
+            guide_grade=request.guide_grade,
+            my_grade=request.my_grade,
+            area=request.area,
+            climber=request.climber,
+            flash=request.flash,
+            climbed_on=request.climbed_on,
+        )
 
     def _build_stats(self, records: list[BoulderRecord]) -> DashboardStats:
         by_area = Counter(record.area for record in records if record.area)
