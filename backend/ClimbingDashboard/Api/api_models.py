@@ -114,3 +114,54 @@ class BoulderCreateRequest:
 
 type BoulderPayload = dict[str, object]
 type BouldersPayload = dict[str, object]
+
+
+class BoulderCommentCreateRequest:
+    """Validated request object for adding a boulder comment."""
+
+    def __init__(
+        self,
+        name: object,
+        area: object,
+        climber: object,
+        body: object,
+    ) -> None:
+        """Create a request object after primitive payload conversion."""
+
+        self.name = BoulderCreateRequest._required_text(name, "name")
+        self.area = BoulderCreateRequest._required_text(area, "area")
+        self.climber = BoulderCreateRequest._required_text(climber, "climber")
+        self.body = BoulderCreateRequest._required_text(body, "comment")
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> BoulderCommentCreateRequest:
+        """Build a request object from a JSON-like dictionary."""
+
+        return cls(
+            name=payload.get("name"),
+            area=payload.get("area"),
+            climber=payload.get("climber"),
+            body=payload.get("body"),
+        )
+
+
+class BoulderCommentUpdateRequest:
+    """Validated request object for editing a boulder comment."""
+
+    def __init__(self, climber: object, body: object) -> None:
+        """Create a request object after primitive payload conversion."""
+
+        self.climber = BoulderCreateRequest._required_text(climber, "climber")
+        self.body = BoulderCreateRequest._required_text(body, "comment")
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> BoulderCommentUpdateRequest:
+        """Build a request object from a JSON-like dictionary."""
+
+        return cls(
+            climber=payload.get("climber"),
+            body=payload.get("body"),
+        )
+
+
+type BoulderCommentsPayload = dict[str, object]

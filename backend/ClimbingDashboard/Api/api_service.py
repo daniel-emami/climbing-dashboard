@@ -3,12 +3,19 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from ClimbingDashboard.Api.api_models import BoulderCreateRequest, BouldersPayload
+from ClimbingDashboard.Api.api_models import (
+    BoulderCommentCreateRequest,
+    BoulderCommentsPayload,
+    BoulderCommentUpdateRequest,
+    BoulderCreateRequest,
+    BouldersPayload,
+)
 from ClimbingDashboard.Api.base_api_service import BaseApiService
 from ClimbingDashboard.Config.constants import GRADE_ORDER, GRADE_SOURCE_FIELDS
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
 from ClimbingDashboard.Exceptions.storage_error import StorageError
 from ClimbingDashboard.Models.area_grade_matrix_row import AreaGradeMatrixRow
+from ClimbingDashboard.Models.boulder_comment import BoulderComment
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Models.dashboard_stats import (
     AreaCount,
@@ -71,11 +78,69 @@ class ApiService(BaseApiService):
             raise ApiDataError(f"Could not delete boulder: {exc}") from exc
         return self.get_boulders()
 
+    def get_boulder_comments(self, name: str, area: str) -> BoulderCommentsPayload:
+        """Return public comments for one boulder problem."""
+
+        try:
+            comments = self.storage.read_boulder_comments(name, area)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read boulder comments: {exc}") from exc
+        return self._comments_payload(comments)
+
+    def save_boulder_comment(
+        self,
+        request: BoulderCommentCreateRequest,
+    ) -> BoulderCommentsPayload:
+        """Append one boulder comment, then return the refreshed comment thread."""
+
+        try:
+            self.storage.append_boulder_comment(
+                request.name,
+                request.area,
+                request.climber,
+                request.body,
+            )
+            comments = self.storage.read_boulder_comments(request.name, request.area)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not save boulder comment: {exc}") from exc
+        return self._comments_payload(comments)
+
+    def update_boulder_comment(
+        self,
+        comment_id: int,
+        request: BoulderCommentUpdateRequest,
+    ) -> BoulderCommentsPayload:
+        """Update one boulder comment, then return the refreshed comment thread."""
+
+        try:
+            comment = self.storage.update_boulder_comment(
+                comment_id,
+                request.climber,
+                request.body,
+            )
+            comments = self.storage.read_boulder_comments(comment.boulder_name, comment.area)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not update boulder comment: {exc}") from exc
+        return self._comments_payload(comments)
+
+    def delete_boulder_comment(self, comment_id: int) -> BoulderCommentsPayload:
+        """Soft-delete one boulder comment, then return the refreshed comment thread."""
+
+        try:
+            comment = self.storage.delete_boulder_comment(comment_id)
+            comments = self.storage.read_boulder_comments(comment.boulder_name, comment.area)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not delete boulder comment: {exc}") from exc
+        return self._comments_payload(comments)
+
     def _read_records(self) -> list[BoulderRecord]:
         try:
             return self.storage.read_boulders()
         except StorageError as exc:
             raise ApiDataError(f"Could not read boulders: {exc}") from exc
+
+    def _comments_payload(self, comments: list[BoulderComment]) -> BoulderCommentsPayload:
+        return {"comments": [comment.to_payload() for comment in comments]}
 
     def _record_from_request(self, request: BoulderCreateRequest) -> BoulderRecord:
         return BoulderRecord(

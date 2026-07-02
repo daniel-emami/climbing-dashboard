@@ -71,6 +71,32 @@ export type BoulderPageIdentity = {
   area: string;
 };
 
+export type BoulderComment = {
+  id: number;
+  boulder_name: string;
+  area: string;
+  climber: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BoulderCommentsResponse = {
+  comments: BoulderComment[];
+};
+
+export type BoulderCommentCreateRequest = {
+  name: string;
+  area: string;
+  climber: string;
+  body: string;
+};
+
+export type BoulderCommentUpdateRequest = {
+  climber: string;
+  body: string;
+};
+
 export type BoulderUpdateRequest = {
   original: BoulderIdentity;
   boulder: BoulderCreateRequest;

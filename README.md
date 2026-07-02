@@ -86,6 +86,10 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 - `POST /api/boulders` appends a climbed boulder to the SQLite database.
 - `PUT /api/boulders` updates a boulder matched by its original name, area, and climber.
 - `DELETE /api/boulders` removes a boulder matched by name, area, and climber.
+- `GET /api/boulders/comments` returns public comments for one boulder problem.
+- `POST /api/boulders/comments` appends a public comment to one boulder problem.
+- `PUT /api/boulders/comments/{comment_id}` updates a public boulder comment.
+- `DELETE /api/boulders/comments/{comment_id}` soft-deletes a public boulder comment.
 - `POST /api/imports/thetopo/preview` previews public TheTopo boulders for a username.
 - `POST /api/imports/thetopo/confirm` saves selected preview boulders to the database.
 - `POST /api/exports/boulders` exports supplied boulder rows to an Excel workbook.
