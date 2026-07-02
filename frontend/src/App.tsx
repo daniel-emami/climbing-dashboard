@@ -41,6 +41,12 @@ import type {
   GradeField
 } from "./Types/boulderTypes";
 
+const DASHBOARD_GRADE_SOURCE_FIELDS: GradeField[] = [
+  "grade_27crags",
+  "own_grade",
+  "guide_grade"
+];
+
 function formatRefreshTime(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -162,6 +168,27 @@ function buildStats(records: BoulderRecord[], gradeOrder: string[]): DashboardSt
   };
 }
 
+function recordMatchesSearch(record: BoulderRecord, searchQuery: string): boolean {
+  const query = searchQuery.trim().toLocaleLowerCase();
+  if (!query) {
+    return true;
+  }
+  return [
+    record.name,
+    record.area,
+    record.climber,
+    record.grade_27crags,
+    record.guide_grade,
+    record.own_grade,
+    record.climbed_on ?? "",
+    record.flash ? "flash" : "",
+    record.rating === null ? "" : `${record.rating}/5`
+  ]
+    .join(" ")
+    .toLocaleLowerCase()
+    .includes(query);
+}
+
 export default function App() {
   const [data, setData] = useState<BouldersResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -171,6 +198,7 @@ export default function App() {
   const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("own_grade");
   const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("own_grade");
   const [selectedClimber, setSelectedClimber] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedBoulder, setSelectedBoulder] = useState<BoulderPageIdentity | null>(
     boulderIdentityFromHash
   );
@@ -269,15 +297,17 @@ export default function App() {
     if (!data) {
       return null;
     }
-    const records = selectedClimber
-      ? data.records.filter((record) => record.climber === selectedClimber)
-      : data.records;
+    const records = data.records.filter(
+      (record) =>
+        (!selectedClimber || record.climber === selectedClimber) &&
+        recordMatchesSearch(record, searchQuery)
+    );
     return {
       ...data,
       records,
       stats: buildStats(records, data.grade_order)
     };
-  }, [data, selectedClimber]);
+  }, [data, searchQuery, selectedClimber]);
 
   const selectedBoulderRecords = useMemo(() => {
     if (!data || !selectedBoulder) {
@@ -508,56 +538,65 @@ export default function App() {
             <>
               <SummaryStrip data={visibleData} />
 
-              <section className="panel grade-controls-panel">
-                <div className="panel-heading">
-                  <span className="section-kicker">Select Grade Source</span>
-                </div>
-                <div className="segmented-control" role="group" aria-label="Grade source">
-                  {GRADE_SOURCE_FIELDS.map((field) => (
+              <section className="panel dashboard-controls-panel">
+                <div className="dashboard-control-group grade-source-control">
+                  <span className="section-kicker">Grade Source</span>
+                  <div className="segmented-control" role="group" aria-label="Grade source">
+                    {DASHBOARD_GRADE_SOURCE_FIELDS.map((field) => (
+                      <button
+                        className={field === gradeChartMode ? "active" : ""}
+                        key={field}
+                        type="button"
+                        onClick={() => {
+                          setActiveAreaMapGradeField(field);
+                          setGradeChartMode(field);
+                        }}
+                      >
+                        {GRADE_SOURCE_LABELS[field]}
+                      </button>
+                    ))}
                     <button
-                      className={field === gradeChartMode ? "active" : ""}
-                      key={field}
+                      className={gradeChartMode === "all" ? "active" : ""}
                       type="button"
-                      onClick={() => {
-                        setActiveAreaMapGradeField(field);
-                        setGradeChartMode(field);
-                      }}
+                      onClick={() => setGradeChartMode("all")}
                     >
-                      {GRADE_SOURCE_LABELS[field]}
+                      Combined
                     </button>
-                  ))}
+                  </div>
+                </div>
+
+                <label className="dashboard-control-group search-control">
+                  <span className="section-kicker">Search</span>
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                  />
+                </label>
+
+                <div className="dashboard-control-group climber-control">
+                  <label>
+                    <span className="section-kicker">Climber</span>
+                    <select
+                      value={selectedClimber}
+                      onChange={(event) => setSelectedClimber(event.target.value)}
+                    >
+                      <option value="">All climbers</option>
+                      {knownClimbers.map((climber) => (
+                        <option key={climber} value={climber}>
+                          {climber}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <button
-                    className={gradeChartMode === "all" ? "active" : ""}
+                    disabled={visibleData.records.length === 0}
                     type="button"
-                    onClick={() => setGradeChartMode("all")}
+                    onClick={() => void handleExportVisibleBoulders()}
                   >
-                    Combined
+                    Export Selected
                   </button>
                 </div>
-              </section>
-
-              <section className="panel climber-filter-panel">
-                <label>
-                  <span className="section-kicker">Climber</span>
-                  <select
-                    value={selectedClimber}
-                    onChange={(event) => setSelectedClimber(event.target.value)}
-                  >
-                    <option value="">All climbers</option>
-                    {knownClimbers.map((climber) => (
-                      <option key={climber} value={climber}>
-                        {climber}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  disabled={visibleData.records.length === 0}
-                  type="button"
-                  onClick={() => void handleExportVisibleBoulders()}
-                >
-                  Export Selected
-                </button>
               </section>
 
               <div className="insight-grid">
@@ -572,11 +611,6 @@ export default function App() {
                 />
               </div>
 
-              <AreaGradeMatrix
-                rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
-                grades={visibleData.grade_order}
-                gradeSourceLabel={activeAreaMapGradeLabel}
-              />
               <BoulderTable
                 records={visibleData.records}
                 gradeOrder={visibleData.grade_order}
@@ -584,6 +618,11 @@ export default function App() {
                 onDelete={handleDeleteBoulder}
                 onOpenBoulder={handleOpenBoulder}
                 onUpdate={handleUpdateBoulder}
+              />
+              <AreaGradeMatrix
+                rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
+                grades={visibleData.grade_order}
+                gradeSourceLabel={activeAreaMapGradeLabel}
               />
             </>
           )}
