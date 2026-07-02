@@ -27,14 +27,14 @@ GRADE_ORDER = (
 GRADE_SOURCE_FIELDS = (
     "grade_27crags",
     "guide_grade",
-    "my_grade",
+    "own_grade",
 )
 
 BOULDER_EXPORT_COLUMNS = (
     "Navn",
     "27Crags grade",
     "Guide grade",
-    "My grade",
+    "Own grade",
     "Område",
     "Flash",
     "Dato",

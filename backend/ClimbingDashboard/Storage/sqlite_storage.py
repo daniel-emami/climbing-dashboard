@@ -33,7 +33,7 @@ class SqliteStorage(BaseStorage):
                         name,
                         grade_27crags,
                         guide_grade,
-                        my_grade,
+                        own_grade,
                         area,
                         climber,
                         flash,
@@ -50,7 +50,7 @@ class SqliteStorage(BaseStorage):
                 name=str(row["name"]),
                 grade_27crags=str(row["grade_27crags"]),
                 guide_grade=str(row["guide_grade"]),
-                my_grade=str(row["my_grade"]),
+                own_grade=str(row["own_grade"]),
                 area=str(row["area"]),
                 climber=str(row["climber"]),
                 flash=bool(row["flash"]),
@@ -78,7 +78,7 @@ class SqliteStorage(BaseStorage):
                             name,
                             grade_27crags,
                             guide_grade,
-                            my_grade,
+                            own_grade,
                             area,
                             climber,
                             flash,
@@ -126,7 +126,7 @@ class SqliteStorage(BaseStorage):
                         name = ?,
                         grade_27crags = ?,
                         guide_grade = ?,
-                        my_grade = ?,
+                        own_grade = ?,
                         area = ?,
                         climber = ?,
                         flash = ?,
@@ -180,7 +180,7 @@ class SqliteStorage(BaseStorage):
                         name TEXT NOT NULL,
                         grade_27crags TEXT NOT NULL DEFAULT '',
                         guide_grade TEXT NOT NULL DEFAULT '',
-                        my_grade TEXT NOT NULL DEFAULT '',
+                        own_grade TEXT NOT NULL DEFAULT '',
                         area TEXT NOT NULL,
                         climber TEXT NOT NULL DEFAULT '',
                         flash INTEGER NOT NULL DEFAULT 0,
@@ -190,6 +190,7 @@ class SqliteStorage(BaseStorage):
                     )
                     """
                 )
+                self._migrate_schema(connection)
                 connection.execute(
                     """
                     CREATE UNIQUE INDEX IF NOT EXISTS boulders_unique_key
@@ -198,6 +199,14 @@ class SqliteStorage(BaseStorage):
                 )
         except sqlite3.Error as exc:
             raise StorageError(f"Failed to create SQLite schema: {exc}") from exc
+
+    def _migrate_schema(self, connection: sqlite3.Connection) -> None:
+        columns = {
+            str(row["name"])
+            for row in connection.execute("PRAGMA table_info(boulders)").fetchall()
+        }
+        if "my_grade" in columns and "own_grade" not in columns:
+            connection.execute("ALTER TABLE boulders RENAME COLUMN my_grade TO own_grade")
 
     def _find_boulder_id(
         self,
@@ -226,7 +235,7 @@ class SqliteStorage(BaseStorage):
             record.name,
             record.grade_27crags,
             record.guide_grade,
-            record.my_grade,
+            record.own_grade,
             record.area,
             record.climber,
             1 if record.flash else 0,

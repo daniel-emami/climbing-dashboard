@@ -403,6 +403,118 @@ h2 {
   color: #0f3f3a;
 }
 
+.boulder-detail-page {
+  min-width: 0;
+}
+
+.back-button {
+  min-height: 34px;
+  margin-bottom: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #233044;
+  padding: 0 11px;
+  font-weight: 850;
+}
+
+.back-button:hover {
+  border-color: #0f766e;
+  background: #d9f3ee;
+  color: #0f3f3a;
+}
+
+.boulder-detail-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
+  gap: 18px;
+  align-items: end;
+}
+
+.boulder-detail-hero h2 {
+  margin-top: 6px;
+  font-size: 1.8rem;
+}
+
+.boulder-detail-hero p {
+  margin: 8px 0 0;
+  color: #475569;
+  font-weight: 850;
+}
+
+.boulder-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.boulder-detail-stats div {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 9px;
+  background: #f8fafc;
+}
+
+.boulder-detail-stats dt,
+.boulder-grade-list dt {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.boulder-detail-stats dd {
+  margin: 5px 0 0;
+  color: #111827;
+  font-size: 1.1rem;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.boulder-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
+  gap: 16px;
+}
+
+.boulder-climbers-panel,
+.boulder-comments-panel {
+  grid-column: 1 / -1;
+}
+
+.boulder-grade-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.boulder-grade-list div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.boulder-grade-list dd {
+  margin: 0;
+  color: #111827;
+  font-weight: 850;
+}
+
+.empty-detail-slot {
+  min-height: 70px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  color: #94a3b8;
+  font-weight: 900;
+}
+
 .segmented-control {
   display: flex;
   flex-wrap: wrap;
@@ -561,6 +673,24 @@ thead th {
   color: #0f766e;
 }
 
+.table-link-button {
+  max-width: 100%;
+  border: 0;
+  background: transparent;
+  color: #0f766e;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  font: inherit;
+  font-weight: 900;
+}
+
+.table-link-button:hover {
+  color: #115e59;
+  text-decoration: underline;
+}
+
 tbody th {
   color: #172033;
 }
@@ -626,7 +756,9 @@ tbody tr:hover td {
   .workspace-header,
   .dashboard-layout,
   .insight-grid,
-  .grade-controls-panel {
+  .grade-controls-panel,
+  .boulder-detail-hero,
+  .boulder-detail-grid {
     grid-template-columns: 1fr;
   }
 
@@ -638,6 +770,10 @@ tbody tr:hover td {
 
   .pagination-controls {
     margin-left: 0;
+  }
+
+  .boulder-detail-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .control-rail {
@@ -652,6 +788,10 @@ tbody tr:hover td {
 
   .workspace-status,
   .summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .boulder-detail-stats {
     grid-template-columns: 1fr;
   }
 

@@ -14,7 +14,7 @@ class BoulderCreateRequest:
         name: str,
         grade_27crags: str | None,
         guide_grade: str | None,
-        my_grade: str | None,
+        own_grade: str | None,
         area: str,
         climber: str,
         flash: bool = False,
@@ -25,7 +25,7 @@ class BoulderCreateRequest:
         self.name = self._required_text(name, "name")
         self.grade_27crags = self._optional_text(grade_27crags)
         self.guide_grade = self._optional_text(guide_grade)
-        self.my_grade = self._optional_text(my_grade)
+        self.own_grade = self._optional_text(own_grade)
         self.area = self._required_text(area, "area")
         self.climber = self._required_text(climber, "climber")
         self.flash = self._bool(flash)
@@ -39,7 +39,7 @@ class BoulderCreateRequest:
             name=payload.get("name", ""),
             grade_27crags=payload.get("grade_27crags", ""),
             guide_grade=payload.get("guide_grade", ""),
-            my_grade=payload.get("my_grade", ""),
+            own_grade=payload.get("own_grade", ""),
             area=payload.get("area", ""),
             climber=payload.get("climber", ""),
             flash=payload.get("flash", False),
@@ -53,7 +53,7 @@ class BoulderCreateRequest:
             "name": self.name,
             "grade_27crags": self.grade_27crags,
             "guide_grade": self.guide_grade,
-            "my_grade": self.my_grade,
+            "own_grade": self.own_grade,
             "area": self.area,
             "climber": self.climber,
             "flash": self.flash,

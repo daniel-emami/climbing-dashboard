@@ -131,14 +131,14 @@ class TheTopoParser:
         if not name or not area:
             return None
 
-        my_grade, grade_27crags = self._grades(grade_cell)
+        own_grade, grade_27crags = self._grades(grade_cell)
         climbed_on = self._date(date_cell.text)
         ascent_type = ascent_type_cell.text
         return BoulderRecord(
             name=name,
             grade_27crags=grade_27crags,
             guide_grade="",
-            my_grade=my_grade,
+            own_grade=own_grade,
             area=area,
             climber="",
             flash=ascent_type.strip().lower() == "flash",

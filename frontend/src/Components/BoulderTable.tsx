@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type {
   BoulderCreateRequest,
   BoulderIdentity,
+  BoulderPageIdentity,
   BoulderRecord
 } from "../Types/boulderTypes";
 
@@ -10,6 +11,7 @@ type BoulderTableProps = {
   gradeOrder: string[];
   isSaving: boolean;
   onDelete: (request: BoulderIdentity) => Promise<void>;
+  onOpenBoulder: (identity: BoulderPageIdentity) => void;
   onUpdate: (original: BoulderIdentity, boulder: BoulderCreateRequest) => Promise<void>;
 };
 
@@ -19,7 +21,7 @@ type SortKey =
   | "climber"
   | "grade_27crags"
   | "guide_grade"
-  | "my_grade"
+  | "own_grade"
   | "flash"
   | "climbed_on";
 
@@ -36,7 +38,7 @@ const HEADERS: Array<{ key: SortKey; label: string }> = [
   { key: "climber", label: "Climber" },
   { key: "grade_27crags", label: "27Crags" },
   { key: "guide_grade", label: "Guide" },
-  { key: "my_grade", label: "My" },
+  { key: "own_grade", label: "Own" },
   { key: "flash", label: "Flash" },
   { key: "climbed_on", label: "Date" }
 ];
@@ -52,7 +54,7 @@ function recordToDraft(record: BoulderRecord): BoulderCreateRequest {
     name: record.name,
     grade_27crags: record.grade_27crags,
     guide_grade: record.guide_grade,
-    my_grade: record.my_grade,
+    own_grade: record.own_grade,
     area: record.area,
     climber: record.climber,
     flash: record.flash,
@@ -91,7 +93,7 @@ function compareRecords(
   if (sortKey === "climbed_on") {
     return compareText(left.climbed_on ?? "", right.climbed_on ?? "");
   }
-  if (sortKey === "grade_27crags" || sortKey === "guide_grade" || sortKey === "my_grade") {
+  if (sortKey === "grade_27crags" || sortKey === "guide_grade" || sortKey === "own_grade") {
     return compareGrades(left[sortKey], right[sortKey], gradeRank);
   }
   return compareText(left[sortKey], right[sortKey]);
@@ -102,6 +104,7 @@ export default function BoulderTable({
   gradeOrder,
   isSaving,
   onDelete,
+  onOpenBoulder,
   onUpdate
 }: BoulderTableProps) {
   const [sort, setSort] = useState<SortState>({ key: "climbed_on", direction: "desc" });
@@ -278,7 +281,13 @@ export default function BoulderTable({
                         onChange={(event) => updateDraft("name", event.target.value)}
                       />
                     ) : (
-                      record.name
+                      <button
+                        className="table-link-button"
+                        type="button"
+                        onClick={() => onOpenBoulder({ name: record.name, area: record.area })}
+                      >
+                        {record.name}
+                      </button>
                     )}
                   </th>
                   <td>
@@ -334,13 +343,13 @@ export default function BoulderTable({
                   <td>
                     {isEditing ? (
                       <input
-                        aria-label="My grade"
+                        aria-label="Own grade"
                         className="table-inline-input"
-                        value={editableRecord.my_grade}
-                        onChange={(event) => updateDraft("my_grade", event.target.value)}
+                        value={editableRecord.own_grade}
+                        onChange={(event) => updateDraft("own_grade", event.target.value)}
                       />
                     ) : (
-                      record.my_grade
+                      record.own_grade
                     )}
                   </td>
                   <td>

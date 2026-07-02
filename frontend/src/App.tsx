@@ -8,6 +8,7 @@ import {
 } from "./Api/boulderApi";
 import AreaChart from "./Components/AreaChart";
 import AreaGradeMatrix from "./Components/AreaGradeMatrix";
+import BoulderDetailPage from "./Components/BoulderDetailPage";
 import BoulderForm from "./Components/BoulderForm";
 import BoulderTable from "./Components/BoulderTable";
 import ErrorState from "./Components/ErrorState";
@@ -25,6 +26,7 @@ import type {
   AreaCount,
   BoulderCreateRequest,
   BoulderIdentity,
+  BoulderPageIdentity,
   BoulderRecord,
   BouldersResponse,
   DashboardStats,
@@ -33,6 +35,39 @@ import type {
 
 function formatRefreshTime(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function boulderIdentityFromHash(): BoulderPageIdentity | null {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  if (params.get("view") !== "boulder") {
+    return null;
+  }
+  const name = params.get("name")?.trim();
+  const area = params.get("area")?.trim();
+  if (!name || !area) {
+    return null;
+  }
+  return { name, area };
+}
+
+function writeBoulderHash(identity: BoulderPageIdentity | null) {
+  if (!identity) {
+    window.history.pushState(null, "", `${window.location.pathname}${window.location.search}`);
+    return;
+  }
+  const params = new URLSearchParams({
+    view: "boulder",
+    name: identity.name,
+    area: identity.area
+  });
+  window.history.pushState(null, "", `#${params.toString()}`);
+}
+
+function isSameBoulder(record: BoulderRecord, identity: BoulderPageIdentity): boolean {
+  return (
+    record.name.trim().toLocaleLowerCase() === identity.name.trim().toLocaleLowerCase() &&
+    record.area.trim().toLocaleLowerCase() === identity.area.trim().toLocaleLowerCase()
+  );
 }
 
 function orderedGradeCounts(records: BoulderRecord[], field: GradeField, gradeOrder: string[]) {
@@ -104,17 +139,17 @@ function buildStats(records: BoulderRecord[], gradeOrder: string[]): DashboardSt
     grade_counts: {
       grade_27crags: orderedGradeCounts(records, "grade_27crags", gradeOrder),
       guide_grade: orderedGradeCounts(records, "guide_grade", gradeOrder),
-      my_grade: orderedGradeCounts(records, "my_grade", gradeOrder)
+      own_grade: orderedGradeCounts(records, "own_grade", gradeOrder)
     },
     area_counts_by_grade_source: {
       grade_27crags: areaCounts(records, "grade_27crags"),
       guide_grade: areaCounts(records, "guide_grade"),
-      my_grade: areaCounts(records, "my_grade")
+      own_grade: areaCounts(records, "own_grade")
     },
     area_grade_matrix_by_grade_source: {
       grade_27crags: areaGradeMatrix(records, "grade_27crags"),
       guide_grade: areaGradeMatrix(records, "guide_grade"),
-      my_grade: areaGradeMatrix(records, "my_grade")
+      own_grade: areaGradeMatrix(records, "own_grade")
     }
   };
 }
@@ -125,9 +160,12 @@ export default function App() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("my_grade");
-  const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("my_grade");
+  const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("own_grade");
+  const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("own_grade");
   const [selectedClimber, setSelectedClimber] = useState("");
+  const [selectedBoulder, setSelectedBoulder] = useState<BoulderPageIdentity | null>(
+    boulderIdentityFromHash
+  );
 
   const loadStoredData = useCallback(async () => {
     try {
@@ -145,6 +183,16 @@ export default function App() {
   useEffect(() => {
     void loadStoredData();
   }, [loadStoredData]);
+
+  useEffect(() => {
+    const syncRouteFromHash = () => setSelectedBoulder(boulderIdentityFromHash());
+    window.addEventListener("hashchange", syncRouteFromHash);
+    window.addEventListener("popstate", syncRouteFromHash);
+    return () => {
+      window.removeEventListener("hashchange", syncRouteFromHash);
+      window.removeEventListener("popstate", syncRouteFromHash);
+    };
+  }, []);
 
   const knownAreas = useMemo(
     () => data?.stats.areas.map((area) => area.area).sort((a, b) => a.localeCompare(b)) ?? [],
@@ -167,7 +215,7 @@ export default function App() {
   const knownGrades = useMemo(
     () =>
       data?.grade_order.filter((grade) =>
-        data.stats.grade_counts.my_grade.some((entry) => entry.grade === grade)
+        data.stats.grade_counts.own_grade.some((entry) => entry.grade === grade)
       ) ?? [],
     [data]
   );
@@ -185,6 +233,13 @@ export default function App() {
       stats: buildStats(records, data.grade_order)
     };
   }, [data, selectedClimber]);
+
+  const selectedBoulderRecords = useMemo(() => {
+    if (!data || !selectedBoulder) {
+      return [];
+    }
+    return data.records.filter((record) => isSameBoulder(record, selectedBoulder));
+  }, [data, selectedBoulder]);
 
   const activeAreaMapGradeLabel = GRADE_SOURCE_LABELS[activeAreaMapGradeField];
   const gradeChartSeries = useMemo<GradeChartSeries[]>(() => {
@@ -258,6 +313,16 @@ export default function App() {
     setLastUpdated(formatRefreshTime());
   };
 
+  const handleOpenBoulder = (identity: BoulderPageIdentity) => {
+    setSelectedBoulder(identity);
+    writeBoulderHash(identity);
+  };
+
+  const handleCloseBoulder = () => {
+    setSelectedBoulder(null);
+    writeBoulderHash(null);
+  };
+
   const handleExportVisibleBoulders = async () => {
     if (!visibleData) {
       return;
@@ -303,6 +368,17 @@ export default function App() {
         </dl>
       </header>
 
+      {selectedBoulder && data && !isInitialLoading ? (
+        <>
+          {error && <ErrorState message={error} />}
+          <BoulderDetailPage
+            identity={selectedBoulder}
+            gradeOrder={data.grade_order}
+            records={selectedBoulderRecords}
+            onBack={handleCloseBoulder}
+          />
+        </>
+      ) : (
       <div className="dashboard-layout">
         <aside className="control-rail">
           <TheTopoImportPanel
@@ -400,12 +476,14 @@ export default function App() {
                 gradeOrder={visibleData.grade_order}
                 isSaving={isSaving}
                 onDelete={handleDeleteBoulder}
+                onOpenBoulder={handleOpenBoulder}
                 onUpdate={handleUpdateBoulder}
               />
             </>
           )}
         </section>
       </div>
+      )}
     </main>
   );
 }
