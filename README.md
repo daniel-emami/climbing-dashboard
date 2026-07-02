@@ -98,12 +98,21 @@ The app writes current data to:
 data/climbing_dashboard.db
 ```
 
+Inside SQLite, the data is normalized:
+
+```text
+boulder_problems   One row per boulder name and area
+ascents            One row per climber ascent/tick of a boulder
+boulder_comments   Public boulder comment thread data
+```
+
 Excel exports use this workbook shape:
 
 ```text
 Navn | 27Crags grade | Guide grade | Own grade | Område | Flash | Dato | Climber | Rating
 ```
 
-`Climber` is used with `Navn` and `Område` as the unique key, so several climbers
-can log the same boulder without being treated as duplicates. Filtered frontend
-data can be exported back to an `.xlsx` file with the `Export visible` button.
+A boulder problem is unique by `Navn` and `Område`. An ascent is unique by that
+boulder problem plus `Climber`, so several climbers can log the same boulder
+without being treated as duplicates. Filtered frontend data can be exported back
+to an `.xlsx` file with the `Export visible` button.
