@@ -82,11 +82,12 @@ class ApiService(BaseApiService):
             name=request.name,
             grade_27crags=request.grade_27crags,
             guide_grade=request.guide_grade,
-            my_grade=request.my_grade,
+            own_grade=request.own_grade,
             area=request.area,
             climber=request.climber,
             flash=request.flash,
             climbed_on=request.climbed_on,
+            rating=request.rating,
         )
 
     def _build_stats(self, records: list[BoulderRecord]) -> DashboardStats:

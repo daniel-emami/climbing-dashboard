@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type {
   BoulderCreateRequest,
   BoulderIdentity,
+  BoulderPageIdentity,
   BoulderRecord
 } from "../Types/boulderTypes";
 
@@ -10,6 +11,7 @@ type BoulderTableProps = {
   gradeOrder: string[];
   isSaving: boolean;
   onDelete: (request: BoulderIdentity) => Promise<void>;
+  onOpenBoulder: (identity: BoulderPageIdentity) => void;
   onUpdate: (original: BoulderIdentity, boulder: BoulderCreateRequest) => Promise<void>;
 };
 
@@ -19,9 +21,10 @@ type SortKey =
   | "climber"
   | "grade_27crags"
   | "guide_grade"
-  | "my_grade"
+  | "own_grade"
   | "flash"
-  | "climbed_on";
+  | "climbed_on"
+  | "rating";
 
 type SortDirection = "asc" | "desc";
 
@@ -36,12 +39,14 @@ const HEADERS: Array<{ key: SortKey; label: string }> = [
   { key: "climber", label: "Climber" },
   { key: "grade_27crags", label: "27Crags" },
   { key: "guide_grade", label: "Guide" },
-  { key: "my_grade", label: "My" },
+  { key: "own_grade", label: "Own" },
   { key: "flash", label: "Flash" },
-  { key: "climbed_on", label: "Date" }
+  { key: "climbed_on", label: "Date" },
+  { key: "rating", label: "Rating" }
 ];
 
 const PAGE_SIZE = 15;
+const RATING_OPTIONS = [1, 2, 3, 4, 5];
 
 function recordKey(record: BoulderRecord): string {
   return `${record.name}::${record.area}::${record.climber}`;
@@ -52,11 +57,12 @@ function recordToDraft(record: BoulderRecord): BoulderCreateRequest {
     name: record.name,
     grade_27crags: record.grade_27crags,
     guide_grade: record.guide_grade,
-    my_grade: record.my_grade,
+    own_grade: record.own_grade,
     area: record.area,
     climber: record.climber,
     flash: record.flash,
-    climbed_on: record.climbed_on
+    climbed_on: record.climbed_on,
+    rating: record.rating
   };
 }
 
@@ -88,13 +94,20 @@ function compareRecords(
   if (sortKey === "flash") {
     return Number(left.flash) - Number(right.flash);
   }
+  if (sortKey === "rating") {
+    return (left.rating ?? 0) - (right.rating ?? 0);
+  }
   if (sortKey === "climbed_on") {
     return compareText(left.climbed_on ?? "", right.climbed_on ?? "");
   }
-  if (sortKey === "grade_27crags" || sortKey === "guide_grade" || sortKey === "my_grade") {
+  if (sortKey === "grade_27crags" || sortKey === "guide_grade" || sortKey === "own_grade") {
     return compareGrades(left[sortKey], right[sortKey], gradeRank);
   }
   return compareText(left[sortKey], right[sortKey]);
+}
+
+function formatRating(rating: number | null): string {
+  return rating ? `${rating}/5` : "";
 }
 
 export default function BoulderTable({
@@ -102,6 +115,7 @@ export default function BoulderTable({
   gradeOrder,
   isSaving,
   onDelete,
+  onOpenBoulder,
   onUpdate
 }: BoulderTableProps) {
   const [sort, setSort] = useState<SortState>({ key: "climbed_on", direction: "desc" });
@@ -240,6 +254,7 @@ export default function BoulderTable({
             <col className="logbook-grade-column" />
             <col className="logbook-flash-column" />
             <col className="logbook-date-column" />
+            <col className="logbook-rating-column" />
             <col className="logbook-actions-column" />
           </colgroup>
           <thead>
@@ -278,7 +293,13 @@ export default function BoulderTable({
                         onChange={(event) => updateDraft("name", event.target.value)}
                       />
                     ) : (
-                      record.name
+                      <button
+                        className="table-link-button"
+                        type="button"
+                        onClick={() => onOpenBoulder({ name: record.name, area: record.area })}
+                      >
+                        {record.name}
+                      </button>
                     )}
                   </th>
                   <td>
@@ -334,13 +355,13 @@ export default function BoulderTable({
                   <td>
                     {isEditing ? (
                       <input
-                        aria-label="My grade"
+                        aria-label="Own grade"
                         className="table-inline-input"
-                        value={editableRecord.my_grade}
-                        onChange={(event) => updateDraft("my_grade", event.target.value)}
+                        value={editableRecord.own_grade}
+                        onChange={(event) => updateDraft("own_grade", event.target.value)}
                       />
                     ) : (
-                      record.my_grade
+                      record.own_grade
                     )}
                   </td>
                   <td>
@@ -369,6 +390,30 @@ export default function BoulderTable({
                       />
                     ) : (
                       record.climbed_on ?? ""
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <select
+                        aria-label="Rating"
+                        className="table-inline-input"
+                        value={editableRecord.rating ?? ""}
+                        onChange={(event) =>
+                          updateDraft(
+                            "rating",
+                            event.target.value ? Number(event.target.value) : null
+                          )
+                        }
+                      >
+                        <option value="">Unrated</option>
+                        {RATING_OPTIONS.map((rating) => (
+                          <option key={rating} value={rating}>
+                            {rating}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      formatRating(record.rating)
                     )}
                   </td>
                   <td>
