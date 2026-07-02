@@ -6,6 +6,12 @@ import {
   fetchBoulders,
   updateBoulder
 } from "./Api/boulderApi";
+import {
+  addBoulderComment,
+  deleteBoulderComment,
+  fetchBoulderComments,
+  updateBoulderComment
+} from "./Api/commentApi";
 import AreaChart from "./Components/AreaChart";
 import AreaGradeMatrix from "./Components/AreaGradeMatrix";
 import BoulderDetailPage from "./Components/BoulderDetailPage";
@@ -24,6 +30,8 @@ import {
 } from "./Config/gradeSources";
 import type {
   AreaCount,
+  BoulderComment,
+  BoulderCommentUpdateRequest,
   BoulderCreateRequest,
   BoulderIdentity,
   BoulderPageIdentity,
@@ -166,6 +174,9 @@ export default function App() {
   const [selectedBoulder, setSelectedBoulder] = useState<BoulderPageIdentity | null>(
     boulderIdentityFromHash
   );
+  const [selectedBoulderComments, setSelectedBoulderComments] = useState<BoulderComment[]>([]);
+  const [isCommentsLoading, setIsCommentsLoading] = useState(false);
+  const [isCommentSaving, setIsCommentSaving] = useState(false);
 
   const loadStoredData = useCallback(async () => {
     try {
@@ -193,6 +204,40 @@ export default function App() {
       window.removeEventListener("popstate", syncRouteFromHash);
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedBoulder) {
+      setSelectedBoulderComments([]);
+      return;
+    }
+
+    let ignoreResult = false;
+    setSelectedBoulderComments([]);
+    setIsCommentsLoading(true);
+    fetchBoulderComments(selectedBoulder)
+      .then((payload) => {
+        if (!ignoreResult) {
+          setSelectedBoulderComments(payload.comments);
+          setError(null);
+        }
+      })
+      .catch((unknownError: unknown) => {
+        if (!ignoreResult) {
+          setError(
+            unknownError instanceof Error ? unknownError.message : "Unknown comment error"
+          );
+        }
+      })
+      .finally(() => {
+        if (!ignoreResult) {
+          setIsCommentsLoading(false);
+        }
+      });
+
+    return () => {
+      ignoreResult = true;
+    };
+  }, [selectedBoulder]);
 
   const knownAreas = useMemo(
     () => data?.stats.areas.map((area) => area.area).sort((a, b) => a.localeCompare(b)) ?? [],
@@ -323,6 +368,59 @@ export default function App() {
     writeBoulderHash(null);
   };
 
+  const handleAddBoulderComment = async (climber: string, body: string) => {
+    if (!selectedBoulder) {
+      return;
+    }
+    setIsCommentSaving(true);
+    try {
+      const payload = await addBoulderComment({
+        name: selectedBoulder.name,
+        area: selectedBoulder.area,
+        climber,
+        body
+      });
+      setSelectedBoulderComments(payload.comments);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown comment error");
+      throw unknownError;
+    } finally {
+      setIsCommentSaving(false);
+    }
+  };
+
+  const handleUpdateBoulderComment = async (
+    commentId: number,
+    request: BoulderCommentUpdateRequest
+  ) => {
+    setIsCommentSaving(true);
+    try {
+      const payload = await updateBoulderComment(commentId, request);
+      setSelectedBoulderComments(payload.comments);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown comment error");
+      throw unknownError;
+    } finally {
+      setIsCommentSaving(false);
+    }
+  };
+
+  const handleDeleteBoulderComment = async (commentId: number) => {
+    setIsCommentSaving(true);
+    try {
+      const payload = await deleteBoulderComment(commentId);
+      setSelectedBoulderComments(payload.comments);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown comment error");
+      throw unknownError;
+    } finally {
+      setIsCommentSaving(false);
+    }
+  };
+
   const handleExportVisibleBoulders = async () => {
     if (!visibleData) {
       return;
@@ -374,9 +472,15 @@ export default function App() {
           <BoulderDetailPage
             identity={selectedBoulder}
             gradeOrder={data.grade_order}
+            comments={selectedBoulderComments}
             isSaving={isSaving}
+            isCommentsLoading={isCommentsLoading}
+            isCommentSaving={isCommentSaving}
             records={selectedBoulderRecords}
+            onAddComment={handleAddBoulderComment}
             onBack={handleCloseBoulder}
+            onDeleteComment={handleDeleteBoulderComment}
+            onUpdateComment={handleUpdateBoulderComment}
             onUpdate={handleUpdateBoulder}
           />
         </>
