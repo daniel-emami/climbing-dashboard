@@ -39,4 +39,5 @@ BOULDER_EXPORT_COLUMNS = (
     "Flash",
     "Dato",
     "Climber",
+    "Rating",
 )

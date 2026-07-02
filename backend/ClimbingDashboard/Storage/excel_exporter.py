@@ -30,6 +30,7 @@ class ExcelBoulderExporter:
             date_cell = worksheet.cell(row_index, 7, boulder.climbed_on)
             date_cell.number_format = "yyyy-mm-dd"
             worksheet.cell(row_index, 8, boulder.climber)
+            worksheet.cell(row_index, 9, boulder.rating)
 
         stream = BytesIO()
         workbook.save(stream)

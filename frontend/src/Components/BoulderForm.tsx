@@ -9,8 +9,11 @@ const EMPTY_FORM: BoulderCreateRequest = {
   area: "",
   climber: "",
   flash: false,
-  climbed_on: new Date().toISOString().slice(0, 10)
+  climbed_on: new Date().toISOString().slice(0, 10),
+  rating: null
 };
+
+const RATING_OPTIONS = [1, 2, 3, 4, 5];
 
 type BoulderFormProps = {
   isSaving: boolean;
@@ -43,6 +46,10 @@ export default function BoulderForm({
       climbed_on: form.climbed_on || null
     });
     setForm({ ...EMPTY_FORM, climber: form.climber });
+  };
+
+  const updateRating = (value: string) => {
+    updateForm("rating", value ? Number(value) : null);
   };
 
   return (
@@ -115,6 +122,21 @@ export default function BoulderForm({
           value={form.climbed_on ?? ""}
           onChange={(event) => updateForm("climbed_on", event.target.value)}
         />
+      </label>
+
+      <label>
+        Rating
+        <select
+          value={form.rating ?? ""}
+          onChange={(event) => updateRating(event.target.value)}
+        >
+          <option value="">Unrated</option>
+          {RATING_OPTIONS.map((rating) => (
+            <option key={rating} value={rating}>
+              {rating}
+            </option>
+          ))}
+        </select>
       </label>
 
       <label className="checkbox-row">

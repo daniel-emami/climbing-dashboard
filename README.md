@@ -101,7 +101,7 @@ data/climbing_dashboard.db
 Excel exports use this workbook shape:
 
 ```text
-Navn | 27Crags grade | Guide grade | Own grade | Område | Flash | Dato | Climber
+Navn | 27Crags grade | Guide grade | Own grade | Område | Flash | Dato | Climber | Rating
 ```
 
 `Climber` is used with `Navn` and `Område` as the unique key, so several climbers

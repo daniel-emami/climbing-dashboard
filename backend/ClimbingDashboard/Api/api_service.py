@@ -87,6 +87,7 @@ class ApiService(BaseApiService):
             climber=request.climber,
             flash=request.flash,
             climbed_on=request.climbed_on,
+            rating=request.rating,
         )
 
     def _build_stats(self, records: list[BoulderRecord]) -> DashboardStats:

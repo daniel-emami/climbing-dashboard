@@ -19,6 +19,7 @@ class BoulderCreateRequest:
         climber: str,
         flash: bool = False,
         climbed_on: date | None = None,
+        rating: int | str | None = None,
     ) -> None:
         """Create a request object after primitive payload conversion."""
 
@@ -30,6 +31,7 @@ class BoulderCreateRequest:
         self.climber = self._required_text(climber, "climber")
         self.flash = self._bool(flash)
         self.climbed_on = climbed_on
+        self.rating = self._rating(rating)
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> BoulderCreateRequest:
@@ -44,6 +46,7 @@ class BoulderCreateRequest:
             climber=payload.get("climber", ""),
             flash=payload.get("flash", False),
             climbed_on=parse_climbed_date(payload.get("climbed_on")),
+            rating=payload.get("rating"),
         )
 
     def to_error_payload(self) -> dict[str, object]:
@@ -58,6 +61,7 @@ class BoulderCreateRequest:
             "climber": self.climber,
             "flash": self.flash,
             "climbed_on": self.climbed_on.isoformat() if self.climbed_on else None,
+            "rating": self.rating,
         }
 
     @staticmethod
@@ -80,6 +84,32 @@ class BoulderCreateRequest:
         if isinstance(value, str):
             return value.strip().lower() in {"1", "true", "yes", "y", "flash"}
         return False
+
+    @staticmethod
+    def _rating(value: object) -> int | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return None
+            try:
+                return BoulderCreateRequest._rating_in_range(int(text))
+            except ValueError as exc:
+                raise ValueError("rating must be empty or a number from 1 to 5") from exc
+        if isinstance(value, bool):
+            raise ValueError("rating must be empty or a number from 1 to 5")
+        if isinstance(value, int):
+            return BoulderCreateRequest._rating_in_range(value)
+        if isinstance(value, float) and value.is_integer():
+            return BoulderCreateRequest._rating_in_range(int(value))
+        raise ValueError("rating must be empty or a number from 1 to 5")
+
+    @staticmethod
+    def _rating_in_range(rating: int) -> int:
+        if rating < 1 or rating > 5:
+            raise ValueError("rating must be empty or a number from 1 to 5")
+        return rating
 
 
 type BoulderPayload = dict[str, object]

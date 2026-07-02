@@ -23,7 +23,8 @@ type SortKey =
   | "guide_grade"
   | "own_grade"
   | "flash"
-  | "climbed_on";
+  | "climbed_on"
+  | "rating";
 
 type SortDirection = "asc" | "desc";
 
@@ -40,10 +41,12 @@ const HEADERS: Array<{ key: SortKey; label: string }> = [
   { key: "guide_grade", label: "Guide" },
   { key: "own_grade", label: "Own" },
   { key: "flash", label: "Flash" },
-  { key: "climbed_on", label: "Date" }
+  { key: "climbed_on", label: "Date" },
+  { key: "rating", label: "Rating" }
 ];
 
 const PAGE_SIZE = 15;
+const RATING_OPTIONS = [1, 2, 3, 4, 5];
 
 function recordKey(record: BoulderRecord): string {
   return `${record.name}::${record.area}::${record.climber}`;
@@ -58,7 +61,8 @@ function recordToDraft(record: BoulderRecord): BoulderCreateRequest {
     area: record.area,
     climber: record.climber,
     flash: record.flash,
-    climbed_on: record.climbed_on
+    climbed_on: record.climbed_on,
+    rating: record.rating
   };
 }
 
@@ -90,6 +94,9 @@ function compareRecords(
   if (sortKey === "flash") {
     return Number(left.flash) - Number(right.flash);
   }
+  if (sortKey === "rating") {
+    return (left.rating ?? 0) - (right.rating ?? 0);
+  }
   if (sortKey === "climbed_on") {
     return compareText(left.climbed_on ?? "", right.climbed_on ?? "");
   }
@@ -97,6 +104,10 @@ function compareRecords(
     return compareGrades(left[sortKey], right[sortKey], gradeRank);
   }
   return compareText(left[sortKey], right[sortKey]);
+}
+
+function formatRating(rating: number | null): string {
+  return rating ? `${rating}/5` : "";
 }
 
 export default function BoulderTable({
@@ -243,6 +254,7 @@ export default function BoulderTable({
             <col className="logbook-grade-column" />
             <col className="logbook-flash-column" />
             <col className="logbook-date-column" />
+            <col className="logbook-rating-column" />
             <col className="logbook-actions-column" />
           </colgroup>
           <thead>
@@ -378,6 +390,30 @@ export default function BoulderTable({
                       />
                     ) : (
                       record.climbed_on ?? ""
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <select
+                        aria-label="Rating"
+                        className="table-inline-input"
+                        value={editableRecord.rating ?? ""}
+                        onChange={(event) =>
+                          updateDraft(
+                            "rating",
+                            event.target.value ? Number(event.target.value) : null
+                          )
+                        }
+                      >
+                        <option value="">Unrated</option>
+                        {RATING_OPTIONS.map((rating) => (
+                          <option key={rating} value={rating}>
+                            {rating}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      formatRating(record.rating)
                     )}
                   </td>
                   <td>

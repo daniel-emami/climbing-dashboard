@@ -143,6 +143,7 @@ class TheTopoParser:
             climber="",
             flash=ascent_type.strip().lower() == "flash",
             climbed_on=climbed_on,
+            rating=None,
         )
 
     def _is_header_row(self, row: list[ParsedCell]) -> bool:

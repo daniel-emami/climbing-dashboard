@@ -374,8 +374,10 @@ export default function App() {
           <BoulderDetailPage
             identity={selectedBoulder}
             gradeOrder={data.grade_order}
+            isSaving={isSaving}
             records={selectedBoulderRecords}
             onBack={handleCloseBoulder}
+            onUpdate={handleUpdateBoulder}
           />
         </>
       ) : (

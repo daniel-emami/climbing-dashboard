@@ -37,7 +37,8 @@ class SqliteStorage(BaseStorage):
                         area,
                         climber,
                         flash,
-                        climbed_on
+                        climbed_on,
+                        rating
                     FROM boulders
                     ORDER BY id
                     """
@@ -55,6 +56,7 @@ class SqliteStorage(BaseStorage):
                 climber=str(row["climber"]),
                 flash=bool(row["flash"]),
                 climbed_on=parse_climbed_date(row["climbed_on"]),
+                rating=None if row["rating"] is None else int(row["rating"]),
             )
             for row in rows
         ]
@@ -82,9 +84,10 @@ class SqliteStorage(BaseStorage):
                             area,
                             climber,
                             flash,
-                            climbed_on
+                            climbed_on,
+                            rating
                         )
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         self._record_values(record),
                     )
@@ -131,6 +134,7 @@ class SqliteStorage(BaseStorage):
                         climber = ?,
                         flash = ?,
                         climbed_on = ?,
+                        rating = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                     """,
@@ -185,6 +189,7 @@ class SqliteStorage(BaseStorage):
                         climber TEXT NOT NULL DEFAULT '',
                         flash INTEGER NOT NULL DEFAULT 0,
                         climbed_on TEXT,
+                        rating INTEGER,
                         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                     )
@@ -207,6 +212,8 @@ class SqliteStorage(BaseStorage):
         }
         if "my_grade" in columns and "own_grade" not in columns:
             connection.execute("ALTER TABLE boulders RENAME COLUMN my_grade TO own_grade")
+        if "rating" not in columns:
+            connection.execute("ALTER TABLE boulders ADD COLUMN rating INTEGER")
 
     def _find_boulder_id(
         self,
@@ -230,7 +237,7 @@ class SqliteStorage(BaseStorage):
     def _record_values(
         self,
         record: BoulderRecord,
-    ) -> tuple[str, str, str, str, str, str, int, str | None]:
+    ) -> tuple[str, str, str, str, str, str, int, str | None, int | None]:
         return (
             record.name,
             record.grade_27crags,
@@ -240,4 +247,5 @@ class SqliteStorage(BaseStorage):
             record.climber,
             1 if record.flash else 0,
             record.climbed_on.isoformat() if record.climbed_on else None,
+            record.rating,
         )

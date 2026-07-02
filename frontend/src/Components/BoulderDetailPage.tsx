@@ -1,16 +1,25 @@
-import type { BoulderPageIdentity, BoulderRecord } from "../Types/boulderTypes";
+import type {
+  BoulderCreateRequest,
+  BoulderIdentity,
+  BoulderPageIdentity,
+  BoulderRecord
+} from "../Types/boulderTypes";
 
 type BoulderDetailPageProps = {
   identity: BoulderPageIdentity;
   gradeOrder: string[];
+  isSaving: boolean;
   records: BoulderRecord[];
   onBack: () => void;
+  onUpdate: (original: BoulderIdentity, boulder: BoulderCreateRequest) => Promise<void>;
 };
 
 type GradeSummary = {
   grade: string;
   count: number;
 };
+
+const RATING_OPTIONS = [1, 2, 3, 4, 5];
 
 function compareDates(left: string | null, right: string | null): number {
   return (left ?? "").localeCompare(right ?? "");
@@ -64,11 +73,71 @@ function formatGradeSummary(summary: GradeSummary[]): string {
     .join(", ");
 }
 
+function recordToRequest(record: BoulderRecord): BoulderCreateRequest {
+  return {
+    name: record.name,
+    grade_27crags: record.grade_27crags,
+    guide_grade: record.guide_grade,
+    own_grade: record.own_grade,
+    area: record.area,
+    climber: record.climber,
+    flash: record.flash,
+    climbed_on: record.climbed_on,
+    rating: record.rating
+  };
+}
+
+function averageRating(records: BoulderRecord[]): number | null {
+  const ratings = records
+    .map((record) => record.rating)
+    .filter((rating): rating is number => rating !== null);
+  if (ratings.length === 0) {
+    return null;
+  }
+  return ratings.reduce((total, rating) => total + rating, 0) / ratings.length;
+}
+
+function RatingButtons({
+  disabled,
+  rating,
+  onChange
+}: {
+  disabled: boolean;
+  rating: number | null;
+  onChange: (rating: number | null) => void;
+}) {
+  return (
+    <div className="rating-control" aria-label="Rating">
+      {RATING_OPTIONS.map((option) => (
+        <button
+          className={rating === option ? "active" : ""}
+          disabled={disabled}
+          key={option}
+          type="button"
+          onClick={() => onChange(option)}
+        >
+          {option}
+        </button>
+      ))}
+      <button
+        className="rating-clear-button"
+        disabled={disabled || rating === null}
+        type="button"
+        onClick={() => onChange(null)}
+      >
+        Clear
+      </button>
+    </div>
+  );
+}
+
 export default function BoulderDetailPage({
   identity,
   gradeOrder,
+  isSaving,
   records,
-  onBack
+  onBack,
+  onUpdate
 }: BoulderDetailPageProps) {
   const sortedRecords = records
     .slice()
@@ -76,6 +145,22 @@ export default function BoulderDetailPage({
   const flashCount = records.filter((record) => record.flash).length;
   const climberCount = new Set(records.map((record) => record.climber).filter(Boolean)).size;
   const latest = latestDate(records);
+  const average = averageRating(records);
+  const ratedCount = records.filter((record) => record.rating !== null).length;
+
+  const updateRating = async (record: BoulderRecord, rating: number | null) => {
+    try {
+      await onUpdate(
+        { name: record.name, area: record.area, climber: record.climber },
+        {
+          ...recordToRequest(record),
+          rating
+        }
+      );
+    } catch {
+      return;
+    }
+  };
 
   return (
     <section className="boulder-detail-page" aria-label="Boulder details">
@@ -134,7 +219,18 @@ export default function BoulderDetailPage({
           <div className="panel-heading">
             <span className="section-kicker">Ratings</span>
           </div>
-          <div className="empty-detail-slot">-</div>
+          <dl className="rating-summary-list">
+            <div>
+              <dt>Average</dt>
+              <dd>{average === null ? "-" : `${average.toFixed(1)}/5`}</dd>
+            </div>
+            <div>
+              <dt>Rated</dt>
+              <dd>
+                {ratedCount}/{records.length}
+              </dd>
+            </div>
+          </dl>
         </section>
 
         <section className="panel boulder-climbers-panel">
@@ -163,7 +259,13 @@ export default function BoulderDetailPage({
                     <td>{record.guide_grade}</td>
                     <td>{record.flash ? "Yes" : ""}</td>
                     <td>{record.climbed_on ?? ""}</td>
-                    <td>-</td>
+                    <td>
+                      <RatingButtons
+                        disabled={isSaving}
+                        rating={record.rating}
+                        onChange={(rating) => void updateRating(record, rating)}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>

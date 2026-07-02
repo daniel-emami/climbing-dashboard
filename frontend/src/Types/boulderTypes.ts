@@ -7,6 +7,7 @@ export type BoulderRecord = {
   climber: string;
   flash: boolean;
   climbed_on: string | null;
+  rating: number | null;
 };
 
 export type GradeCount = {
@@ -56,6 +57,7 @@ export type BoulderCreateRequest = {
   climber: string;
   flash: boolean;
   climbed_on: string | null;
+  rating: number | null;
 };
 
 export type BoulderIdentity = {

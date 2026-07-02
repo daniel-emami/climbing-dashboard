@@ -178,7 +178,8 @@ h2 {
   text-transform: uppercase;
 }
 
-.control-panel input {
+.control-panel input,
+.control-panel select {
   width: 100%;
   min-height: 38px;
   border: 1px solid #cbd5e1;
@@ -492,14 +493,30 @@ h2 {
   margin: 0;
 }
 
-.boulder-grade-list div {
+.boulder-grade-list div,
+.rating-summary-list div {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);
   gap: 10px;
   align-items: baseline;
 }
 
-.boulder-grade-list dd {
+.rating-summary-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.rating-summary-list dt {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.boulder-grade-list dd,
+.rating-summary-list dd {
   margin: 0;
   color: #111827;
   font-weight: 850;
@@ -585,23 +602,23 @@ table {
 
 .logbook-table {
   table-layout: fixed;
-  min-width: 1120px;
+  min-width: 1240px;
 }
 
 .logbook-name-column {
-  width: 20%;
+  width: 18%;
 }
 
 .logbook-area-column {
-  width: 16%;
+  width: 15%;
 }
 
 .logbook-climber-column {
-  width: 12%;
+  width: 11%;
 }
 
 .logbook-grade-column {
-  width: 8%;
+  width: 7%;
 }
 
 .logbook-flash-column {
@@ -609,7 +626,11 @@ table {
 }
 
 .logbook-date-column {
-  width: 10%;
+  width: 9%;
+}
+
+.logbook-rating-column {
+  width: 8%;
 }
 
 .logbook-actions-column {
@@ -721,6 +742,41 @@ tbody tr:hover td {
   height: 17px;
   margin: 0;
   vertical-align: middle;
+}
+
+.rating-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.rating-control button {
+  min-width: 28px;
+  min-height: 28px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #233044;
+  padding: 0 7px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.rating-control button:hover:not(:disabled) {
+  border-color: #0f766e;
+  background: #d9f3ee;
+  color: #0f3f3a;
+}
+
+.rating-control button.active {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.rating-control .rating-clear-button {
+  min-width: 48px;
 }
 
 .logbook-action-buttons {
