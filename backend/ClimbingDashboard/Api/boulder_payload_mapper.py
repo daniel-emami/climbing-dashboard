@@ -18,6 +18,7 @@ class BoulderPayloadMapper:
             guide_grade=str(payload.get("guide_grade", "")).strip(),
             own_grade=str(payload.get("own_grade", "")).strip(),
             area=str(payload.get("area", "")).strip(),
+            sector=str(payload.get("sector", "")).strip(),
             climber=str(payload.get("climber", "")).strip(),
             flash=bool(payload.get("flash", False)),
             climbed_on=parse_climbed_date(payload.get("climbed_on")),

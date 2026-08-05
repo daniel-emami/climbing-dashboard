@@ -4,6 +4,7 @@ export type BoulderRecord = {
   guide_grade: string;
   own_grade: string;
   area: string;
+  sector: string;
   climber: string;
   flash: boolean;
   climbed_on: string | null;
@@ -54,6 +55,7 @@ export type BoulderCreateRequest = {
   guide_grade: string;
   own_grade: string;
   area: string;
+  sector: string;
   climber: string;
   flash: boolean;
   climbed_on: string | null;
@@ -63,18 +65,21 @@ export type BoulderCreateRequest = {
 export type BoulderIdentity = {
   name: string;
   area: string;
+  sector: string;
   climber: string;
 };
 
 export type BoulderPageIdentity = {
   name: string;
   area: string;
+  sector: string;
 };
 
 export type BoulderComment = {
   id: number;
   boulder_name: string;
   area: string;
+  sector: string;
   climber: string;
   body: string;
   created_at: string;
@@ -88,6 +93,7 @@ export type BoulderCommentsResponse = {
 export type BoulderCommentCreateRequest = {
   name: string;
   area: string;
+  sector: string;
   climber: string;
   body: string;
 };

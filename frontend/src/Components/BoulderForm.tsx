@@ -7,6 +7,7 @@ const EMPTY_FORM: BoulderCreateRequest = {
   guide_grade: "",
   own_grade: "",
   area: "",
+  sector: "",
   climber: "",
   flash: false,
   climbed_on: new Date().toISOString().slice(0, 10),
@@ -20,6 +21,7 @@ type BoulderFormProps = {
   knownAreas: string[];
   knownClimbers: string[];
   knownGrades: string[];
+  knownSectors: string[];
   onSubmit: (request: BoulderCreateRequest) => Promise<void>;
 };
 
@@ -28,6 +30,7 @@ export default function BoulderForm({
   knownAreas,
   knownClimbers,
   knownGrades,
+  knownSectors,
   onSubmit
 }: BoulderFormProps) {
   const [form, setForm] = useState<BoulderCreateRequest>(EMPTY_FORM);
@@ -116,6 +119,15 @@ export default function BoulderForm({
       </label>
 
       <label>
+        Sector
+        <input
+          list="known-sectors"
+          value={form.sector}
+          onChange={(event) => updateForm("sector", event.target.value)}
+        />
+      </label>
+
+      <label>
         Date
         <input
           type="date"
@@ -161,6 +173,11 @@ export default function BoulderForm({
       <datalist id="known-climbers">
         {knownClimbers.map((climber) => (
           <option value={climber} key={climber} />
+        ))}
+      </datalist>
+      <datalist id="known-sectors">
+        {knownSectors.map((sector) => (
+          <option value={sector} key={sector} />
         ))}
       </datalist>
 

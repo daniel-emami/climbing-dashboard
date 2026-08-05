@@ -775,31 +775,35 @@ table {
 
 .logbook-table {
   table-layout: fixed;
-  min-width: 1240px;
+  min-width: 1180px;
 }
 
 .logbook-name-column {
-  width: 18%;
+  width: 12%;
 }
 
 .logbook-area-column {
-  width: 15%;
+  width: 13%;
 }
 
-.logbook-climber-column {
+.logbook-sector-column {
   width: 11%;
 }
 
-.logbook-grade-column {
-  width: 7%;
+.logbook-climber-column {
+  width: 10%;
 }
 
-.logbook-flash-column {
+.logbook-grade-column {
   width: 6%;
 }
 
+.logbook-flash-column {
+  width: 5%;
+}
+
 .logbook-date-column {
-  width: 9%;
+  width: 8%;
 }
 
 .logbook-rating-column {
@@ -807,7 +811,7 @@ table {
 }
 
 .logbook-actions-column {
-  width: 12%;
+  width: 15%;
 }
 
 th,
