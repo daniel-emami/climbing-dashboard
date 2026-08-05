@@ -775,11 +775,11 @@ table {
 
 .logbook-table {
   table-layout: fixed;
-  min-width: 1360px;
+  min-width: 1180px;
 }
 
 .logbook-name-column {
-  width: 16%;
+  width: 12%;
 }
 
 .logbook-area-column {
@@ -807,11 +807,11 @@ table {
 }
 
 .logbook-rating-column {
-  width: 7%;
+  width: 8%;
 }
 
 .logbook-actions-column {
-  width: 12%;
+  width: 15%;
 }
 
 th,
