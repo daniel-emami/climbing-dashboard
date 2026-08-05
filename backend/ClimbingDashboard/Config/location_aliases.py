@@ -14,8 +14,10 @@ SECTOR_AREA_ALIASES = {
     "filmplaneten": ("Oslo", "Filmplaneten"),
     "fruberget": ("Västervik", "Fruberget"),
     "mommehål": ("Västervik", "Mommehål"),
+    "forsby": ("Västervik", "Forsby"),
     "østmarka": ("Oslo", "Østmarka"),
     "tokerud": ("Oslo", "Tokerud"),
+    "hultastenen": ("Kjugekull", "Hultastenen")
 }
 
 AREA_SECTOR_SPLIT_AREAS = (
