@@ -9,6 +9,8 @@ export type BoulderRecord = {
   flash: boolean;
   climbed_on: string | null;
   rating: number | null;
+  ascent_id: number | null;
+  added_at: string | null;
 };
 
 export type GradeCount = {
@@ -99,6 +101,34 @@ export type BoulderCommentCreateRequest = {
 };
 
 export type BoulderCommentUpdateRequest = {
+  climber: string;
+  body: string;
+};
+
+export type AscentComment = {
+  id: number;
+  ascent_id: number;
+  climber: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AscentCommentsResponse = {
+  comments: AscentComment[];
+};
+
+export type AscentCommentsByAscentResponse = {
+  comments_by_ascent_id: Record<string, AscentComment[]>;
+};
+
+export type AscentCommentCreateRequest = {
+  ascent_id: number;
+  climber: string;
+  body: string;
+};
+
+export type AscentCommentUpdateRequest = {
   climber: string;
   body: string;
 };

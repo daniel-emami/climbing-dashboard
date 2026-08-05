@@ -5,6 +5,7 @@ import sqlite3
 from pathlib import Path
 
 from ClimbingDashboard.Exceptions.storage_error import StorageError
+from ClimbingDashboard.Models.ascent_comment import AscentComment
 from ClimbingDashboard.Models.boulder_comment import BoulderComment
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Storage.base_storage import BaseStorage
@@ -31,6 +32,7 @@ class SqliteStorage(BaseStorage):
                 rows = connection.execute(
                     """
                     SELECT
+                        ascents.id,
                         problems.name,
                         problems.area,
                         problems.sector,
@@ -40,7 +42,8 @@ class SqliteStorage(BaseStorage):
                         ascents.climber,
                         ascents.flash,
                         ascents.climbed_on,
-                        ascents.rating
+                        ascents.rating,
+                        ascents.created_at
                     FROM ascents
                     INNER JOIN boulder_problems AS problems
                         ON problems.id = ascents.boulder_id
@@ -62,6 +65,8 @@ class SqliteStorage(BaseStorage):
                 flash=bool(row["flash"]),
                 climbed_on=parse_climbed_date(row["climbed_on"]),
                 rating=None if row["rating"] is None else int(row["rating"]),
+                ascent_id=int(row["id"]),
+                added_at=str(row["created_at"]),
             )
             for row in rows
         ]
@@ -316,6 +321,158 @@ class SqliteStorage(BaseStorage):
 
         return comment
 
+    def read_ascent_comments(self, ascent_id: int) -> list[AscentComment]:
+        """Read all public comments for one ascent."""
+
+        try:
+            with self._connect() as connection:
+                if not self._ascent_exists(connection, ascent_id):
+                    raise StorageError(f"Ascent does not exist: {ascent_id}")
+                rows = connection.execute(
+                    """
+                    SELECT
+                        id,
+                        ascent_id,
+                        climber,
+                        body,
+                        created_at,
+                        updated_at
+                    FROM ascent_comments
+                    WHERE ascent_id = ?
+                        AND deleted_at IS NULL
+                    ORDER BY created_at ASC, id ASC
+                    """,
+                    (ascent_id,),
+                ).fetchall()
+        except sqlite3.Error as exc:
+            raise StorageError(f"Failed to read ascent comments: {exc}") from exc
+
+        return [self._ascent_comment_from_row(row) for row in rows]
+
+    def read_ascent_comments_for_ascent_ids(
+        self,
+        ascent_ids: list[int],
+    ) -> dict[int, list[AscentComment]]:
+        """Read public comments grouped by ascent id."""
+
+        clean_ascent_ids = sorted({ascent_id for ascent_id in ascent_ids if ascent_id > 0})
+        comments_by_ascent_id: dict[int, list[AscentComment]] = {
+            ascent_id: [] for ascent_id in clean_ascent_ids
+        }
+        if not clean_ascent_ids:
+            return comments_by_ascent_id
+
+        placeholders = ",".join("?" for _ in clean_ascent_ids)
+        try:
+            with self._connect() as connection:
+                rows = connection.execute(
+                    f"""
+                    SELECT
+                        id,
+                        ascent_id,
+                        climber,
+                        body,
+                        created_at,
+                        updated_at
+                    FROM ascent_comments
+                    WHERE ascent_id IN ({placeholders})
+                        AND deleted_at IS NULL
+                    ORDER BY ascent_id, created_at ASC, id ASC
+                    """,
+                    clean_ascent_ids,
+                ).fetchall()
+        except sqlite3.Error as exc:
+            raise StorageError(f"Failed to read ascent comments: {exc}") from exc
+
+        for row in rows:
+            comment = self._ascent_comment_from_row(row)
+            comments_by_ascent_id.setdefault(comment.ascent_id, []).append(comment)
+        return comments_by_ascent_id
+
+    def append_ascent_comment(
+        self,
+        ascent_id: int,
+        climber: str,
+        body: str,
+    ) -> AscentComment:
+        """Append one public comment to an existing ascent."""
+
+        try:
+            with self._connect() as connection:
+                if not self._ascent_exists(connection, ascent_id):
+                    raise StorageError(f"Ascent does not exist: {ascent_id}")
+                cursor = connection.execute(
+                    """
+                    INSERT INTO ascent_comments (ascent_id, climber, body)
+                    VALUES (?, ?, ?)
+                    """,
+                    (ascent_id, climber, body),
+                )
+                comment = self._find_ascent_comment(connection, int(cursor.lastrowid))
+                if comment is None:
+                    raise StorageError("Could not read newly created ascent comment")
+        except sqlite3.Error as exc:
+            raise StorageError(f"Failed to append ascent comment: {exc}") from exc
+
+        return comment
+
+    def update_ascent_comment(
+        self,
+        comment_id: int,
+        climber: str,
+        body: str,
+    ) -> AscentComment:
+        """Update one public ascent comment."""
+
+        try:
+            with self._connect() as connection:
+                existing = self._find_ascent_comment(connection, comment_id)
+                if existing is None:
+                    raise StorageError(f"Ascent comment does not exist: {comment_id}")
+                connection.execute(
+                    """
+                    UPDATE ascent_comments
+                    SET
+                        climber = ?,
+                        body = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                        AND deleted_at IS NULL
+                    """,
+                    (climber, body, comment_id),
+                )
+                comment = self._find_ascent_comment(connection, comment_id)
+                if comment is None:
+                    raise StorageError(f"Ascent comment does not exist: {comment_id}")
+        except sqlite3.Error as exc:
+            raise StorageError(f"Failed to update ascent comment: {exc}") from exc
+
+        return comment
+
+    def delete_ascent_comment(self, comment_id: int) -> AscentComment:
+        """Soft-delete one public ascent comment."""
+
+        try:
+            with self._connect() as connection:
+                comment = self._find_ascent_comment(connection, comment_id)
+                if comment is None:
+                    raise StorageError(f"Ascent comment does not exist: {comment_id}")
+                connection.execute(
+                    """
+                    UPDATE ascent_comments
+                    SET
+                        deleted_at = CURRENT_TIMESTAMP,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                        AND deleted_at IS NULL
+                    """,
+                    (comment_id,),
+                )
+        except sqlite3.Error as exc:
+            raise StorageError(f"Failed to delete ascent comment: {exc}") from exc
+
+        return comment
+
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database_path)
         connection.row_factory = sqlite3.Row
@@ -391,6 +548,28 @@ class SqliteStorage(BaseStorage):
             """
             CREATE INDEX IF NOT EXISTS boulder_comments_boulder_id_idx
             ON boulder_comments (boulder_id, created_at)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ascent_comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ascent_id INTEGER NOT NULL,
+                climber TEXT NOT NULL,
+                body TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                deleted_at TEXT,
+                FOREIGN KEY (ascent_id)
+                    REFERENCES ascents(id)
+                    ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS ascent_comments_ascent_id_idx
+            ON ascent_comments (ascent_id, created_at)
             """
         )
 
@@ -594,6 +773,17 @@ class SqliteStorage(BaseStorage):
         ).fetchone()
         return row
 
+    def _ascent_exists(self, connection: sqlite3.Connection, ascent_id: int) -> bool:
+        row = connection.execute(
+            """
+            SELECT id
+            FROM ascents
+            WHERE id = ?
+            """,
+            (ascent_id,),
+        ).fetchone()
+        return row is not None
+
     def _delete_unused_problem(
         self,
         connection: sqlite3.Connection,
@@ -662,6 +852,38 @@ class SqliteStorage(BaseStorage):
             boulder_name=str(row["name"]),
             area=str(row["area"]),
             sector=str(row["sector"]),
+            climber=str(row["climber"]),
+            body=str(row["body"]),
+            created_at=str(row["created_at"]),
+            updated_at=str(row["updated_at"]),
+        )
+
+    def _find_ascent_comment(
+        self,
+        connection: sqlite3.Connection,
+        comment_id: int,
+    ) -> AscentComment | None:
+        row = connection.execute(
+            """
+            SELECT
+                id,
+                ascent_id,
+                climber,
+                body,
+                created_at,
+                updated_at
+            FROM ascent_comments
+            WHERE id = ?
+                AND deleted_at IS NULL
+            """,
+            (comment_id,),
+        ).fetchone()
+        return self._ascent_comment_from_row(row) if row else None
+
+    def _ascent_comment_from_row(self, row: sqlite3.Row) -> AscentComment:
+        return AscentComment(
+            id=int(row["id"]),
+            ascent_id=int(row["ascent_id"]),
             climber=str(row["climber"]),
             body=str(row["body"]),
             created_at=str(row["created_at"]),
