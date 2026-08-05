@@ -403,6 +403,7 @@ h2 {
   gap: 5px;
 }
 
+.search-control select,
 .search-control input {
   width: 100%;
   min-height: 38px;
@@ -414,6 +415,11 @@ h2 {
   font-weight: 850;
 }
 
+.search-control select {
+  appearance: auto;
+}
+
+.search-control select:focus,
 .search-control input:focus {
   border-color: #0f766e;
   outline: 2px solid rgba(15, 118, 110, 0.16);
@@ -424,22 +430,6 @@ h2 {
   align-items: stretch;
   flex-direction: column;
   justify-content: center;
-}
-
-.climber-control label {
-  display: grid;
-  gap: 5px;
-}
-
-.climber-control select {
-  width: 100%;
-  min-height: 38px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #172033;
-  padding: 0 10px;
-  font-weight: 850;
 }
 
 .boulder-detail-page {
@@ -1008,8 +998,7 @@ tbody tr:hover td {
   .dashboard-controls-panel,
   .dashboard-control-group,
   .search-control,
-  .climber-control,
-  .climber-control label {
+  .climber-control {
     align-items: stretch;
   }
 
@@ -1025,10 +1014,6 @@ tbody tr:hover td {
 
   .grade-source-control .segmented-control {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .climber-control select {
     width: 100%;
   }
 

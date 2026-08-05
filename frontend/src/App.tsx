@@ -567,7 +567,19 @@ export default function App() {
 
                 <label className="dashboard-control-group search-control">
                   <span className="section-kicker">Search</span>
+                  <select
+                    value={selectedClimber}
+                    onChange={(event) => setSelectedClimber(event.target.value)}
+                  >
+                    <option value="">All climbers</option>
+                    {knownClimbers.map((climber) => (
+                      <option key={climber} value={climber}>
+                        {climber}
+                      </option>
+                    ))}
+                  </select>
                   <input
+                    placeholder="Boulder name"
                     type="search"
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
@@ -575,20 +587,6 @@ export default function App() {
                 </label>
 
                 <div className="dashboard-control-group climber-control">
-                  <label>
-                    <span className="section-kicker">Climber</span>
-                    <select
-                      value={selectedClimber}
-                      onChange={(event) => setSelectedClimber(event.target.value)}
-                    >
-                      <option value="">All climbers</option>
-                      {knownClimbers.map((climber) => (
-                        <option key={climber} value={climber}>
-                          {climber}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
                   <button
                     disabled={visibleData.records.length === 0}
                     type="button"
