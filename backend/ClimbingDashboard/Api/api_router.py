@@ -6,6 +6,8 @@ from fastapi import APIRouter, Body, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from ClimbingDashboard.Api.api_models import (
+    AscentCommentCreateRequest,
+    AscentCommentUpdateRequest,
     BoulderCommentCreateRequest,
     BoulderCommentUpdateRequest,
     BoulderCreateRequest,
@@ -18,7 +20,7 @@ from ClimbingDashboard.Exceptions.storage_error import StorageError
 from ClimbingDashboard.Storage.excel_exporter import ExcelBoulderExporter
 
 router = APIRouter()
-BOULDER_BODY = Body(...)
+JSON_BODY = Body(...)
 IMPORT_BODY = Body(...)
 BOULDER_PAYLOAD_MAPPER = BoulderPayloadMapper()
 EXCEL_BOULDER_EXPORTER = ExcelBoulderExporter()
@@ -49,7 +51,7 @@ def get_boulders(request: Request) -> dict[str, object]:
 @router.post("/api/boulders")
 def add_boulder(
     request: Request,
-    payload: dict[str, Any] = BOULDER_BODY,
+    payload: dict[str, Any] = JSON_BODY,
 ) -> dict[str, object]:
     """Append a climbed boulder to the database."""
 
@@ -65,7 +67,7 @@ def add_boulder(
 @router.put("/api/boulders")
 def update_boulder(
     request: Request,
-    payload: dict[str, Any] = BOULDER_BODY,
+    payload: dict[str, Any] = JSON_BODY,
 ) -> dict[str, object]:
     """Update a climbed boulder in the database."""
 
@@ -99,7 +101,7 @@ def update_boulder(
 @router.delete("/api/boulders")
 def delete_boulder(
     request: Request,
-    payload: dict[str, Any] = BOULDER_BODY,
+    payload: dict[str, Any] = JSON_BODY,
 ) -> dict[str, object]:
     """Delete a climbed boulder from the database."""
 
@@ -146,7 +148,7 @@ def get_boulder_comments(
 @router.post("/api/boulders/comments")
 def add_boulder_comment(
     request: Request,
-    payload: dict[str, Any] = BOULDER_BODY,
+    payload: dict[str, Any] = JSON_BODY,
 ) -> dict[str, object]:
     """Append a public comment to one boulder problem."""
 
@@ -163,7 +165,7 @@ def add_boulder_comment(
 def update_boulder_comment(
     comment_id: int,
     request: Request,
-    payload: dict[str, Any] = BOULDER_BODY,
+    payload: dict[str, Any] = JSON_BODY,
 ) -> dict[str, object]:
     """Update a public boulder comment."""
 
@@ -184,6 +186,91 @@ def delete_boulder_comment(comment_id: int, request: Request) -> dict[str, objec
         return get_api_service(request).delete_boulder_comment(comment_id)
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/api/ascents/{ascent_id}/comments")
+def get_ascent_comments(ascent_id: int, request: Request) -> dict[str, object]:
+    """Return public comments for one ascent."""
+
+    try:
+        return get_api_service(request).get_ascent_comments(ascent_id)
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/api/ascents/comments")
+def get_ascent_comments_batch(
+    request: Request,
+    ascent_ids: str = "",
+) -> dict[str, object]:
+    """Return public comments grouped by ascent id."""
+
+    try:
+        clean_ascent_ids = _ascent_ids_from_query(ascent_ids)
+        return get_api_service(request).get_ascent_comments_for_ascent_ids(clean_ascent_ids)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/api/ascents/comments")
+def add_ascent_comment(
+    request: Request,
+    payload: dict[str, Any] = JSON_BODY,
+) -> dict[str, object]:
+    """Append a public comment to one ascent."""
+
+    try:
+        comment = AscentCommentCreateRequest.from_payload(payload)
+        return get_api_service(request).save_ascent_comment(comment)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.put("/api/ascents/comments/{comment_id}")
+def update_ascent_comment(
+    comment_id: int,
+    request: Request,
+    payload: dict[str, Any] = JSON_BODY,
+) -> dict[str, object]:
+    """Update a public ascent comment."""
+
+    try:
+        comment = AscentCommentUpdateRequest.from_payload(payload)
+        return get_api_service(request).update_ascent_comment(comment_id, comment)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.delete("/api/ascents/comments/{comment_id}")
+def delete_ascent_comment(comment_id: int, request: Request) -> dict[str, object]:
+    """Soft-delete a public ascent comment."""
+
+    try:
+        return get_api_service(request).delete_ascent_comment(comment_id)
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+def _ascent_ids_from_query(value: str) -> list[int]:
+    ascent_ids: list[int] = []
+    for raw_ascent_id in value.split(","):
+        text = raw_ascent_id.strip()
+        if not text:
+            continue
+        try:
+            ascent_id = int(text)
+        except ValueError as exc:
+            raise ValueError("ascent_ids must be comma-separated positive integers") from exc
+        if ascent_id <= 0:
+            raise ValueError("ascent_ids must be comma-separated positive integers")
+        ascent_ids.append(ascent_id)
+    return ascent_ids
 
 
 @router.post("/api/imports/{source}/preview")
@@ -225,7 +312,7 @@ def confirm_import(
 
 
 @router.post("/api/exports/boulders")
-def export_boulders(payload: dict[str, Any] = BOULDER_BODY) -> StreamingResponse:
+def export_boulders(payload: dict[str, Any] = JSON_BODY) -> StreamingResponse:
     """Export supplied boulder rows to an Excel workbook."""
 
     try:

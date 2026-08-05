@@ -172,3 +172,59 @@ class BoulderCommentUpdateRequest:
 
 
 type BoulderCommentsPayload = dict[str, object]
+
+
+class AscentCommentCreateRequest:
+    """Validated request object for adding an ascent comment."""
+
+    def __init__(self, ascent_id: object, climber: object, body: object) -> None:
+        """Create a request object after primitive payload conversion."""
+
+        self.ascent_id = self._required_ascent_id(ascent_id)
+        self.climber = BoulderCreateRequest._required_text(climber, "climber")
+        self.body = BoulderCreateRequest._required_text(body, "comment")
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> AscentCommentCreateRequest:
+        """Build a request object from a JSON-like dictionary."""
+
+        return cls(
+            ascent_id=payload.get("ascent_id"),
+            climber=payload.get("climber"),
+            body=payload.get("body"),
+        )
+
+    @staticmethod
+    def _required_ascent_id(value: object) -> int:
+        if isinstance(value, bool):
+            raise ValueError("ascent_id is required")
+        try:
+            ascent_id = int(str(value).strip())
+        except (TypeError, ValueError) as exc:
+            raise ValueError("ascent_id is required") from exc
+        if ascent_id <= 0:
+            raise ValueError("ascent_id is required")
+        return ascent_id
+
+
+class AscentCommentUpdateRequest:
+    """Validated request object for editing an ascent comment."""
+
+    def __init__(self, climber: object, body: object) -> None:
+        """Create a request object after primitive payload conversion."""
+
+        self.climber = BoulderCreateRequest._required_text(climber, "climber")
+        self.body = BoulderCreateRequest._required_text(body, "comment")
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> AscentCommentUpdateRequest:
+        """Build a request object from a JSON-like dictionary."""
+
+        return cls(
+            climber=payload.get("climber"),
+            body=payload.get("body"),
+        )
+
+
+type AscentCommentsPayload = dict[str, object]
+type AscentCommentsByAscentPayload = dict[str, object]

@@ -4,6 +4,10 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from ClimbingDashboard.Api.api_models import (
+    AscentCommentCreateRequest,
+    AscentCommentsByAscentPayload,
+    AscentCommentsPayload,
+    AscentCommentUpdateRequest,
     BoulderCommentCreateRequest,
     BoulderCommentsPayload,
     BoulderCommentUpdateRequest,
@@ -15,6 +19,7 @@ from ClimbingDashboard.Config.constants import GRADE_ORDER, GRADE_SOURCE_FIELDS
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
 from ClimbingDashboard.Exceptions.storage_error import StorageError
 from ClimbingDashboard.Models.area_grade_matrix_row import AreaGradeMatrixRow
+from ClimbingDashboard.Models.ascent_comment import AscentComment
 from ClimbingDashboard.Models.boulder_comment import BoulderComment
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Models.dashboard_stats import (
@@ -170,6 +175,77 @@ class ApiService(BaseApiService):
             raise ApiDataError(f"Could not delete boulder comment: {exc}") from exc
         return self._comments_payload(comments)
 
+    def get_ascent_comments(self, ascent_id: int) -> AscentCommentsPayload:
+        """Return public comments for one ascent."""
+
+        try:
+            comments = self.storage.read_ascent_comments(ascent_id)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read ascent comments: {exc}") from exc
+        return self._ascent_comments_payload(comments)
+
+    def get_ascent_comments_for_ascent_ids(
+        self,
+        ascent_ids: list[int],
+    ) -> AscentCommentsByAscentPayload:
+        """Return public comments grouped by ascent id."""
+
+        try:
+            comments_by_ascent_id = self.storage.read_ascent_comments_for_ascent_ids(ascent_ids)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read ascent comments: {exc}") from exc
+        return {
+            "comments_by_ascent_id": {
+                str(ascent_id): [comment.to_payload() for comment in comments]
+                for ascent_id, comments in comments_by_ascent_id.items()
+            }
+        }
+
+    def save_ascent_comment(
+        self,
+        request: AscentCommentCreateRequest,
+    ) -> AscentCommentsPayload:
+        """Append one ascent comment, then return the refreshed comment thread."""
+
+        try:
+            self.storage.append_ascent_comment(
+                request.ascent_id,
+                request.climber,
+                request.body,
+            )
+            comments = self.storage.read_ascent_comments(request.ascent_id)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not save ascent comment: {exc}") from exc
+        return self._ascent_comments_payload(comments)
+
+    def update_ascent_comment(
+        self,
+        comment_id: int,
+        request: AscentCommentUpdateRequest,
+    ) -> AscentCommentsPayload:
+        """Update one ascent comment, then return the refreshed comment thread."""
+
+        try:
+            comment = self.storage.update_ascent_comment(
+                comment_id,
+                request.climber,
+                request.body,
+            )
+            comments = self.storage.read_ascent_comments(comment.ascent_id)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not update ascent comment: {exc}") from exc
+        return self._ascent_comments_payload(comments)
+
+    def delete_ascent_comment(self, comment_id: int) -> AscentCommentsPayload:
+        """Soft-delete one ascent comment, then return the refreshed comment thread."""
+
+        try:
+            comment = self.storage.delete_ascent_comment(comment_id)
+            comments = self.storage.read_ascent_comments(comment.ascent_id)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not delete ascent comment: {exc}") from exc
+        return self._ascent_comments_payload(comments)
+
     def _read_records(self) -> list[BoulderRecord]:
         try:
             return self.storage.read_boulders()
@@ -177,6 +253,12 @@ class ApiService(BaseApiService):
             raise ApiDataError(f"Could not read boulders: {exc}") from exc
 
     def _comments_payload(self, comments: list[BoulderComment]) -> BoulderCommentsPayload:
+        return {"comments": [comment.to_payload() for comment in comments]}
+
+    def _ascent_comments_payload(
+        self,
+        comments: list[AscentComment],
+    ) -> AscentCommentsPayload:
         return {"comments": [comment.to_payload() for comment in comments]}
 
     def _record_from_request(self, request: BoulderCreateRequest) -> BoulderRecord:

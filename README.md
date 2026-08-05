@@ -94,6 +94,11 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 - `POST /api/boulders/comments` appends a public comment to one boulder problem.
 - `PUT /api/boulders/comments/{comment_id}` updates a public boulder comment.
 - `DELETE /api/boulders/comments/{comment_id}` soft-deletes a public boulder comment.
+- `GET /api/ascents/{ascent_id}/comments` returns public comments for one ascent.
+- `GET /api/ascents/comments?ascent_ids=1,2,3` returns public comments grouped by ascent id.
+- `POST /api/ascents/comments` appends a public comment to one ascent.
+- `PUT /api/ascents/comments/{comment_id}` updates a public ascent comment.
+- `DELETE /api/ascents/comments/{comment_id}` soft-deletes a public ascent comment.
 - `POST /api/imports/thetopo/preview` previews public TheTopo boulders for a username.
 - `POST /api/imports/thetopo/confirm` saves selected preview boulders to the database.
 - `POST /api/exports/boulders` exports supplied boulder rows to an Excel workbook.
@@ -111,7 +116,8 @@ Inside SQLite, the data is normalized:
 ```text
 boulder_problems   One row per boulder name, area, and sector
 ascents            One row per climber ascent/tick of a boulder
-boulder_comments   Public boulder comment thread data
+boulder_comments   Public boulder-problem comment thread data
+ascent_comments    Public ascent-specific feed replies
 ```
 
 Excel exports use this workbook shape:

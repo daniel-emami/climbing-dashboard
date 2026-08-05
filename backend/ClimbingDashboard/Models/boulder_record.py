@@ -18,6 +18,8 @@ class BoulderRecord:
     flash: bool
     climbed_on: date | None
     rating: int | None
+    ascent_id: int | None = None
+    added_at: str | None = None
 
     def to_payload(self) -> dict[str, object]:
         """Return a frontend-friendly representation."""
@@ -33,4 +35,6 @@ class BoulderRecord:
             "flash": self.flash,
             "climbed_on": self.climbed_on.isoformat() if self.climbed_on else None,
             "rating": self.rating,
+            "ascent_id": self.ascent_id,
+            "added_at": self.added_at,
         }

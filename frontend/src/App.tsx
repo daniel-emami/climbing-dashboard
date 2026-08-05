@@ -12,6 +12,7 @@ import {
   fetchBoulderComments,
   updateBoulderComment
 } from "./Api/commentApi";
+import ActivityFeed from "./Components/ActivityFeed";
 import AreaChart from "./Components/AreaChart";
 import AreaGradeMatrix from "./Components/AreaGradeMatrix";
 import BoulderDetailPage from "./Components/BoulderDetailPage";
@@ -45,6 +46,14 @@ const DASHBOARD_GRADE_SOURCE_FIELDS: GradeField[] = [
   "grade_27crags",
   "own_grade",
   "guide_grade"
+];
+
+type DashboardPage = "feed" | "logbook" | "map";
+
+const DASHBOARD_PAGES: Array<{ key: DashboardPage; label: string }> = [
+  { key: "feed", label: "Feed" },
+  { key: "logbook", label: "Logbook" },
+  { key: "map", label: "Map" }
 ];
 
 function formatRefreshTime(): string {
@@ -201,6 +210,7 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("own_grade");
   const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("own_grade");
+  const [activePage, setActivePage] = useState<DashboardPage>("feed");
   const [selectedClimber, setSelectedClimber] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBoulder, setSelectedBoulder] = useState<BoulderPageIdentity | null>(
@@ -551,6 +561,19 @@ export default function App() {
             <>
               <SummaryStrip data={visibleData} />
 
+              <nav className="dashboard-page-tabs" aria-label="Dashboard pages">
+                {DASHBOARD_PAGES.map((page) => (
+                  <button
+                    className={activePage === page.key ? "active" : ""}
+                    key={page.key}
+                    type="button"
+                    onClick={() => setActivePage(page.key)}
+                  >
+                    {page.label}
+                  </button>
+                ))}
+              </nav>
+
               <section className="panel dashboard-controls-panel">
                 <div className="dashboard-control-group grade-source-control">
                   <span className="section-kicker">Grade Source</span>
@@ -610,31 +633,47 @@ export default function App() {
                 </div>
               </section>
 
-              <div className="insight-grid">
-                <GradeChart
-                  title={gradeChartTitle}
+              {activePage === "feed" && (
+                <>
+                  <ActivityFeed
+                    currentClimber={selectedClimber}
+                    knownClimbers={knownClimbers}
+                    records={visibleData.records}
+                    onError={setError}
+                    onOpenBoulder={handleOpenBoulder}
+                  />
+                  <div className="insight-grid">
+                    <GradeChart
+                      title={gradeChartTitle}
+                      gradeOrder={visibleData.grade_order}
+                      series={gradeChartSeries}
+                    />
+                    <AreaChart
+                      data={visibleData.stats.area_counts_by_grade_source[activeAreaMapGradeField]}
+                      gradeSourceLabel={activeAreaMapGradeLabel}
+                    />
+                  </div>
+                </>
+              )}
+
+              {activePage === "logbook" && (
+                <BoulderTable
+                  records={visibleData.records}
                   gradeOrder={visibleData.grade_order}
-                  series={gradeChartSeries}
+                  isSaving={isSaving}
+                  onDelete={handleDeleteBoulder}
+                  onOpenBoulder={handleOpenBoulder}
+                  onUpdate={handleUpdateBoulder}
                 />
-                <AreaChart
-                  data={visibleData.stats.area_counts_by_grade_source[activeAreaMapGradeField]}
+              )}
+
+              {activePage === "map" && (
+                <AreaGradeMatrix
+                  rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
+                  grades={visibleData.grade_order}
                   gradeSourceLabel={activeAreaMapGradeLabel}
                 />
-              </div>
-
-              <BoulderTable
-                records={visibleData.records}
-                gradeOrder={visibleData.grade_order}
-                isSaving={isSaving}
-                onDelete={handleDeleteBoulder}
-                onOpenBoulder={handleOpenBoulder}
-                onUpdate={handleUpdateBoulder}
-              />
-              <AreaGradeMatrix
-                rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
-                grades={visibleData.grade_order}
-                gradeSourceLabel={activeAreaMapGradeLabel}
-              />
+              )}
             </>
           )}
         </section>
