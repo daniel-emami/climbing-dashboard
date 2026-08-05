@@ -24,12 +24,13 @@ class ExcelBoulderExporter:
             worksheet.cell(row_index, 1, boulder.name)
             worksheet.cell(row_index, 2, boulder.grade_27crags)
             worksheet.cell(row_index, 3, boulder.guide_grade)
-            worksheet.cell(row_index, 4, boulder.my_grade)
+            worksheet.cell(row_index, 4, boulder.own_grade)
             worksheet.cell(row_index, 5, boulder.area)
             worksheet.cell(row_index, 6, 1 if boulder.flash else 0)
             date_cell = worksheet.cell(row_index, 7, boulder.climbed_on)
             date_cell.number_format = "yyyy-mm-dd"
             worksheet.cell(row_index, 8, boulder.climber)
+            worksheet.cell(row_index, 9, boulder.rating)
 
         stream = BytesIO()
         workbook.save(stream)

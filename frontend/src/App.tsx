@@ -6,8 +6,15 @@ import {
   fetchBoulders,
   updateBoulder
 } from "./Api/boulderApi";
+import {
+  addBoulderComment,
+  deleteBoulderComment,
+  fetchBoulderComments,
+  updateBoulderComment
+} from "./Api/commentApi";
 import AreaChart from "./Components/AreaChart";
 import AreaGradeMatrix from "./Components/AreaGradeMatrix";
+import BoulderDetailPage from "./Components/BoulderDetailPage";
 import BoulderForm from "./Components/BoulderForm";
 import BoulderTable from "./Components/BoulderTable";
 import ErrorState from "./Components/ErrorState";
@@ -23,16 +30,58 @@ import {
 } from "./Config/gradeSources";
 import type {
   AreaCount,
+  BoulderComment,
+  BoulderCommentUpdateRequest,
   BoulderCreateRequest,
   BoulderIdentity,
+  BoulderPageIdentity,
   BoulderRecord,
   BouldersResponse,
   DashboardStats,
   GradeField
 } from "./Types/boulderTypes";
 
+const DASHBOARD_GRADE_SOURCE_FIELDS: GradeField[] = [
+  "grade_27crags",
+  "own_grade",
+  "guide_grade"
+];
+
 function formatRefreshTime(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function boulderIdentityFromHash(): BoulderPageIdentity | null {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  if (params.get("view") !== "boulder") {
+    return null;
+  }
+  const name = params.get("name")?.trim();
+  const area = params.get("area")?.trim();
+  if (!name || !area) {
+    return null;
+  }
+  return { name, area };
+}
+
+function writeBoulderHash(identity: BoulderPageIdentity | null) {
+  if (!identity) {
+    window.history.pushState(null, "", `${window.location.pathname}${window.location.search}`);
+    return;
+  }
+  const params = new URLSearchParams({
+    view: "boulder",
+    name: identity.name,
+    area: identity.area
+  });
+  window.history.pushState(null, "", `#${params.toString()}`);
+}
+
+function isSameBoulder(record: BoulderRecord, identity: BoulderPageIdentity): boolean {
+  return (
+    record.name.trim().toLocaleLowerCase() === identity.name.trim().toLocaleLowerCase() &&
+    record.area.trim().toLocaleLowerCase() === identity.area.trim().toLocaleLowerCase()
+  );
 }
 
 function orderedGradeCounts(records: BoulderRecord[], field: GradeField, gradeOrder: string[]) {
@@ -104,19 +153,40 @@ function buildStats(records: BoulderRecord[], gradeOrder: string[]): DashboardSt
     grade_counts: {
       grade_27crags: orderedGradeCounts(records, "grade_27crags", gradeOrder),
       guide_grade: orderedGradeCounts(records, "guide_grade", gradeOrder),
-      my_grade: orderedGradeCounts(records, "my_grade", gradeOrder)
+      own_grade: orderedGradeCounts(records, "own_grade", gradeOrder)
     },
     area_counts_by_grade_source: {
       grade_27crags: areaCounts(records, "grade_27crags"),
       guide_grade: areaCounts(records, "guide_grade"),
-      my_grade: areaCounts(records, "my_grade")
+      own_grade: areaCounts(records, "own_grade")
     },
     area_grade_matrix_by_grade_source: {
       grade_27crags: areaGradeMatrix(records, "grade_27crags"),
       guide_grade: areaGradeMatrix(records, "guide_grade"),
-      my_grade: areaGradeMatrix(records, "my_grade")
+      own_grade: areaGradeMatrix(records, "own_grade")
     }
   };
+}
+
+function recordMatchesSearch(record: BoulderRecord, searchQuery: string): boolean {
+  const query = searchQuery.trim().toLocaleLowerCase();
+  if (!query) {
+    return true;
+  }
+  return [
+    record.name,
+    record.area,
+    record.climber,
+    record.grade_27crags,
+    record.guide_grade,
+    record.own_grade,
+    record.climbed_on ?? "",
+    record.flash ? "flash" : "",
+    record.rating === null ? "" : `${record.rating}/5`
+  ]
+    .join(" ")
+    .toLocaleLowerCase()
+    .includes(query);
 }
 
 export default function App() {
@@ -125,9 +195,16 @@ export default function App() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("my_grade");
-  const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("my_grade");
+  const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("own_grade");
+  const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("own_grade");
   const [selectedClimber, setSelectedClimber] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBoulder, setSelectedBoulder] = useState<BoulderPageIdentity | null>(
+    boulderIdentityFromHash
+  );
+  const [selectedBoulderComments, setSelectedBoulderComments] = useState<BoulderComment[]>([]);
+  const [isCommentsLoading, setIsCommentsLoading] = useState(false);
+  const [isCommentSaving, setIsCommentSaving] = useState(false);
 
   const loadStoredData = useCallback(async () => {
     try {
@@ -145,6 +222,50 @@ export default function App() {
   useEffect(() => {
     void loadStoredData();
   }, [loadStoredData]);
+
+  useEffect(() => {
+    const syncRouteFromHash = () => setSelectedBoulder(boulderIdentityFromHash());
+    window.addEventListener("hashchange", syncRouteFromHash);
+    window.addEventListener("popstate", syncRouteFromHash);
+    return () => {
+      window.removeEventListener("hashchange", syncRouteFromHash);
+      window.removeEventListener("popstate", syncRouteFromHash);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedBoulder) {
+      setSelectedBoulderComments([]);
+      return;
+    }
+
+    let ignoreResult = false;
+    setSelectedBoulderComments([]);
+    setIsCommentsLoading(true);
+    fetchBoulderComments(selectedBoulder)
+      .then((payload) => {
+        if (!ignoreResult) {
+          setSelectedBoulderComments(payload.comments);
+          setError(null);
+        }
+      })
+      .catch((unknownError: unknown) => {
+        if (!ignoreResult) {
+          setError(
+            unknownError instanceof Error ? unknownError.message : "Unknown comment error"
+          );
+        }
+      })
+      .finally(() => {
+        if (!ignoreResult) {
+          setIsCommentsLoading(false);
+        }
+      });
+
+    return () => {
+      ignoreResult = true;
+    };
+  }, [selectedBoulder]);
 
   const knownAreas = useMemo(
     () => data?.stats.areas.map((area) => area.area).sort((a, b) => a.localeCompare(b)) ?? [],
@@ -167,7 +288,7 @@ export default function App() {
   const knownGrades = useMemo(
     () =>
       data?.grade_order.filter((grade) =>
-        data.stats.grade_counts.my_grade.some((entry) => entry.grade === grade)
+        data.stats.grade_counts.own_grade.some((entry) => entry.grade === grade)
       ) ?? [],
     [data]
   );
@@ -176,15 +297,24 @@ export default function App() {
     if (!data) {
       return null;
     }
-    const records = selectedClimber
-      ? data.records.filter((record) => record.climber === selectedClimber)
-      : data.records;
+    const records = data.records.filter(
+      (record) =>
+        (!selectedClimber || record.climber === selectedClimber) &&
+        recordMatchesSearch(record, searchQuery)
+    );
     return {
       ...data,
       records,
       stats: buildStats(records, data.grade_order)
     };
-  }, [data, selectedClimber]);
+  }, [data, searchQuery, selectedClimber]);
+
+  const selectedBoulderRecords = useMemo(() => {
+    if (!data || !selectedBoulder) {
+      return [];
+    }
+    return data.records.filter((record) => isSameBoulder(record, selectedBoulder));
+  }, [data, selectedBoulder]);
 
   const activeAreaMapGradeLabel = GRADE_SOURCE_LABELS[activeAreaMapGradeField];
   const gradeChartSeries = useMemo<GradeChartSeries[]>(() => {
@@ -258,6 +388,69 @@ export default function App() {
     setLastUpdated(formatRefreshTime());
   };
 
+  const handleOpenBoulder = (identity: BoulderPageIdentity) => {
+    setSelectedBoulder(identity);
+    writeBoulderHash(identity);
+  };
+
+  const handleCloseBoulder = () => {
+    setSelectedBoulder(null);
+    writeBoulderHash(null);
+  };
+
+  const handleAddBoulderComment = async (climber: string, body: string) => {
+    if (!selectedBoulder) {
+      return;
+    }
+    setIsCommentSaving(true);
+    try {
+      const payload = await addBoulderComment({
+        name: selectedBoulder.name,
+        area: selectedBoulder.area,
+        climber,
+        body
+      });
+      setSelectedBoulderComments(payload.comments);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown comment error");
+      throw unknownError;
+    } finally {
+      setIsCommentSaving(false);
+    }
+  };
+
+  const handleUpdateBoulderComment = async (
+    commentId: number,
+    request: BoulderCommentUpdateRequest
+  ) => {
+    setIsCommentSaving(true);
+    try {
+      const payload = await updateBoulderComment(commentId, request);
+      setSelectedBoulderComments(payload.comments);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown comment error");
+      throw unknownError;
+    } finally {
+      setIsCommentSaving(false);
+    }
+  };
+
+  const handleDeleteBoulderComment = async (commentId: number) => {
+    setIsCommentSaving(true);
+    try {
+      const payload = await deleteBoulderComment(commentId);
+      setSelectedBoulderComments(payload.comments);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown comment error");
+      throw unknownError;
+    } finally {
+      setIsCommentSaving(false);
+    }
+  };
+
   const handleExportVisibleBoulders = async () => {
     if (!visibleData) {
       return;
@@ -303,6 +496,25 @@ export default function App() {
         </dl>
       </header>
 
+      {selectedBoulder && data && !isInitialLoading ? (
+        <>
+          {error && <ErrorState message={error} />}
+          <BoulderDetailPage
+            identity={selectedBoulder}
+            gradeOrder={data.grade_order}
+            comments={selectedBoulderComments}
+            isSaving={isSaving}
+            isCommentsLoading={isCommentsLoading}
+            isCommentSaving={isCommentSaving}
+            records={selectedBoulderRecords}
+            onAddComment={handleAddBoulderComment}
+            onBack={handleCloseBoulder}
+            onDeleteComment={handleDeleteBoulderComment}
+            onUpdateComment={handleUpdateBoulderComment}
+            onUpdate={handleUpdateBoulder}
+          />
+        </>
+      ) : (
       <div className="dashboard-layout">
         <aside className="control-rail">
           <TheTopoImportPanel
@@ -326,37 +538,35 @@ export default function App() {
             <>
               <SummaryStrip data={visibleData} />
 
-              <section className="panel grade-controls-panel">
-                <div className="panel-heading">
-                  <span className="section-kicker">Select Grade Source</span>
-                </div>
-                <div className="segmented-control" role="group" aria-label="Grade source">
-                  {GRADE_SOURCE_FIELDS.map((field) => (
+              <section className="panel dashboard-controls-panel">
+                <div className="dashboard-control-group grade-source-control">
+                  <span className="section-kicker">Grade Source</span>
+                  <div className="segmented-control" role="group" aria-label="Grade source">
+                    {DASHBOARD_GRADE_SOURCE_FIELDS.map((field) => (
+                      <button
+                        className={field === gradeChartMode ? "active" : ""}
+                        key={field}
+                        type="button"
+                        onClick={() => {
+                          setActiveAreaMapGradeField(field);
+                          setGradeChartMode(field);
+                        }}
+                      >
+                        {GRADE_SOURCE_LABELS[field]}
+                      </button>
+                    ))}
                     <button
-                      className={field === gradeChartMode ? "active" : ""}
-                      key={field}
+                      className={gradeChartMode === "all" ? "active" : ""}
                       type="button"
-                      onClick={() => {
-                        setActiveAreaMapGradeField(field);
-                        setGradeChartMode(field);
-                      }}
+                      onClick={() => setGradeChartMode("all")}
                     >
-                      {GRADE_SOURCE_LABELS[field]}
+                      Combined
                     </button>
-                  ))}
-                  <button
-                    className={gradeChartMode === "all" ? "active" : ""}
-                    type="button"
-                    onClick={() => setGradeChartMode("all")}
-                  >
-                    Combined
-                  </button>
+                  </div>
                 </div>
-              </section>
 
-              <section className="panel climber-filter-panel">
-                <label>
-                  <span className="section-kicker">Climber</span>
+                <label className="dashboard-control-group search-control">
+                  <span className="section-kicker">Search</span>
                   <select
                     value={selectedClimber}
                     onChange={(event) => setSelectedClimber(event.target.value)}
@@ -368,14 +578,23 @@ export default function App() {
                       </option>
                     ))}
                   </select>
+                  <input
+                    placeholder="Boulder name"
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                  />
                 </label>
-                <button
-                  disabled={visibleData.records.length === 0}
-                  type="button"
-                  onClick={() => void handleExportVisibleBoulders()}
-                >
-                  Export Selected
-                </button>
+
+                <div className="dashboard-control-group climber-control">
+                  <button
+                    disabled={visibleData.records.length === 0}
+                    type="button"
+                    onClick={() => void handleExportVisibleBoulders()}
+                  >
+                    Export Selected
+                  </button>
+                </div>
               </section>
 
               <div className="insight-grid">
@@ -390,22 +609,24 @@ export default function App() {
                 />
               </div>
 
-              <AreaGradeMatrix
-                rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
-                grades={visibleData.grade_order}
-                gradeSourceLabel={activeAreaMapGradeLabel}
-              />
               <BoulderTable
                 records={visibleData.records}
                 gradeOrder={visibleData.grade_order}
                 isSaving={isSaving}
                 onDelete={handleDeleteBoulder}
+                onOpenBoulder={handleOpenBoulder}
                 onUpdate={handleUpdateBoulder}
+              />
+              <AreaGradeMatrix
+                rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
+                grades={visibleData.grade_order}
+                gradeSourceLabel={activeAreaMapGradeLabel}
               />
             </>
           )}
         </section>
       </div>
+      )}
     </main>
   );
 }

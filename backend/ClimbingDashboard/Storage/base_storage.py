@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from ClimbingDashboard.Models.boulder_comment import BoulderComment
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 
 
@@ -33,3 +34,30 @@ class BaseStorage(ABC):
     @abstractmethod
     def delete_boulder(self, name: str, area: str, climber: str) -> None:
         """Delete one persisted boulder record."""
+
+    @abstractmethod
+    def read_boulder_comments(self, name: str, area: str) -> list[BoulderComment]:
+        """Read all public comments for one boulder problem."""
+
+    @abstractmethod
+    def append_boulder_comment(
+        self,
+        name: str,
+        area: str,
+        climber: str,
+        body: str,
+    ) -> BoulderComment:
+        """Append and persist one boulder comment."""
+
+    @abstractmethod
+    def update_boulder_comment(
+        self,
+        comment_id: int,
+        climber: str,
+        body: str,
+    ) -> BoulderComment:
+        """Update one persisted boulder comment."""
+
+    @abstractmethod
+    def delete_boulder_comment(self, comment_id: int) -> BoulderComment:
+        """Soft-delete one persisted boulder comment."""

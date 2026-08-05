@@ -86,6 +86,10 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 - `POST /api/boulders` appends a climbed boulder to the SQLite database.
 - `PUT /api/boulders` updates a boulder matched by its original name, area, and climber.
 - `DELETE /api/boulders` removes a boulder matched by name, area, and climber.
+- `GET /api/boulders/comments` returns public comments for one boulder problem.
+- `POST /api/boulders/comments` appends a public comment to one boulder problem.
+- `PUT /api/boulders/comments/{comment_id}` updates a public boulder comment.
+- `DELETE /api/boulders/comments/{comment_id}` soft-deletes a public boulder comment.
 - `POST /api/imports/thetopo/preview` previews public TheTopo boulders for a username.
 - `POST /api/imports/thetopo/confirm` saves selected preview boulders to the database.
 - `POST /api/exports/boulders` exports supplied boulder rows to an Excel workbook.
@@ -98,12 +102,21 @@ The app writes current data to:
 data/climbing_dashboard.db
 ```
 
+Inside SQLite, the data is normalized:
+
+```text
+boulder_problems   One row per boulder name and area
+ascents            One row per climber ascent/tick of a boulder
+boulder_comments   Public boulder comment thread data
+```
+
 Excel exports use this workbook shape:
 
 ```text
-Navn | 27Crags grade | Guide grade | My grade | Område | Flash | Dato | Climber
+Navn | 27Crags grade | Guide grade | Own grade | Område | Flash | Dato | Climber | Rating
 ```
 
-`Climber` is used with `Navn` and `Område` as the unique key, so several climbers
-can log the same boulder without being treated as duplicates. Filtered frontend
-data can be exported back to an `.xlsx` file with the `Export visible` button.
+A boulder problem is unique by `Navn` and `Område`. An ascent is unique by that
+boulder problem plus `Climber`, so several climbers can log the same boulder
+without being treated as duplicates. Filtered frontend data can be exported back
+to an `.xlsx` file with the `Export visible` button.

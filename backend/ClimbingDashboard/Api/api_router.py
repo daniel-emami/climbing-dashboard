@@ -5,7 +5,11 @@ from typing import Any
 from fastapi import APIRouter, Body, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from ClimbingDashboard.Api.api_models import BoulderCreateRequest
+from ClimbingDashboard.Api.api_models import (
+    BoulderCommentCreateRequest,
+    BoulderCommentUpdateRequest,
+    BoulderCreateRequest,
+)
 from ClimbingDashboard.Api.api_service import ApiService
 from ClimbingDashboard.Api.boulder_payload_mapper import BoulderPayloadMapper
 from ClimbingDashboard.Api.import_service import ImportService
@@ -106,6 +110,69 @@ def delete_boulder(
         return get_api_service(request).delete_boulder(name, area, climber)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/api/boulders/comments")
+def get_boulder_comments(
+    request: Request,
+    name: str,
+    area: str,
+) -> dict[str, object]:
+    """Return public comments for one boulder problem."""
+
+    try:
+        clean_name = name.strip()
+        clean_area = area.strip()
+        if not clean_name or not clean_area:
+            raise ValueError("name and area are required")
+        return get_api_service(request).get_boulder_comments(clean_name, clean_area)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/api/boulders/comments")
+def add_boulder_comment(
+    request: Request,
+    payload: dict[str, Any] = BOULDER_BODY,
+) -> dict[str, object]:
+    """Append a public comment to one boulder problem."""
+
+    try:
+        comment = BoulderCommentCreateRequest.from_payload(payload)
+        return get_api_service(request).save_boulder_comment(comment)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.put("/api/boulders/comments/{comment_id}")
+def update_boulder_comment(
+    comment_id: int,
+    request: Request,
+    payload: dict[str, Any] = BOULDER_BODY,
+) -> dict[str, object]:
+    """Update a public boulder comment."""
+
+    try:
+        comment = BoulderCommentUpdateRequest.from_payload(payload)
+        return get_api_service(request).update_boulder_comment(comment_id, comment)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.delete("/api/boulders/comments/{comment_id}")
+def delete_boulder_comment(comment_id: int, request: Request) -> dict[str, object]:
+    """Soft-delete a public boulder comment."""
+
+    try:
+        return get_api_service(request).delete_boulder_comment(comment_id)
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
