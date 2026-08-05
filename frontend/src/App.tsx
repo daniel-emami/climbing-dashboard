@@ -58,10 +58,11 @@ function boulderIdentityFromHash(): BoulderPageIdentity | null {
   }
   const name = params.get("name")?.trim();
   const area = params.get("area")?.trim();
+  const sector = params.get("sector")?.trim() ?? "";
   if (!name || !area) {
     return null;
   }
-  return { name, area };
+  return { name, area, sector };
 }
 
 function writeBoulderHash(identity: BoulderPageIdentity | null) {
@@ -72,7 +73,8 @@ function writeBoulderHash(identity: BoulderPageIdentity | null) {
   const params = new URLSearchParams({
     view: "boulder",
     name: identity.name,
-    area: identity.area
+    area: identity.area,
+    sector: identity.sector
   });
   window.history.pushState(null, "", `#${params.toString()}`);
 }
@@ -80,7 +82,8 @@ function writeBoulderHash(identity: BoulderPageIdentity | null) {
 function isSameBoulder(record: BoulderRecord, identity: BoulderPageIdentity): boolean {
   return (
     record.name.trim().toLocaleLowerCase() === identity.name.trim().toLocaleLowerCase() &&
-    record.area.trim().toLocaleLowerCase() === identity.area.trim().toLocaleLowerCase()
+    record.area.trim().toLocaleLowerCase() === identity.area.trim().toLocaleLowerCase() &&
+    record.sector.trim().toLocaleLowerCase() === identity.sector.trim().toLocaleLowerCase()
   );
 }
 
@@ -176,6 +179,7 @@ function recordMatchesSearch(record: BoulderRecord, searchQuery: string): boolea
   return [
     record.name,
     record.area,
+    record.sector,
     record.climber,
     record.grade_27crags,
     record.guide_grade,
@@ -275,6 +279,13 @@ export default function App() {
   const knownClimbers = useMemo(
     () =>
       Array.from(new Set(data?.records.map((record) => record.climber).filter(Boolean) ?? []))
+        .sort((left, right) => left.localeCompare(right)),
+    [data]
+  );
+
+  const knownSectors = useMemo(
+    () =>
+      Array.from(new Set(data?.records.map((record) => record.sector).filter(Boolean) ?? []))
         .sort((left, right) => left.localeCompare(right)),
     [data]
   );
@@ -407,6 +418,7 @@ export default function App() {
       const payload = await addBoulderComment({
         name: selectedBoulder.name,
         area: selectedBoulder.area,
+        sector: selectedBoulder.sector,
         climber,
         body
       });
@@ -526,6 +538,7 @@ export default function App() {
             knownAreas={knownAreas}
             knownClimbers={knownClimbers}
             knownGrades={knownGrades}
+            knownSectors={knownSectors}
             onSubmit={handleAddBoulder}
           />
 

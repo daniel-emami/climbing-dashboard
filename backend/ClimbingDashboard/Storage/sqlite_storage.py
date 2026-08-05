@@ -33,6 +33,7 @@ class SqliteStorage(BaseStorage):
                     SELECT
                         problems.name,
                         problems.area,
+                        problems.sector,
                         ascents.grade_27crags,
                         ascents.guide_grade,
                         ascents.own_grade,
@@ -56,6 +57,7 @@ class SqliteStorage(BaseStorage):
                 guide_grade=str(row["guide_grade"]),
                 own_grade=str(row["own_grade"]),
                 area=str(row["area"]),
+                sector=str(row["sector"]),
                 climber=str(row["climber"]),
                 flash=bool(row["flash"]),
                 climbed_on=parse_climbed_date(row["climbed_on"]),
@@ -77,7 +79,12 @@ class SqliteStorage(BaseStorage):
         try:
             with self._connect() as connection:
                 for record in records:
-                    problem_id = self._ensure_boulder_problem(connection, record.name, record.area)
+                    problem_id = self._ensure_boulder_problem(
+                        connection,
+                        record.name,
+                        record.area,
+                        record.sector,
+                    )
                     cursor = connection.execute(
                         """
                         INSERT OR IGNORE INTO ascents (
@@ -106,10 +113,11 @@ class SqliteStorage(BaseStorage):
         self,
         original_name: str,
         original_area: str,
+        original_sector: str,
         original_climber: str,
         record: BoulderRecord,
     ) -> BoulderRecord:
-        """Update one ascent matched by its original boulder, area, and climber."""
+        """Update one ascent matched by its original boulder identity and climber."""
 
         try:
             with self._connect() as connection:
@@ -117,12 +125,14 @@ class SqliteStorage(BaseStorage):
                     connection,
                     original_name,
                     original_area,
+                    original_sector,
                     original_climber,
                 )
                 if target is None:
                     raise StorageError(
                         "Boulder does not exist: "
-                        f"{original_name} in {original_area} for {original_climber}"
+                        f"{original_name} in {original_area} / {original_sector} "
+                        f"for {original_climber}"
                     )
 
                 old_problem_id = int(target["boulder_id"])
@@ -130,6 +140,7 @@ class SqliteStorage(BaseStorage):
                     connection,
                     record.name,
                     record.area,
+                    record.sector,
                 )
                 connection.execute(
                     """
@@ -153,21 +164,23 @@ class SqliteStorage(BaseStorage):
         except sqlite3.IntegrityError as exc:
             raise StorageError(
                 "Cannot update boulder. The key already exists: "
-                f"{record.name} in {record.area} for {record.climber}"
+                f"{record.name} in {record.area} / {record.sector} for {record.climber}"
             ) from exc
         except sqlite3.Error as exc:
             raise StorageError(f"Failed to update boulder: {exc}") from exc
 
         return record
 
-    def delete_boulder(self, name: str, area: str, climber: str) -> None:
-        """Delete one ascent matched by boulder name, area, and climber."""
+    def delete_boulder(self, name: str, area: str, sector: str, climber: str) -> None:
+        """Delete one ascent matched by boulder identity and climber."""
 
         try:
             with self._connect() as connection:
-                target = self._find_ascent(connection, name, area, climber)
+                target = self._find_ascent(connection, name, area, sector, climber)
                 if target is None:
-                    raise StorageError(f"Boulder does not exist: {name} in {area} for {climber}")
+                    raise StorageError(
+                        f"Boulder does not exist: {name} in {area} / {sector} for {climber}"
+                    )
                 connection.execute(
                     """
                     DELETE FROM ascents
@@ -179,20 +192,23 @@ class SqliteStorage(BaseStorage):
         except sqlite3.Error as exc:
             raise StorageError(f"Failed to delete boulder: {exc}") from exc
 
-    def read_boulder_comments(self, name: str, area: str) -> list[BoulderComment]:
+    def read_boulder_comments(self, name: str, area: str, sector: str) -> list[BoulderComment]:
         """Read all public comments for one boulder problem."""
 
         try:
             with self._connect() as connection:
-                problem_id = self._find_boulder_problem_id(connection, name, area)
+                problem_id = self._find_boulder_problem_id(connection, name, area, sector)
                 if problem_id is None:
-                    raise StorageError(f"Boulder problem does not exist: {name} in {area}")
+                    raise StorageError(
+                        f"Boulder problem does not exist: {name} in {area} / {sector}"
+                    )
                 rows = connection.execute(
                     """
                     SELECT
                         comments.id,
                         problems.name,
                         problems.area,
+                        problems.sector,
                         comments.climber,
                         comments.body,
                         comments.created_at,
@@ -215,6 +231,7 @@ class SqliteStorage(BaseStorage):
         self,
         name: str,
         area: str,
+        sector: str,
         climber: str,
         body: str,
     ) -> BoulderComment:
@@ -222,9 +239,11 @@ class SqliteStorage(BaseStorage):
 
         try:
             with self._connect() as connection:
-                problem_id = self._find_boulder_problem_id(connection, name, area)
+                problem_id = self._find_boulder_problem_id(connection, name, area, sector)
                 if problem_id is None:
-                    raise StorageError(f"Boulder problem does not exist: {name} in {area}")
+                    raise StorageError(
+                        f"Boulder problem does not exist: {name} in {area} / {sector}"
+                    )
                 cursor = connection.execute(
                     """
                     INSERT INTO boulder_comments (boulder_id, climber, body)
@@ -318,17 +337,14 @@ class SqliteStorage(BaseStorage):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 area TEXT NOT NULL,
+                sector TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
-        connection.execute(
-            """
-            CREATE UNIQUE INDEX IF NOT EXISTS boulder_problems_unique_key
-            ON boulder_problems (lower(name), lower(area))
-            """
-        )
+        self._migrate_boulder_problem_columns(connection)
+        self._ensure_boulder_problem_unique_index(connection)
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS ascents (
@@ -389,6 +405,7 @@ class SqliteStorage(BaseStorage):
                 id,
                 name,
                 area,
+                sector,
                 climber,
                 grade_27crags,
                 guide_grade,
@@ -407,6 +424,7 @@ class SqliteStorage(BaseStorage):
                 connection,
                 str(row["name"]),
                 str(row["area"]),
+                str(row["sector"]),
             )
             connection.execute(
                 """
@@ -450,8 +468,38 @@ class SqliteStorage(BaseStorage):
         if "my_grade" in columns and "own_grade" not in columns:
             connection.execute("ALTER TABLE boulders RENAME COLUMN my_grade TO own_grade")
             columns = self._column_names(connection, "boulders")
+        if "sector" not in columns:
+            connection.execute("ALTER TABLE boulders ADD COLUMN sector TEXT NOT NULL DEFAULT ''")
+            columns = self._column_names(connection, "boulders")
         if "rating" not in columns:
             connection.execute("ALTER TABLE boulders ADD COLUMN rating INTEGER")
+
+    def _migrate_boulder_problem_columns(self, connection: sqlite3.Connection) -> None:
+        columns = self._column_names(connection, "boulder_problems")
+        if "sector" not in columns:
+            connection.execute(
+                "ALTER TABLE boulder_problems ADD COLUMN sector TEXT NOT NULL DEFAULT ''"
+            )
+
+    def _ensure_boulder_problem_unique_index(self, connection: sqlite3.Connection) -> None:
+        row = connection.execute(
+            """
+            SELECT sql
+            FROM sqlite_master
+            WHERE type = 'index'
+                AND name = 'boulder_problems_unique_key'
+            """
+        ).fetchone()
+        index_sql = "" if row is None else str(row["sql"])
+        if "lower(sector)" not in index_sql:
+            connection.execute("DROP INDEX IF EXISTS boulder_problems_unique_key")
+
+        connection.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS boulder_problems_unique_key
+            ON boulder_problems (lower(name), lower(area), lower(sector))
+            """
+        )
 
     def _table_exists(self, connection: sqlite3.Connection, table_name: str) -> bool:
         row = connection.execute(
@@ -476,16 +524,17 @@ class SqliteStorage(BaseStorage):
         connection: sqlite3.Connection,
         name: str,
         area: str,
+        sector: str,
     ) -> int:
         if not name.strip() or not area.strip():
             raise StorageError("Boulder name and area are required")
 
         connection.execute(
             """
-            INSERT OR IGNORE INTO boulder_problems (name, area)
-            VALUES (?, ?)
+            INSERT OR IGNORE INTO boulder_problems (name, area, sector)
+            VALUES (?, ?, ?)
             """,
-            (name, area),
+            (name, area, sector),
         )
         row = connection.execute(
             """
@@ -493,11 +542,12 @@ class SqliteStorage(BaseStorage):
             FROM boulder_problems
             WHERE lower(name) = lower(?)
                 AND lower(area) = lower(?)
+                AND lower(sector) = lower(?)
             """,
-            (name, area),
+            (name, area, sector),
         ).fetchone()
         if row is None:
-            raise StorageError(f"Could not create boulder problem: {name} in {area}")
+            raise StorageError(f"Could not create boulder problem: {name} in {area} / {sector}")
         return int(row["id"])
 
     def _find_boulder_problem_id(
@@ -505,6 +555,7 @@ class SqliteStorage(BaseStorage):
         connection: sqlite3.Connection,
         name: str,
         area: str,
+        sector: str,
     ) -> int | None:
         row = connection.execute(
             """
@@ -512,8 +563,9 @@ class SqliteStorage(BaseStorage):
             FROM boulder_problems
             WHERE lower(name) = lower(?)
                 AND lower(area) = lower(?)
+                AND lower(sector) = lower(?)
             """,
-            (name, area),
+            (name, area, sector),
         ).fetchone()
         return int(row["id"]) if row else None
 
@@ -522,6 +574,7 @@ class SqliteStorage(BaseStorage):
         connection: sqlite3.Connection,
         name: str,
         area: str,
+        sector: str,
         climber: str,
     ) -> sqlite3.Row | None:
         row = connection.execute(
@@ -534,9 +587,10 @@ class SqliteStorage(BaseStorage):
                 ON problems.id = ascents.boulder_id
             WHERE lower(problems.name) = lower(?)
                 AND lower(problems.area) = lower(?)
+                AND lower(problems.sector) = lower(?)
                 AND lower(ascents.climber) = lower(?)
             """,
-            (name, area, climber),
+            (name, area, sector, climber),
         ).fetchone()
         return row
 
@@ -587,6 +641,7 @@ class SqliteStorage(BaseStorage):
                 comments.id,
                 problems.name,
                 problems.area,
+                problems.sector,
                 comments.climber,
                 comments.body,
                 comments.created_at,
@@ -606,6 +661,7 @@ class SqliteStorage(BaseStorage):
             id=int(row["id"]),
             boulder_name=str(row["name"]),
             area=str(row["area"]),
+            sector=str(row["sector"]),
             climber=str(row["climber"]),
             body=str(row["body"]),
             created_at=str(row["created_at"]),

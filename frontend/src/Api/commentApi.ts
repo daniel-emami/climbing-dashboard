@@ -20,7 +20,8 @@ export async function fetchBoulderComments(
 ): Promise<BoulderCommentsResponse> {
   const params = new URLSearchParams({
     name: identity.name,
-    area: identity.area
+    area: identity.area,
+    sector: identity.sector
   });
   const response = await fetch(`${API_BASE_URL}/api/boulders/comments?${params.toString()}`);
   return parseCommentsResponse(response);

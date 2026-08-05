@@ -26,17 +26,18 @@ class BaseStorage(ABC):
         self,
         original_name: str,
         original_area: str,
+        original_sector: str,
         original_climber: str,
         record: BoulderRecord,
     ) -> BoulderRecord:
         """Update one persisted boulder record."""
 
     @abstractmethod
-    def delete_boulder(self, name: str, area: str, climber: str) -> None:
+    def delete_boulder(self, name: str, area: str, sector: str, climber: str) -> None:
         """Delete one persisted boulder record."""
 
     @abstractmethod
-    def read_boulder_comments(self, name: str, area: str) -> list[BoulderComment]:
+    def read_boulder_comments(self, name: str, area: str, sector: str) -> list[BoulderComment]:
         """Read all public comments for one boulder problem."""
 
     @abstractmethod
@@ -44,6 +45,7 @@ class BaseStorage(ABC):
         self,
         name: str,
         area: str,
+        sector: str,
         climber: str,
         body: str,
     ) -> BoulderComment:

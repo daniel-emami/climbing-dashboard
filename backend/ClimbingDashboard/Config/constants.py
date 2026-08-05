@@ -36,6 +36,7 @@ BOULDER_EXPORT_COLUMNS = (
     "Guide grade",
     "Own grade",
     "Område",
+    "Sector",
     "Flash",
     "Dato",
     "Climber",

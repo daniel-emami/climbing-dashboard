@@ -16,6 +16,7 @@ class BoulderCreateRequest:
         guide_grade: str | None,
         own_grade: str | None,
         area: str,
+        sector: str | None,
         climber: str,
         flash: bool = False,
         climbed_on: date | None = None,
@@ -28,6 +29,7 @@ class BoulderCreateRequest:
         self.guide_grade = self._optional_text(guide_grade)
         self.own_grade = self._optional_text(own_grade)
         self.area = self._required_text(area, "area")
+        self.sector = self._optional_text(sector)
         self.climber = self._required_text(climber, "climber")
         self.flash = self._bool(flash)
         self.climbed_on = climbed_on
@@ -43,6 +45,7 @@ class BoulderCreateRequest:
             guide_grade=payload.get("guide_grade", ""),
             own_grade=payload.get("own_grade", ""),
             area=payload.get("area", ""),
+            sector=payload.get("sector", ""),
             climber=payload.get("climber", ""),
             flash=payload.get("flash", False),
             climbed_on=parse_climbed_date(payload.get("climbed_on")),
@@ -58,6 +61,7 @@ class BoulderCreateRequest:
             "guide_grade": self.guide_grade,
             "own_grade": self.own_grade,
             "area": self.area,
+            "sector": self.sector,
             "climber": self.climber,
             "flash": self.flash,
             "climbed_on": self.climbed_on.isoformat() if self.climbed_on else None,
@@ -123,6 +127,7 @@ class BoulderCommentCreateRequest:
         self,
         name: object,
         area: object,
+        sector: object,
         climber: object,
         body: object,
     ) -> None:
@@ -130,6 +135,7 @@ class BoulderCommentCreateRequest:
 
         self.name = BoulderCreateRequest._required_text(name, "name")
         self.area = BoulderCreateRequest._required_text(area, "area")
+        self.sector = BoulderCreateRequest._optional_text(sector)
         self.climber = BoulderCreateRequest._required_text(climber, "climber")
         self.body = BoulderCreateRequest._required_text(body, "comment")
 
@@ -140,6 +146,7 @@ class BoulderCommentCreateRequest:
         return cls(
             name=payload.get("name"),
             area=payload.get("area"),
+            sector=payload.get("sector", ""),
             climber=payload.get("climber"),
             body=payload.get("body"),
         )

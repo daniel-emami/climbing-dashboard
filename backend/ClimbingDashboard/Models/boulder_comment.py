@@ -10,6 +10,7 @@ class BoulderComment:
     id: int
     boulder_name: str
     area: str
+    sector: str
     climber: str
     body: str
     created_at: str
@@ -22,6 +23,7 @@ class BoulderComment:
             "id": self.id,
             "boulder_name": self.boulder_name,
             "area": self.area,
+            "sector": self.sector,
             "climber": self.climber,
             "body": self.body,
             "created_at": self.created_at,

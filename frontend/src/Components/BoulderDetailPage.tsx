@@ -92,6 +92,7 @@ function recordToRequest(record: BoulderRecord): BoulderCreateRequest {
     guide_grade: record.guide_grade,
     own_grade: record.own_grade,
     area: record.area,
+    sector: record.sector,
     climber: record.climber,
     flash: record.flash,
     climbed_on: record.climbed_on,
@@ -181,6 +182,9 @@ export default function BoulderDetailPage({
   const latest = latestDate(records);
   const average = averageRating(records);
   const ratedCount = records.filter((record) => record.rating !== null).length;
+  const locationLabel = identity.sector
+    ? `${identity.area} / ${identity.sector}`
+    : identity.area;
 
   useEffect(() => {
     setCommentBody("");
@@ -188,12 +192,17 @@ export default function BoulderDetailPage({
     setEditingClimber("");
     setEditingBody("");
     setCommentClimber((current) => current || climberOptions[0] || "");
-  }, [climberOptions, identity.area, identity.name]);
+  }, [climberOptions, identity.area, identity.name, identity.sector]);
 
   const updateRating = async (record: BoulderRecord, rating: number | null) => {
     try {
       await onUpdate(
-        { name: record.name, area: record.area, climber: record.climber },
+        {
+          name: record.name,
+          area: record.area,
+          sector: record.sector,
+          climber: record.climber
+        },
         {
           ...recordToRequest(record),
           rating
@@ -261,7 +270,7 @@ export default function BoulderDetailPage({
         <div>
           <span className="section-kicker">Boulder</span>
           <h2>{identity.name}</h2>
-          <p>{identity.area}</p>
+          <p>{locationLabel}</p>
         </div>
         <dl className="boulder-detail-stats" aria-label="Boulder summary">
           <div>

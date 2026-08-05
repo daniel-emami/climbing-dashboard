@@ -79,12 +79,14 @@ def update_boulder(
         boulder = BoulderCreateRequest.from_payload(boulder_payload)
         original_name = str(original.get("name", "")).strip()
         original_area = str(original.get("area", "")).strip()
+        original_sector = str(original.get("sector", "")).strip()
         original_climber = str(original.get("climber", "")).strip()
         if not original_name or not original_area:
             raise ValueError("original name and area are required")
         return get_api_service(request).update_boulder(
             original_name=original_name,
             original_area=original_area,
+            original_sector=original_sector,
             original_climber=original_climber,
             request=boulder,
         )
@@ -104,10 +106,11 @@ def delete_boulder(
     try:
         name = str(payload.get("name", "")).strip()
         area = str(payload.get("area", "")).strip()
+        sector = str(payload.get("sector", "")).strip()
         climber = str(payload.get("climber", "")).strip()
         if not name or not area:
             raise ValueError("name and area are required")
-        return get_api_service(request).delete_boulder(name, area, climber)
+        return get_api_service(request).delete_boulder(name, area, sector, climber)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ApiDataError as exc:
@@ -119,15 +122,21 @@ def get_boulder_comments(
     request: Request,
     name: str,
     area: str,
+    sector: str = "",
 ) -> dict[str, object]:
     """Return public comments for one boulder problem."""
 
     try:
         clean_name = name.strip()
         clean_area = area.strip()
+        clean_sector = sector.strip()
         if not clean_name or not clean_area:
             raise ValueError("name and area are required")
-        return get_api_service(request).get_boulder_comments(clean_name, clean_area)
+        return get_api_service(request).get_boulder_comments(
+            clean_name,
+            clean_area,
+            clean_sector,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ApiDataError as exc:
