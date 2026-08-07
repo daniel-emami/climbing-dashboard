@@ -20,7 +20,9 @@ frontend/dist/
 data/*.db
 data/*.db-shm
 data/*.db-wal
+data/uploads/videos
 
 # Local editor folders
 .idea/
 .vscode/
+
