@@ -133,6 +133,41 @@ export type AscentCommentUpdateRequest = {
   body: string;
 };
 
+export type BoulderMedia = {
+  id: number;
+  boulder_name: string;
+  area: string;
+  sector: string;
+  ascent_id: number | null;
+  climber: string;
+  media_type: "video";
+  url: string;
+  original_filename: string;
+  mime_type: string;
+  file_size: number;
+  caption: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BoulderMediaResponse = {
+  media: BoulderMedia[];
+};
+
+export type BoulderMediaByAscentResponse = {
+  media_by_ascent_id: Record<string, BoulderMedia[]>;
+};
+
+export type BoulderMediaUploadRequest = {
+  name: string;
+  area: string;
+  sector: string;
+  ascent_id: number | null;
+  climber: string;
+  caption: string;
+  file: File;
+};
+
 export type BoulderUpdateRequest = {
   original: BoulderIdentity;
   boulder: BoulderCreateRequest;

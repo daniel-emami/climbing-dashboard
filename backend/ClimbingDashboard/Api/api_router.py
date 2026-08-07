@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Body, HTTPException, Request
+from fastapi import APIRouter, Body, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
 from ClimbingDashboard.Api.api_models import (
@@ -11,6 +11,7 @@ from ClimbingDashboard.Api.api_models import (
     BoulderCommentCreateRequest,
     BoulderCommentUpdateRequest,
     BoulderCreateRequest,
+    BoulderMediaUploadRequest,
 )
 from ClimbingDashboard.Api.api_service import ApiService
 from ClimbingDashboard.Api.boulder_payload_mapper import BoulderPayloadMapper
@@ -21,6 +22,13 @@ from ClimbingDashboard.Storage.excel_exporter import ExcelBoulderExporter
 
 router = APIRouter()
 JSON_BODY = Body(...)
+MEDIA_NAME_FORM = Form(...)
+MEDIA_AREA_FORM = Form(...)
+MEDIA_SECTOR_FORM = Form("")
+MEDIA_ASCENT_ID_FORM = Form("")
+MEDIA_CLIMBER_FORM = Form(...)
+MEDIA_CAPTION_FORM = Form("")
+MEDIA_FILE = File(...)
 IMPORT_BODY = Body(...)
 BOULDER_PAYLOAD_MAPPER = BoulderPayloadMapper()
 EXCEL_BOULDER_EXPORTER = ExcelBoulderExporter()
@@ -188,6 +196,77 @@ def delete_boulder_comment(comment_id: int, request: Request) -> dict[str, objec
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.get("/api/boulders/media")
+def get_boulder_media(
+    request: Request,
+    name: str,
+    area: str,
+    sector: str = "",
+) -> dict[str, object]:
+    """Return uploaded media for one boulder problem."""
+
+    try:
+        clean_name = name.strip()
+        clean_area = area.strip()
+        clean_sector = sector.strip()
+        if not clean_name or not clean_area:
+            raise ValueError("name and area are required")
+        return get_api_service(request).get_boulder_media(
+            clean_name,
+            clean_area,
+            clean_sector,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/api/boulders/media")
+def add_boulder_media(
+    request: Request,
+    name: str = MEDIA_NAME_FORM,
+    area: str = MEDIA_AREA_FORM,
+    sector: str = MEDIA_SECTOR_FORM,
+    ascent_id: str = MEDIA_ASCENT_ID_FORM,
+    climber: str = MEDIA_CLIMBER_FORM,
+    caption: str = MEDIA_CAPTION_FORM,
+    file: UploadFile = MEDIA_FILE,
+) -> dict[str, object]:
+    """Upload one video and attach it to a boulder problem."""
+
+    try:
+        media_request = BoulderMediaUploadRequest(
+            name=name,
+            area=area,
+            sector=sector,
+            ascent_id=ascent_id,
+            climber=climber,
+            caption=caption,
+        )
+        file.file.seek(0)
+        return get_api_service(request).save_boulder_video(
+            media_request,
+            file.file,
+            file.filename or "",
+            file.content_type,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.delete("/api/boulders/media/{media_id}")
+def delete_boulder_media(media_id: int, request: Request) -> dict[str, object]:
+    """Soft-delete one uploaded media item."""
+
+    try:
+        return get_api_service(request).delete_boulder_media(media_id)
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @router.get("/api/ascents/{ascent_id}/comments")
 def get_ascent_comments(ascent_id: int, request: Request) -> dict[str, object]:
     """Return public comments for one ascent."""
@@ -253,6 +332,22 @@ def delete_ascent_comment(comment_id: int, request: Request) -> dict[str, object
 
     try:
         return get_api_service(request).delete_ascent_comment(comment_id)
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/api/ascents/media")
+def get_ascent_media_batch(
+    request: Request,
+    ascent_ids: str = "",
+) -> dict[str, object]:
+    """Return uploaded media grouped by ascent id."""
+
+    try:
+        clean_ascent_ids = _ascent_ids_from_query(ascent_ids)
+        return get_api_service(request).get_media_for_ascent_ids(clean_ascent_ids)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

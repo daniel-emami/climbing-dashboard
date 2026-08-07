@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { mediaUrl } from "../Api/mediaApi";
 import type {
   BoulderComment,
   BoulderCommentUpdateRequest,
   BoulderCreateRequest,
   BoulderIdentity,
+  BoulderMedia,
+  BoulderMediaUploadRequest,
   BoulderPageIdentity,
   BoulderRecord
 } from "../Types/boulderTypes";
@@ -15,10 +18,17 @@ type BoulderDetailPageProps = {
   isSaving: boolean;
   isCommentsLoading: boolean;
   isCommentSaving: boolean;
+  isMediaLoading: boolean;
+  isMediaSaving: boolean;
+  media: BoulderMedia[];
   records: BoulderRecord[];
   onAddComment: (climber: string, body: string) => Promise<void>;
   onBack: () => void;
   onDeleteComment: (commentId: number) => Promise<void>;
+  onDeleteMedia: (mediaId: number) => Promise<void>;
+  onUploadVideo: (
+    request: Omit<BoulderMediaUploadRequest, "name" | "area" | "sector">
+  ) => Promise<void>;
   onUpdateComment: (
     commentId: number,
     request: BoulderCommentUpdateRequest
@@ -114,6 +124,23 @@ function formatCommentTime(value: string): string {
   return value.replace("T", " ").slice(0, 16);
 }
 
+function formatMediaSize(value: number): string {
+  if (value < 1024 * 1024) {
+    return `${Math.max(1, Math.round(value / 1024))} KB`;
+  }
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function ascentLabel(record: BoulderRecord): string {
+  const pieces = [
+    record.climber,
+    record.climbed_on ?? "",
+    record.own_grade ? `Own ${record.own_grade}` : "",
+    record.flash ? "Flash" : ""
+  ].filter(Boolean);
+  return pieces.join(" · ");
+}
+
 function RatingButtons({
   disabled,
   rating,
@@ -155,10 +182,15 @@ export default function BoulderDetailPage({
   isSaving,
   isCommentsLoading,
   isCommentSaving,
+  isMediaLoading,
+  isMediaSaving,
+  media,
   records,
   onAddComment,
   onBack,
   onDeleteComment,
+  onDeleteMedia,
+  onUploadVideo,
   onUpdateComment,
   onUpdate
 }: BoulderDetailPageProps) {
@@ -174,6 +206,10 @@ export default function BoulderDetailPage({
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingClimber, setEditingClimber] = useState("");
   const [editingBody, setEditingBody] = useState("");
+  const [mediaClimber, setMediaClimber] = useState("");
+  const [mediaCaption, setMediaCaption] = useState("");
+  const [mediaAscentId, setMediaAscentId] = useState("");
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
   const sortedRecords = records
     .slice()
     .sort((left, right) => compareDates(right.climbed_on, left.climbed_on));
@@ -192,6 +228,10 @@ export default function BoulderDetailPage({
     setEditingClimber("");
     setEditingBody("");
     setCommentClimber((current) => current || climberOptions[0] || "");
+    setMediaClimber((current) => current || climberOptions[0] || "");
+    setMediaCaption("");
+    setMediaAscentId("");
+    setMediaFile(null);
   }, [climberOptions, identity.area, identity.name, identity.sector]);
 
   const updateRating = async (record: BoulderRecord, rating: number | null) => {
@@ -258,6 +298,31 @@ export default function BoulderDetailPage({
     if (editingCommentId === comment.id) {
       cancelEditingComment();
     }
+  };
+
+  const submitVideo = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const climber = mediaClimber.trim();
+    if (!climber || !mediaFile) {
+      return;
+    }
+    await onUploadVideo({
+      ascent_id: mediaAscentId ? Number(mediaAscentId) : null,
+      climber,
+      caption: mediaCaption.trim(),
+      file: mediaFile
+    });
+    setMediaCaption("");
+    setMediaFile(null);
+    event.currentTarget.reset();
+  };
+
+  const deleteMedia = async (mediaItem: BoulderMedia) => {
+    const shouldDelete = window.confirm(`Delete video from ${mediaItem.climber}?`);
+    if (!shouldDelete) {
+      return;
+    }
+    await onDeleteMedia(mediaItem.id);
   };
 
   return (
@@ -331,6 +396,91 @@ export default function BoulderDetailPage({
           </dl>
         </section>
 
+        <section className="panel boulder-media-panel">
+          <div className="panel-heading">
+            <span className="section-kicker">Videos</span>
+            <span className="comment-count">{media.length}</span>
+          </div>
+          {isMediaLoading ? (
+            <div className="empty-detail-slot">Loading</div>
+          ) : media.length === 0 ? (
+            <div className="empty-detail-slot">-</div>
+          ) : (
+            <ol className="media-list">
+              {media.map((mediaItem) => (
+                <li className="media-item" key={mediaItem.id}>
+                  <video controls playsInline preload="metadata" src={mediaUrl(mediaItem.url)} />
+                  <div className="media-meta">
+                    <strong>{mediaItem.climber}</strong>
+                    <span>
+                      {formatCommentTime(mediaItem.created_at)} ·{" "}
+                      {formatMediaSize(mediaItem.file_size)}
+                    </span>
+                  </div>
+                  {mediaItem.caption && <p>{mediaItem.caption}</p>}
+                  <div className="comment-actions">
+                    <button
+                      className="danger-button"
+                      disabled={isMediaSaving}
+                      type="button"
+                      onClick={() => void deleteMedia(mediaItem)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          <form className="media-upload-form" onSubmit={(event) => void submitVideo(event)}>
+            <label>
+              Climber
+              <input
+                required
+                list="comment-climbers"
+                value={mediaClimber}
+                onChange={(event) => setMediaClimber(event.target.value)}
+              />
+            </label>
+            <label>
+              Attach to
+              <select
+                value={mediaAscentId}
+                onChange={(event) => setMediaAscentId(event.target.value)}
+              >
+                <option value="">Boulder page</option>
+                {sortedRecords
+                  .filter((record) => record.ascent_id !== null)
+                  .map((record) => (
+                    <option key={record.ascent_id} value={record.ascent_id ?? ""}>
+                      {ascentLabel(record)}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label>
+              Caption
+              <input
+                value={mediaCaption}
+                onChange={(event) => setMediaCaption(event.target.value)}
+              />
+            </label>
+            <label>
+              Video file
+              <input
+                required
+                accept="video/*"
+                type="file"
+                onChange={(event) => setMediaFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            <button disabled={isMediaSaving || !mediaFile} type="submit">
+              Upload
+            </button>
+          </form>
+        </section>
+
         <section className="panel boulder-climbers-panel">
           <div className="panel-heading">
             <span className="section-kicker">Climbers</span>
@@ -350,7 +500,12 @@ export default function BoulderDetailPage({
               </thead>
               <tbody>
                 {sortedRecords.map((record) => (
-                  <tr key={`${record.climber}-${record.climbed_on}-${record.own_grade}`}>
+                  <tr
+                    key={
+                      record.ascent_id ??
+                      `${record.climber}-${record.climbed_on}-${record.own_grade}`
+                    }
+                  >
                     <th>{record.climber || "-"}</th>
                     <td>{record.own_grade}</td>
                     <td>{record.grade_27crags}</td>

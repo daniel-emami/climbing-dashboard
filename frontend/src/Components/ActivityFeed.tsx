@@ -5,8 +5,10 @@ import {
   fetchAscentCommentsBatch,
   updateAscentComment
 } from "../Api/ascentCommentApi";
+import { fetchAscentMediaBatch, mediaUrl } from "../Api/mediaApi";
 import type {
   AscentComment,
+  BoulderMedia,
   BoulderPageIdentity,
   BoulderRecord
 } from "../Types/boulderTypes";
@@ -106,6 +108,7 @@ export default function ActivityFeed({
   const [commentsByAscentId, setCommentsByAscentId] = useState<Record<number, AscentComment[]>>(
     {}
   );
+  const [mediaByAscentId, setMediaByAscentId] = useState<Record<number, BoulderMedia[]>>({});
   const [draftsByAscentId, setDraftsByAscentId] = useState<Record<number, CommentDraft>>({});
   const [savingAscentIds, setSavingAscentIds] = useState<Set<number>>(new Set());
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
@@ -129,20 +132,28 @@ export default function ActivityFeed({
   useEffect(() => {
     if (feedAscentIds.length === 0) {
       setCommentsByAscentId({});
+      setMediaByAscentId({});
       return;
     }
 
     let ignoreResult = false;
-    fetchAscentCommentsBatch(feedAscentIds)
-      .then((payload) => {
+    Promise.all([
+      fetchAscentCommentsBatch(feedAscentIds),
+      fetchAscentMediaBatch(feedAscentIds)
+    ])
+      .then(([commentsPayload, mediaPayload]) => {
         if (ignoreResult) {
           return;
         }
         const nextComments: Record<number, AscentComment[]> = {};
+        const nextMedia: Record<number, BoulderMedia[]> = {};
         for (const ascentId of feedAscentIds) {
-          nextComments[ascentId] = payload.comments_by_ascent_id[String(ascentId)] ?? [];
+          nextComments[ascentId] =
+            commentsPayload.comments_by_ascent_id[String(ascentId)] ?? [];
+          nextMedia[ascentId] = mediaPayload.media_by_ascent_id[String(ascentId)] ?? [];
         }
         setCommentsByAscentId(nextComments);
+        setMediaByAscentId(nextMedia);
       })
       .catch((unknownError: unknown) => {
         if (!ignoreResult) {
@@ -269,6 +280,7 @@ export default function ActivityFeed({
             const rating = formatRating(record.rating);
             const ascentId = record.ascent_id;
             const comments = ascentId === null ? [] : commentsByAscentId[ascentId] ?? [];
+            const media = ascentId === null ? [] : mediaByAscentId[ascentId] ?? [];
             const draft = ascentId === null ? { climber: "", body: "" } : draftForAscent(ascentId);
             const isSavingComment = ascentId !== null && savingAscentIds.has(ascentId);
             return (
@@ -307,6 +319,21 @@ export default function ActivityFeed({
                   <p className="activity-feed-time">
                     Added {formatDate(record.added_at)} · Climbed {formatDate(record.climbed_on)}
                   </p>
+                  {media.length > 0 && (
+                    <ol className="activity-media-list">
+                      {media.map((mediaItem) => (
+                        <li className="activity-media-item" key={mediaItem.id}>
+                          <video
+                            controls
+                            playsInline
+                            preload="metadata"
+                            src={mediaUrl(mediaItem.url)}
+                          />
+                          {mediaItem.caption && <p>{mediaItem.caption}</p>}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
                   <div className="activity-ascent-comments">
                     {comments.length > 0 && (
                       <ol className="activity-comment-list">

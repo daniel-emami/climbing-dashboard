@@ -228,3 +228,46 @@ class AscentCommentUpdateRequest:
 
 type AscentCommentsPayload = dict[str, object]
 type AscentCommentsByAscentPayload = dict[str, object]
+
+
+class BoulderMediaUploadRequest:
+    """Validated request object for adding boulder media."""
+
+    def __init__(
+        self,
+        name: object,
+        area: object,
+        sector: object,
+        ascent_id: object,
+        climber: object,
+        caption: object,
+    ) -> None:
+        """Create a request object after primitive form conversion."""
+
+        self.name = BoulderCreateRequest._required_text(name, "name")
+        self.area = BoulderCreateRequest._required_text(area, "area")
+        self.sector = BoulderCreateRequest._optional_text(sector)
+        self.ascent_id = self._optional_ascent_id(ascent_id)
+        self.climber = BoulderCreateRequest._required_text(climber, "climber")
+        self.caption = BoulderCreateRequest._optional_text(caption)
+
+    @staticmethod
+    def _optional_ascent_id(value: object) -> int | None:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            raise ValueError("ascent_id must be empty or a positive integer")
+        text = str(value).strip()
+        if not text:
+            return None
+        try:
+            ascent_id = int(text)
+        except ValueError as exc:
+            raise ValueError("ascent_id must be empty or a positive integer") from exc
+        if ascent_id <= 0:
+            raise ValueError("ascent_id must be empty or a positive integer")
+        return ascent_id
+
+
+type BoulderMediaPayload = dict[str, object]
+type BoulderMediaByAscentPayload = dict[str, object]
