@@ -39,8 +39,11 @@ function timestamp(value: string | null): number {
   return parsedDate(value)?.getTime() ?? 0;
 }
 
-function sortTimestamp(record: BoulderRecord): number {
-  return timestamp(record.added_at) || timestamp(record.climbed_on);
+function compareFeedRecords(left: BoulderRecord, right: BoulderRecord): number {
+  return (
+    timestamp(right.climbed_on) - timestamp(left.climbed_on) ||
+    timestamp(right.added_at) - timestamp(left.added_at)
+  );
 }
 
 function formatDate(value: string | null): string {
@@ -114,7 +117,7 @@ export default function ActivityFeed({
     () =>
       records
         .slice()
-        .sort((left, right) => sortTimestamp(right) - sortTimestamp(left))
+        .sort(compareFeedRecords)
         .slice(0, FEED_LIMIT),
     [records]
   );
@@ -305,7 +308,7 @@ export default function ActivityFeed({
                     {rating ? ` · ${rating}` : ""}
                   </p>
                   <p className="activity-feed-time">
-                    Added {formatDate(record.added_at)} · Climbed {formatDate(record.climbed_on)}
+                    Climbed {formatDate(record.climbed_on)} · Added {formatDate(record.added_at)}
                   </p>
                   <div className="activity-ascent-comments">
                     {comments.length > 0 && (
