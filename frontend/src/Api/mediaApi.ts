@@ -1,5 +1,4 @@
 import type {
-  BoulderMediaByAscentResponse,
   BoulderMediaResponse,
   BoulderMediaUploadRequest,
   BoulderPageIdentity
@@ -34,19 +33,12 @@ export async function fetchBoulderMedia(
   return parseMediaResponse(response);
 }
 
-export async function fetchAscentMediaBatch(
-  ascentIds: number[]
-): Promise<BoulderMediaByAscentResponse> {
-  const uniqueAscentIds = Array.from(new Set(ascentIds.filter((ascentId) => ascentId > 0)));
+export async function fetchRecentBoulderMedia(limit = 30): Promise<BoulderMediaResponse> {
   const params = new URLSearchParams({
-    ascent_ids: uniqueAscentIds.join(",")
+    limit: String(limit)
   });
-  const response = await fetch(`${API_BASE_URL}/api/ascents/media?${params.toString()}`);
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.detail ?? `Media request failed with ${response.status}`);
-  }
-  return response.json() as Promise<BoulderMediaByAscentResponse>;
+  const response = await fetch(`${API_BASE_URL}/api/boulders/media/recent?${params.toString()}`);
+  return parseMediaResponse(response);
 }
 
 export async function uploadBoulderVideo(
@@ -56,7 +48,6 @@ export async function uploadBoulderVideo(
   formData.append("name", request.name);
   formData.append("area", request.area);
   formData.append("sector", request.sector);
-  formData.append("ascent_id", request.ascent_id === null ? "" : String(request.ascent_id));
   formData.append("climber", request.climber);
   formData.append("caption", request.caption);
   formData.append("file", request.file);

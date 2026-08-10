@@ -99,6 +99,7 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 - `PUT /api/boulders/comments/{comment_id}` updates a public boulder comment.
 - `DELETE /api/boulders/comments/{comment_id}` soft-deletes a public boulder comment.
 - `GET /api/boulders/media` returns uploaded media for one boulder problem.
+- `GET /api/boulders/media/recent` returns recent uploaded videos for the feed.
 - `POST /api/boulders/media` uploads one video for a boulder problem.
 - `DELETE /api/boulders/media/{media_id}` soft-deletes one uploaded media item.
 - `GET /api/ascents/{ascent_id}/comments` returns public comments for one ascent.
@@ -106,7 +107,6 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 - `POST /api/ascents/comments` appends a public comment to one ascent.
 - `PUT /api/ascents/comments/{comment_id}` updates a public ascent comment.
 - `DELETE /api/ascents/comments/{comment_id}` soft-deletes a public ascent comment.
-- `GET /api/ascents/media?ascent_ids=1,2,3` returns uploaded media grouped by ascent id.
 - `POST /api/imports/thetopo/preview` previews public TheTopo boulders for a username.
 - `POST /api/imports/thetopo/confirm` saves selected preview boulders to the database.
 - `POST /api/exports/boulders` exports supplied boulder rows to an Excel workbook.
@@ -134,6 +134,8 @@ Uploaded media files are stored outside SQLite:
 ```text
 data/uploads/videos
 ```
+
+Uploaded boulder videos always appear as video-upload events in the feed.
 
 Excel exports use this workbook shape:
 

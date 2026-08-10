@@ -516,24 +516,14 @@ class SqliteStorage(BaseStorage):
 
         return [self._media_from_row(row) for row in rows]
 
-    def read_media_for_ascent_ids(
-        self,
-        ascent_ids: list[int],
-    ) -> dict[int, list[BoulderMedia]]:
-        """Read public media grouped by ascent id."""
+    def read_recent_boulder_media(self, limit: int) -> list[BoulderMedia]:
+        """Read recent public media across all boulder problems."""
 
-        clean_ascent_ids = sorted({ascent_id for ascent_id in ascent_ids if ascent_id > 0})
-        media_by_ascent_id: dict[int, list[BoulderMedia]] = {
-            ascent_id: [] for ascent_id in clean_ascent_ids
-        }
-        if not clean_ascent_ids:
-            return media_by_ascent_id
-
-        placeholders = ",".join("?" for _ in clean_ascent_ids)
+        clean_limit = max(1, min(limit, 100))
         try:
             with self._connect() as connection:
                 rows = connection.execute(
-                    f"""
+                    """
                     SELECT
                         media.id,
                         problems.name,
@@ -552,20 +542,16 @@ class SqliteStorage(BaseStorage):
                     FROM boulder_media AS media
                     INNER JOIN boulder_problems AS problems
                         ON problems.id = media.boulder_id
-                    WHERE media.ascent_id IN ({placeholders})
-                        AND media.deleted_at IS NULL
-                    ORDER BY media.ascent_id, media.created_at DESC, media.id DESC
+                    WHERE media.deleted_at IS NULL
+                    ORDER BY media.created_at DESC, media.id DESC
+                    LIMIT ?
                     """,
-                    clean_ascent_ids,
+                    (clean_limit,),
                 ).fetchall()
         except sqlite3.Error as exc:
-            raise StorageError(f"Failed to read ascent media: {exc}") from exc
+            raise StorageError(f"Failed to read recent boulder media: {exc}") from exc
 
-        for row in rows:
-            media = self._media_from_row(row)
-            if media.ascent_id is not None:
-                media_by_ascent_id.setdefault(media.ascent_id, []).append(media)
-        return media_by_ascent_id
+        return [self._media_from_row(row) for row in rows]
 
     def append_boulder_media(
         self,

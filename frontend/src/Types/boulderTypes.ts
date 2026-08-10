@@ -154,15 +154,10 @@ export type BoulderMediaResponse = {
   media: BoulderMedia[];
 };
 
-export type BoulderMediaByAscentResponse = {
-  media_by_ascent_id: Record<string, BoulderMedia[]>;
-};
-
 export type BoulderMediaUploadRequest = {
   name: string;
   area: string;
   sector: string;
-  ascent_id: number | null;
   climber: string;
   caption: string;
   file: File;

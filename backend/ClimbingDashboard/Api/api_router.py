@@ -25,7 +25,6 @@ JSON_BODY = Body(...)
 MEDIA_NAME_FORM = Form(...)
 MEDIA_AREA_FORM = Form(...)
 MEDIA_SECTOR_FORM = Form("")
-MEDIA_ASCENT_ID_FORM = Form("")
 MEDIA_CLIMBER_FORM = Form(...)
 MEDIA_CAPTION_FORM = Form("")
 MEDIA_FILE = File(...)
@@ -222,13 +221,26 @@ def get_boulder_media(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.get("/api/boulders/media/recent")
+def get_recent_boulder_media(request: Request, limit: int = 30) -> dict[str, object]:
+    """Return recent uploaded media across all boulder problems."""
+
+    try:
+        if limit < 1:
+            raise ValueError("limit must be a positive integer")
+        return get_api_service(request).get_recent_boulder_media(limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @router.post("/api/boulders/media")
 def add_boulder_media(
     request: Request,
     name: str = MEDIA_NAME_FORM,
     area: str = MEDIA_AREA_FORM,
     sector: str = MEDIA_SECTOR_FORM,
-    ascent_id: str = MEDIA_ASCENT_ID_FORM,
     climber: str = MEDIA_CLIMBER_FORM,
     caption: str = MEDIA_CAPTION_FORM,
     file: UploadFile = MEDIA_FILE,
@@ -240,7 +252,7 @@ def add_boulder_media(
             name=name,
             area=area,
             sector=sector,
-            ascent_id=ascent_id,
+            ascent_id="",
             climber=climber,
             caption=caption,
         )
@@ -332,22 +344,6 @@ def delete_ascent_comment(comment_id: int, request: Request) -> dict[str, object
 
     try:
         return get_api_service(request).delete_ascent_comment(comment_id)
-    except ApiDataError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-
-@router.get("/api/ascents/media")
-def get_ascent_media_batch(
-    request: Request,
-    ascent_ids: str = "",
-) -> dict[str, object]:
-    """Return uploaded media grouped by ascent id."""
-
-    try:
-        clean_ascent_ids = _ascent_ids_from_query(ascent_ids)
-        return get_api_service(request).get_media_for_ascent_ids(clean_ascent_ids)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

@@ -131,16 +131,6 @@ function formatMediaSize(value: number): string {
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function ascentLabel(record: BoulderRecord): string {
-  const pieces = [
-    record.climber,
-    record.climbed_on ?? "",
-    record.own_grade ? `Own ${record.own_grade}` : "",
-    record.flash ? "Flash" : ""
-  ].filter(Boolean);
-  return pieces.join(" · ");
-}
-
 function RatingButtons({
   disabled,
   rating,
@@ -208,7 +198,6 @@ export default function BoulderDetailPage({
   const [editingBody, setEditingBody] = useState("");
   const [mediaClimber, setMediaClimber] = useState("");
   const [mediaCaption, setMediaCaption] = useState("");
-  const [mediaAscentId, setMediaAscentId] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const sortedRecords = records
     .slice()
@@ -230,7 +219,6 @@ export default function BoulderDetailPage({
     setCommentClimber((current) => current || climberOptions[0] || "");
     setMediaClimber((current) => current || climberOptions[0] || "");
     setMediaCaption("");
-    setMediaAscentId("");
     setMediaFile(null);
   }, [climberOptions, identity.area, identity.name, identity.sector]);
 
@@ -307,7 +295,6 @@ export default function BoulderDetailPage({
       return;
     }
     await onUploadVideo({
-      ascent_id: mediaAscentId ? Number(mediaAscentId) : null,
       climber,
       caption: mediaCaption.trim(),
       file: mediaFile
@@ -442,22 +429,6 @@ export default function BoulderDetailPage({
                 value={mediaClimber}
                 onChange={(event) => setMediaClimber(event.target.value)}
               />
-            </label>
-            <label>
-              Attach to
-              <select
-                value={mediaAscentId}
-                onChange={(event) => setMediaAscentId(event.target.value)}
-              >
-                <option value="">Boulder page</option>
-                {sortedRecords
-                  .filter((record) => record.ascent_id !== null)
-                  .map((record) => (
-                    <option key={record.ascent_id} value={record.ascent_id ?? ""}>
-                      {ascentLabel(record)}
-                    </option>
-                  ))}
-              </select>
             </label>
             <label>
               Caption

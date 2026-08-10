@@ -105,11 +105,8 @@ class BaseStorage(ABC):
         """Read all public media for one boulder problem."""
 
     @abstractmethod
-    def read_media_for_ascent_ids(
-        self,
-        ascent_ids: list[int],
-    ) -> dict[int, list[BoulderMedia]]:
-        """Read public media grouped by ascent id."""
+    def read_recent_boulder_media(self, limit: int) -> list[BoulderMedia]:
+        """Read recent public boulder media across all boulder problems."""
 
     @abstractmethod
     def append_boulder_media(

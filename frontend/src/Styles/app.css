@@ -611,7 +611,7 @@ h2 {
 }
 
 .media-upload-form {
-  grid-template-columns: minmax(140px, 190px) minmax(160px, 220px) minmax(0, 1fr) minmax(190px, 260px) auto;
+  grid-template-columns: minmax(140px, 190px) minmax(0, 1fr) minmax(190px, 260px) auto;
   align-items: end;
   margin-top: 14px;
 }

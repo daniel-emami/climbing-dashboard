@@ -5,7 +5,7 @@ import {
   fetchAscentCommentsBatch,
   updateAscentComment
 } from "../Api/ascentCommentApi";
-import { fetchAscentMediaBatch, mediaUrl } from "../Api/mediaApi";
+import { fetchRecentBoulderMedia, mediaUrl } from "../Api/mediaApi";
 import type {
   AscentComment,
   BoulderMedia,
@@ -21,7 +21,24 @@ type ActivityFeedProps = {
   onOpenBoulder: (identity: BoulderPageIdentity) => void;
 };
 
+type AscentFeedItem = {
+  kind: "ascent";
+  key: string;
+  timestamp: number;
+  record: BoulderRecord;
+};
+
+type VideoFeedItem = {
+  kind: "video";
+  key: string;
+  timestamp: number;
+  media: BoulderMedia;
+};
+
+type FeedItem = AscentFeedItem | VideoFeedItem;
+
 const FEED_LIMIT = 30;
+const RECENT_MEDIA_LIMIT = 60;
 
 type CommentDraft = {
   climber: string;
@@ -41,8 +58,12 @@ function timestamp(value: string | null): number {
   return parsedDate(value)?.getTime() ?? 0;
 }
 
-function sortTimestamp(record: BoulderRecord): number {
-  return timestamp(record.added_at) || timestamp(record.climbed_on);
+function ascentTimestamp(record: BoulderRecord): number {
+  return timestamp(record.climbed_on) || timestamp(record.added_at);
+}
+
+function compareFeedItems(left: FeedItem, right: FeedItem): number {
+  return right.timestamp - left.timestamp || right.key.localeCompare(left.key);
 }
 
 function formatDate(value: string | null): string {
@@ -60,7 +81,7 @@ function formatDate(value: string | null): string {
   });
 }
 
-function formatCommentTime(value: string): string {
+function formatDateTime(value: string): string {
   const parsed = parsedDate(value);
   if (!parsed) {
     return value.replace("T", " ").slice(0, 16);
@@ -75,6 +96,10 @@ function formatCommentTime(value: string): string {
 
 function formatLocation(record: BoulderRecord): string {
   return [record.area, record.sector].filter(Boolean).join(" / ");
+}
+
+function formatMediaLocation(media: BoulderMedia): string {
+  return [media.area, media.sector].filter(Boolean).join(" / ");
 }
 
 function formatGrade(record: BoulderRecord): string {
@@ -98,6 +123,33 @@ function initials(name: string): string {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
 }
 
+function boulderKey(name: string, area: string, sector: string): string {
+  return [name, area, sector].map((value) => value.trim().toLocaleLowerCase()).join("|");
+}
+
+function boulderIdentityFromRecord(record: BoulderRecord): BoulderPageIdentity {
+  return {
+    name: record.name,
+    area: record.area,
+    sector: record.sector
+  };
+}
+
+function boulderIdentityFromMedia(media: BoulderMedia): BoulderPageIdentity {
+  return {
+    name: media.boulder_name,
+    area: media.area,
+    sector: media.sector
+  };
+}
+
+function recordKey(record: BoulderRecord): string {
+  return (
+    record.ascent_id?.toString() ??
+    `${record.name}-${record.area}-${record.sector}-${record.climber}-${record.added_at}-${record.climbed_on}`
+  );
+}
+
 export default function ActivityFeed({
   currentClimber,
   knownClimbers,
@@ -105,55 +157,100 @@ export default function ActivityFeed({
   onError,
   onOpenBoulder
 }: ActivityFeedProps) {
+  const [recentMedia, setRecentMedia] = useState<BoulderMedia[]>([]);
   const [commentsByAscentId, setCommentsByAscentId] = useState<Record<number, AscentComment[]>>(
     {}
   );
-  const [mediaByAscentId, setMediaByAscentId] = useState<Record<number, BoulderMedia[]>>({});
   const [draftsByAscentId, setDraftsByAscentId] = useState<Record<number, CommentDraft>>({});
   const [savingAscentIds, setSavingAscentIds] = useState<Set<number>>(new Set());
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingDraft, setEditingDraft] = useState<CommentDraft>({ climber: "", body: "" });
-  const feedRecords = useMemo(
+
+  useEffect(() => {
+    let ignoreResult = false;
+    fetchRecentBoulderMedia(RECENT_MEDIA_LIMIT)
+      .then((payload) => {
+        if (!ignoreResult) {
+          setRecentMedia(payload.media);
+        }
+      })
+      .catch((unknownError: unknown) => {
+        if (!ignoreResult) {
+          onError(unknownError instanceof Error ? unknownError.message : "Unknown media error");
+        }
+      });
+
+    return () => {
+      ignoreResult = true;
+    };
+  }, [onError]);
+
+  const visibleBoulderKeys = useMemo(
     () =>
-      records
-        .slice()
-        .sort((left, right) => sortTimestamp(right) - sortTimestamp(left))
-        .slice(0, FEED_LIMIT),
+      new Set(
+        records.map((record) => boulderKey(record.name, record.area, record.sector))
+      ),
     [records]
   );
+
+  const visibleMedia = useMemo(
+    () =>
+      recentMedia.filter(
+        (media) =>
+          visibleBoulderKeys.has(boulderKey(media.boulder_name, media.area, media.sector)) &&
+          (!currentClimber || media.climber === currentClimber)
+      ),
+    [currentClimber, recentMedia, visibleBoulderKeys]
+  );
+
+  const feedItems = useMemo<FeedItem[]>(
+    () =>
+      [
+        ...records.map<AscentFeedItem>((record) => ({
+          kind: "ascent",
+          key: `ascent-${recordKey(record)}`,
+          timestamp: ascentTimestamp(record),
+          record
+        })),
+        ...visibleMedia.map<VideoFeedItem>((media) => ({
+          kind: "video",
+          key: `video-${media.id}`,
+          timestamp: timestamp(media.created_at),
+          media
+        }))
+      ]
+        .sort(compareFeedItems)
+        .slice(0, FEED_LIMIT),
+    [records, visibleMedia]
+  );
+
   const feedAscentIds = useMemo(
     () =>
-      feedRecords
-        .map((record) => record.ascent_id)
+      feedItems
+        .filter((item): item is AscentFeedItem => item.kind === "ascent")
+        .map((item) => item.record.ascent_id)
         .filter((ascentId): ascentId is number => ascentId !== null && ascentId > 0),
-    [feedRecords]
+    [feedItems]
   );
 
   useEffect(() => {
     if (feedAscentIds.length === 0) {
       setCommentsByAscentId({});
-      setMediaByAscentId({});
       return;
     }
 
     let ignoreResult = false;
-    Promise.all([
-      fetchAscentCommentsBatch(feedAscentIds),
-      fetchAscentMediaBatch(feedAscentIds)
-    ])
-      .then(([commentsPayload, mediaPayload]) => {
+    fetchAscentCommentsBatch(feedAscentIds)
+      .then((payload) => {
         if (ignoreResult) {
           return;
         }
         const nextComments: Record<number, AscentComment[]> = {};
-        const nextMedia: Record<number, BoulderMedia[]> = {};
         for (const ascentId of feedAscentIds) {
           nextComments[ascentId] =
-            commentsPayload.comments_by_ascent_id[String(ascentId)] ?? [];
-          nextMedia[ascentId] = mediaPayload.media_by_ascent_id[String(ascentId)] ?? [];
+            payload.comments_by_ascent_id[String(ascentId)] ?? [];
         }
         setCommentsByAscentId(nextComments);
-        setMediaByAscentId(nextMedia);
       })
       .catch((unknownError: unknown) => {
         if (!ignoreResult) {
@@ -266,181 +363,190 @@ export default function ActivityFeed({
     }
   };
 
+  const renderAscentItem = (item: AscentFeedItem) => {
+    const { record } = item;
+    const rating = formatRating(record.rating);
+    const ascentId = record.ascent_id;
+    const comments = ascentId === null ? [] : commentsByAscentId[ascentId] ?? [];
+    const draft = ascentId === null ? { climber: "", body: "" } : draftForAscent(ascentId);
+    const isSavingComment = ascentId !== null && savingAscentIds.has(ascentId);
+
+    return (
+      <li className="activity-feed-item" key={item.key}>
+        <div className="activity-feed-avatar" aria-hidden="true">
+          {initials(record.climber)}
+        </div>
+        <div className="activity-feed-body">
+          <p className="activity-feed-copy">
+            <strong>{record.climber || "Unknown climber"}</strong>{" "}
+            {record.flash ? "flashed" : "logged"}{" "}
+            <button
+              className="activity-feed-link"
+              type="button"
+              onClick={() => onOpenBoulder(boulderIdentityFromRecord(record))}
+            >
+              {record.name}
+            </button>
+          </p>
+          <p className="activity-feed-meta">
+            {formatLocation(record)} · {formatGrade(record)}
+            {rating ? ` · ${rating}` : ""}
+          </p>
+          <p className="activity-feed-time">
+            Climbed {formatDate(record.climbed_on)} · Added {formatDate(record.added_at)}
+          </p>
+          <div className="activity-ascent-comments">
+            {comments.length > 0 && (
+              <ol className="activity-comment-list">
+                {comments.map((comment) => {
+                  const isEditing = editingCommentId === comment.id;
+                  return (
+                    <li className="activity-comment-item" key={comment.id}>
+                      {isEditing ? (
+                        <div className="activity-comment-edit-form">
+                          <input
+                            aria-label="Comment climber"
+                            list="feed-comment-climbers"
+                            value={editingDraft.climber}
+                            onChange={(event) =>
+                              setEditingDraft((current) => ({
+                                ...current,
+                                climber: event.target.value
+                              }))
+                            }
+                          />
+                          <input
+                            aria-label="Comment"
+                            value={editingDraft.body}
+                            onChange={(event) =>
+                              setEditingDraft((current) => ({
+                                ...current,
+                                body: event.target.value
+                              }))
+                            }
+                          />
+                          <button
+                            disabled={isSavingComment}
+                            type="button"
+                            onClick={() => void saveEditingComment(comment)}
+                          >
+                            Save
+                          </button>
+                          <button
+                            disabled={isSavingComment}
+                            type="button"
+                            onClick={cancelEditingComment}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <p>
+                            <strong>{comment.climber}</strong> {comment.body}
+                          </p>
+                          <div className="activity-comment-actions">
+                            <span>{formatDateTime(comment.created_at)}</span>
+                            <button
+                              disabled={isSavingComment}
+                              type="button"
+                              onClick={() => startEditingComment(comment)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="danger-button"
+                              disabled={isSavingComment}
+                              type="button"
+                              onClick={() => void removeComment(comment)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+            {ascentId !== null && (
+              <form
+                className="activity-comment-form"
+                onSubmit={(event) => void submitComment(event, ascentId)}
+              >
+                <input
+                  aria-label="Comment climber"
+                  list="feed-comment-climbers"
+                  placeholder="Climber"
+                  value={draft.climber}
+                  onChange={(event) =>
+                    updateDraft(ascentId, { ...draft, climber: event.target.value })
+                  }
+                />
+                <input
+                  aria-label="Ascent comment"
+                  placeholder="Comment on this ascent"
+                  value={draft.body}
+                  onChange={(event) =>
+                    updateDraft(ascentId, { ...draft, body: event.target.value })
+                  }
+                />
+                <button disabled={isSavingComment} type="submit">
+                  Post
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </li>
+    );
+  };
+
+  const renderVideoItem = (item: VideoFeedItem) => {
+    const { media } = item;
+    return (
+      <li className="activity-feed-item activity-video-feed-item" key={item.key}>
+        <div className="activity-feed-avatar" aria-hidden="true">
+          {initials(media.climber)}
+        </div>
+        <div className="activity-feed-body">
+          <p className="activity-feed-copy">
+            <strong>{media.climber || "Unknown climber"}</strong> uploaded a video to{" "}
+            <button
+              className="activity-feed-link"
+              type="button"
+              onClick={() => onOpenBoulder(boulderIdentityFromMedia(media))}
+            >
+              {media.boulder_name}
+            </button>
+          </p>
+          <p className="activity-feed-meta">{formatMediaLocation(media)}</p>
+          <p className="activity-feed-time">Uploaded {formatDateTime(media.created_at)}</p>
+          <ol className="activity-media-list">
+            <li className="activity-media-item">
+              <video controls playsInline preload="metadata" src={mediaUrl(media.url)} />
+              {media.caption && <p>{media.caption}</p>}
+            </li>
+          </ol>
+        </div>
+      </li>
+    );
+  };
+
   return (
     <section className="panel activity-feed-panel">
       <div className="panel-heading">
         <span className="section-kicker">Feed</span>
-        <h2>Latest ascents</h2>
+        <h2>Latest activity</h2>
       </div>
-      {feedRecords.length === 0 ? (
+      {feedItems.length === 0 ? (
         <div className="empty-detail-slot">-</div>
       ) : (
         <ol className="activity-feed-list">
-          {feedRecords.map((record) => {
-            const rating = formatRating(record.rating);
-            const ascentId = record.ascent_id;
-            const comments = ascentId === null ? [] : commentsByAscentId[ascentId] ?? [];
-            const media = ascentId === null ? [] : mediaByAscentId[ascentId] ?? [];
-            const draft = ascentId === null ? { climber: "", body: "" } : draftForAscent(ascentId);
-            const isSavingComment = ascentId !== null && savingAscentIds.has(ascentId);
-            return (
-              <li
-                className="activity-feed-item"
-                key={
-                  record.ascent_id ??
-                  `${record.name}-${record.area}-${record.sector}-${record.climber}-${record.added_at}-${record.climbed_on}`
-                }
-              >
-                <div className="activity-feed-avatar" aria-hidden="true">
-                  {initials(record.climber)}
-                </div>
-                <div className="activity-feed-body">
-                  <p className="activity-feed-copy">
-                    <strong>{record.climber || "Unknown climber"}</strong>{" "}
-                    {record.flash ? "flashed" : "logged"}{" "}
-                    <button
-                      className="activity-feed-link"
-                      type="button"
-                      onClick={() =>
-                        onOpenBoulder({
-                          name: record.name,
-                          area: record.area,
-                          sector: record.sector
-                        })
-                      }
-                    >
-                      {record.name}
-                    </button>
-                  </p>
-                  <p className="activity-feed-meta">
-                    {formatLocation(record)} · {formatGrade(record)}
-                    {rating ? ` · ${rating}` : ""}
-                  </p>
-                  <p className="activity-feed-time">
-                    Added {formatDate(record.added_at)} · Climbed {formatDate(record.climbed_on)}
-                  </p>
-                  {media.length > 0 && (
-                    <ol className="activity-media-list">
-                      {media.map((mediaItem) => (
-                        <li className="activity-media-item" key={mediaItem.id}>
-                          <video
-                            controls
-                            playsInline
-                            preload="metadata"
-                            src={mediaUrl(mediaItem.url)}
-                          />
-                          {mediaItem.caption && <p>{mediaItem.caption}</p>}
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                  <div className="activity-ascent-comments">
-                    {comments.length > 0 && (
-                      <ol className="activity-comment-list">
-                        {comments.map((comment) => {
-                          const isEditing = editingCommentId === comment.id;
-                          return (
-                            <li className="activity-comment-item" key={comment.id}>
-                              {isEditing ? (
-                                <div className="activity-comment-edit-form">
-                                  <input
-                                    aria-label="Comment climber"
-                                    list="feed-comment-climbers"
-                                    value={editingDraft.climber}
-                                    onChange={(event) =>
-                                      setEditingDraft((current) => ({
-                                        ...current,
-                                        climber: event.target.value
-                                      }))
-                                    }
-                                  />
-                                  <input
-                                    aria-label="Comment"
-                                    value={editingDraft.body}
-                                    onChange={(event) =>
-                                      setEditingDraft((current) => ({
-                                        ...current,
-                                        body: event.target.value
-                                      }))
-                                    }
-                                  />
-                                  <button
-                                    disabled={isSavingComment}
-                                    type="button"
-                                    onClick={() => void saveEditingComment(comment)}
-                                  >
-                                    Save
-                                  </button>
-                                  <button
-                                    disabled={isSavingComment}
-                                    type="button"
-                                    onClick={cancelEditingComment}
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              ) : (
-                                <>
-                                  <p>
-                                    <strong>{comment.climber}</strong> {comment.body}
-                                  </p>
-                                  <div className="activity-comment-actions">
-                                    <span>{formatCommentTime(comment.created_at)}</span>
-                                    <button
-                                      disabled={isSavingComment}
-                                      type="button"
-                                      onClick={() => startEditingComment(comment)}
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      className="danger-button"
-                                      disabled={isSavingComment}
-                                      type="button"
-                                      onClick={() => void removeComment(comment)}
-                                    >
-                                      Delete
-                                    </button>
-                                  </div>
-                                </>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ol>
-                    )}
-                    {ascentId !== null && (
-                      <form
-                        className="activity-comment-form"
-                        onSubmit={(event) => void submitComment(event, ascentId)}
-                      >
-                        <input
-                          aria-label="Comment climber"
-                          list="feed-comment-climbers"
-                          placeholder="Climber"
-                          value={draft.climber}
-                          onChange={(event) =>
-                            updateDraft(ascentId, { ...draft, climber: event.target.value })
-                          }
-                        />
-                        <input
-                          aria-label="Ascent comment"
-                          placeholder="Comment on this ascent"
-                          value={draft.body}
-                          onChange={(event) =>
-                            updateDraft(ascentId, { ...draft, body: event.target.value })
-                          }
-                        />
-                        <button disabled={isSavingComment} type="submit">
-                          Post
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
+          {feedItems.map((item) =>
+            item.kind === "ascent" ? renderAscentItem(item) : renderVideoItem(item)
+          )}
         </ol>
       )}
       <datalist id="feed-comment-climbers">

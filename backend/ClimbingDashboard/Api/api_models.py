@@ -270,4 +270,3 @@ class BoulderMediaUploadRequest:
 
 
 type BoulderMediaPayload = dict[str, object]
-type BoulderMediaByAscentPayload = dict[str, object]

@@ -13,7 +13,6 @@ from ClimbingDashboard.Api.api_models import (
     BoulderCommentsPayload,
     BoulderCommentUpdateRequest,
     BoulderCreateRequest,
-    BoulderMediaByAscentPayload,
     BoulderMediaPayload,
     BoulderMediaUploadRequest,
     BouldersPayload,
@@ -280,22 +279,14 @@ class ApiService(BaseApiService):
             raise ApiDataError(f"Could not read boulder media: {exc}") from exc
         return self._media_payload(media)
 
-    def get_media_for_ascent_ids(
-        self,
-        ascent_ids: list[int],
-    ) -> BoulderMediaByAscentPayload:
-        """Return uploaded media grouped by ascent id."""
+    def get_recent_boulder_media(self, limit: int = 30) -> BoulderMediaPayload:
+        """Return recent uploaded boulder media across the whole dashboard."""
 
         try:
-            media_by_ascent_id = self.storage.read_media_for_ascent_ids(ascent_ids)
+            media = self.storage.read_recent_boulder_media(limit)
         except StorageError as exc:
-            raise ApiDataError(f"Could not read ascent media: {exc}") from exc
-        return {
-            "media_by_ascent_id": {
-                str(ascent_id): [media.to_payload() for media in media_items]
-                for ascent_id, media_items in media_by_ascent_id.items()
-            }
-        }
+            raise ApiDataError(f"Could not read recent boulder media: {exc}") from exc
+        return self._media_payload(media)
 
     def save_boulder_video(
         self,
