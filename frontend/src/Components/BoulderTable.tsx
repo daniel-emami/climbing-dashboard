@@ -18,7 +18,6 @@ type BoulderTableProps = {
 type SortKey =
   | "name"
   | "area"
-  | "sector"
   | "climber"
   | "grade_27crags"
   | "guide_grade"
@@ -37,7 +36,6 @@ type SortState = {
 const HEADERS: Array<{ key: SortKey; label: string }> = [
   { key: "name", label: "Name" },
   { key: "area", label: "Area" },
-  { key: "sector", label: "Sector" },
   { key: "climber", label: "Climber" },
   { key: "grade_27crags", label: "27Crags" },
   { key: "guide_grade", label: "Guide" },
@@ -51,7 +49,7 @@ const PAGE_SIZE = 15;
 const RATING_OPTIONS = [1, 2, 3, 4, 5];
 
 function recordKey(record: BoulderRecord): string {
-  return `${record.name}::${record.area}::${record.sector}::${record.climber}`;
+  return `${record.name}::${record.area}::${record.climber}`;
 }
 
 function recordToDraft(record: BoulderRecord): BoulderCreateRequest {
@@ -61,7 +59,6 @@ function recordToDraft(record: BoulderRecord): BoulderCreateRequest {
     guide_grade: record.guide_grade,
     own_grade: record.own_grade,
     area: record.area,
-    sector: record.sector,
     climber: record.climber,
     flash: record.flash,
     climbed_on: record.climbed_on,
@@ -111,10 +108,6 @@ function compareRecords(
 
 function formatRating(rating: number | null): string {
   return rating ? `${rating}/5` : "";
-}
-
-function formatLocation(record: BoulderRecord): string {
-  return [record.area, record.sector].filter(Boolean).join(" / ");
 }
 
 export default function BoulderTable({
@@ -197,7 +190,7 @@ export default function BoulderTable({
     }
     try {
       await onUpdate(
-        { name: record.name, area: record.area, sector: record.sector, climber: record.climber },
+        { name: record.name, area: record.area, climber: record.climber },
         {
           ...draft,
           climbed_on: draft.climbed_on || null
@@ -211,18 +204,13 @@ export default function BoulderTable({
 
   const deleteRecord = async (record: BoulderRecord) => {
     const shouldDelete = window.confirm(
-      `Remove ${record.name} from ${formatLocation(record)} for ${record.climber}?`
+      `Remove ${record.name} from ${record.area} for ${record.climber}?`
     );
     if (!shouldDelete) {
       return;
     }
     try {
-      await onDelete({
-        name: record.name,
-        area: record.area,
-        sector: record.sector,
-        climber: record.climber
-      });
+      await onDelete({ name: record.name, area: record.area, climber: record.climber });
       if (editingKey === recordKey(record)) {
         cancelEditing();
       }
@@ -260,7 +248,6 @@ export default function BoulderTable({
           <colgroup>
             <col className="logbook-name-column" />
             <col className="logbook-area-column" />
-            <col className="logbook-sector-column" />
             <col className="logbook-climber-column" />
             <col className="logbook-grade-column" />
             <col className="logbook-grade-column" />
@@ -295,9 +282,7 @@ export default function BoulderTable({
               const editableRecord = isEditing && draft ? draft : record;
 
               return (
-                <tr
-                  key={`${record.name}-${record.area}-${record.sector}-${record.climber}-${record.climbed_on}`}
-                >
+                <tr key={`${record.name}-${record.area}-${record.climber}-${record.climbed_on}`}>
                   <th>
                     {isEditing ? (
                       <input
@@ -311,13 +296,7 @@ export default function BoulderTable({
                       <button
                         className="table-link-button"
                         type="button"
-                        onClick={() =>
-                          onOpenBoulder({
-                            name: record.name,
-                            area: record.area,
-                            sector: record.sector
-                          })
-                        }
+                        onClick={() => onOpenBoulder({ name: record.name, area: record.area })}
                       >
                         {record.name}
                       </button>
@@ -334,18 +313,6 @@ export default function BoulderTable({
                       />
                     ) : (
                       record.area
-                    )}
-                  </td>
-                  <td>
-                    {isEditing ? (
-                      <input
-                        aria-label="Sector"
-                        className="table-inline-input"
-                        value={editableRecord.sector}
-                        onChange={(event) => updateDraft("sector", event.target.value)}
-                      />
-                    ) : (
-                      record.sector
                     )}
                   </td>
                   <td>

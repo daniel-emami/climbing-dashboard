@@ -6,11 +6,11 @@ type SummaryStripProps = {
 
 export default function SummaryStrip({ data }: SummaryStripProps) {
   const topArea = data.stats.areas[0];
-  const addedDates = data.records
-    .filter((record) => record.added_at)
-    .map((record) => record.added_at as string)
+  const climbedDates = data.records
+    .filter((record) => record.climbed_on)
+    .map((record) => record.climbed_on as string)
     .sort();
-  const latest = addedDates[addedDates.length - 1];
+  const latest = climbedDates[climbedDates.length - 1];
 
   return (
     <section className="summary-strip" aria-label="Climbing summary">
@@ -31,8 +31,8 @@ export default function SummaryStrip({ data }: SummaryStripProps) {
       </article>
       <article className="summary-tile">
         <span>Latest</span>
-        <strong>{latest ? latest.slice(0, 10) : "-"}</strong>
-        <small>Most recently added</small>
+        <strong>{latest ?? "-"}</strong>
+        <small>Most recent logged date</small>
       </article>
     </section>
   );

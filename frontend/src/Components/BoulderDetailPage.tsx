@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { mediaUrl } from "../Api/mediaApi";
 import type {
   BoulderComment,
   BoulderCommentUpdateRequest,
   BoulderCreateRequest,
   BoulderIdentity,
-  BoulderMedia,
-  BoulderMediaUploadRequest,
   BoulderPageIdentity,
   BoulderRecord
 } from "../Types/boulderTypes";
@@ -18,17 +15,10 @@ type BoulderDetailPageProps = {
   isSaving: boolean;
   isCommentsLoading: boolean;
   isCommentSaving: boolean;
-  isMediaLoading: boolean;
-  isMediaSaving: boolean;
-  media: BoulderMedia[];
   records: BoulderRecord[];
   onAddComment: (climber: string, body: string) => Promise<void>;
   onBack: () => void;
   onDeleteComment: (commentId: number) => Promise<void>;
-  onDeleteMedia: (mediaId: number) => Promise<void>;
-  onUploadVideo: (
-    request: Omit<BoulderMediaUploadRequest, "name" | "area" | "sector">
-  ) => Promise<void>;
   onUpdateComment: (
     commentId: number,
     request: BoulderCommentUpdateRequest
@@ -102,7 +92,6 @@ function recordToRequest(record: BoulderRecord): BoulderCreateRequest {
     guide_grade: record.guide_grade,
     own_grade: record.own_grade,
     area: record.area,
-    sector: record.sector,
     climber: record.climber,
     flash: record.flash,
     climbed_on: record.climbed_on,
@@ -122,13 +111,6 @@ function averageRating(records: BoulderRecord[]): number | null {
 
 function formatCommentTime(value: string): string {
   return value.replace("T", " ").slice(0, 16);
-}
-
-function formatMediaSize(value: number): string {
-  if (value < 1024 * 1024) {
-    return `${Math.max(1, Math.round(value / 1024))} KB`;
-  }
-  return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function RatingButtons({
@@ -172,15 +154,10 @@ export default function BoulderDetailPage({
   isSaving,
   isCommentsLoading,
   isCommentSaving,
-  isMediaLoading,
-  isMediaSaving,
-  media,
   records,
   onAddComment,
   onBack,
   onDeleteComment,
-  onDeleteMedia,
-  onUploadVideo,
   onUpdateComment,
   onUpdate
 }: BoulderDetailPageProps) {
@@ -196,9 +173,6 @@ export default function BoulderDetailPage({
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingClimber, setEditingClimber] = useState("");
   const [editingBody, setEditingBody] = useState("");
-  const [mediaClimber, setMediaClimber] = useState("");
-  const [mediaCaption, setMediaCaption] = useState("");
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
   const sortedRecords = records
     .slice()
     .sort((left, right) => compareDates(right.climbed_on, left.climbed_on));
@@ -207,9 +181,6 @@ export default function BoulderDetailPage({
   const latest = latestDate(records);
   const average = averageRating(records);
   const ratedCount = records.filter((record) => record.rating !== null).length;
-  const locationLabel = identity.sector
-    ? `${identity.area} / ${identity.sector}`
-    : identity.area;
 
   useEffect(() => {
     setCommentBody("");
@@ -217,20 +188,12 @@ export default function BoulderDetailPage({
     setEditingClimber("");
     setEditingBody("");
     setCommentClimber((current) => current || climberOptions[0] || "");
-    setMediaClimber((current) => current || climberOptions[0] || "");
-    setMediaCaption("");
-    setMediaFile(null);
-  }, [climberOptions, identity.area, identity.name, identity.sector]);
+  }, [climberOptions, identity.area, identity.name]);
 
   const updateRating = async (record: BoulderRecord, rating: number | null) => {
     try {
       await onUpdate(
-        {
-          name: record.name,
-          area: record.area,
-          sector: record.sector,
-          climber: record.climber
-        },
+        { name: record.name, area: record.area, climber: record.climber },
         {
           ...recordToRequest(record),
           rating
@@ -288,30 +251,6 @@ export default function BoulderDetailPage({
     }
   };
 
-  const submitVideo = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const climber = mediaClimber.trim();
-    if (!climber || !mediaFile) {
-      return;
-    }
-    await onUploadVideo({
-      climber,
-      caption: mediaCaption.trim(),
-      file: mediaFile
-    });
-    setMediaCaption("");
-    setMediaFile(null);
-    event.currentTarget.reset();
-  };
-
-  const deleteMedia = async (mediaItem: BoulderMedia) => {
-    const shouldDelete = window.confirm(`Delete video from ${mediaItem.climber}?`);
-    if (!shouldDelete) {
-      return;
-    }
-    await onDeleteMedia(mediaItem.id);
-  };
-
   return (
     <section className="boulder-detail-page" aria-label="Boulder details">
       <button className="back-button" type="button" onClick={onBack}>
@@ -322,7 +261,7 @@ export default function BoulderDetailPage({
         <div>
           <span className="section-kicker">Boulder</span>
           <h2>{identity.name}</h2>
-          <p>{locationLabel}</p>
+          <p>{identity.area}</p>
         </div>
         <dl className="boulder-detail-stats" aria-label="Boulder summary">
           <div>
@@ -383,75 +322,6 @@ export default function BoulderDetailPage({
           </dl>
         </section>
 
-        <section className="panel boulder-media-panel">
-          <div className="panel-heading">
-            <span className="section-kicker">Videos</span>
-            <span className="comment-count">{media.length}</span>
-          </div>
-          {isMediaLoading ? (
-            <div className="empty-detail-slot">Loading</div>
-          ) : media.length === 0 ? (
-            <div className="empty-detail-slot">-</div>
-          ) : (
-            <ol className="media-list">
-              {media.map((mediaItem) => (
-                <li className="media-item" key={mediaItem.id}>
-                  <video controls playsInline preload="metadata" src={mediaUrl(mediaItem.url)} />
-                  <div className="media-meta">
-                    <strong>{mediaItem.climber}</strong>
-                    <span>
-                      {formatCommentTime(mediaItem.created_at)} ·{" "}
-                      {formatMediaSize(mediaItem.file_size)}
-                    </span>
-                  </div>
-                  {mediaItem.caption && <p>{mediaItem.caption}</p>}
-                  <div className="comment-actions">
-                    <button
-                      className="danger-button"
-                      disabled={isMediaSaving}
-                      type="button"
-                      onClick={() => void deleteMedia(mediaItem)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-
-          <form className="media-upload-form" onSubmit={(event) => void submitVideo(event)}>
-            <label>
-              Climber
-              <input
-                required
-                list="comment-climbers"
-                value={mediaClimber}
-                onChange={(event) => setMediaClimber(event.target.value)}
-              />
-            </label>
-            <label>
-              Caption
-              <input
-                value={mediaCaption}
-                onChange={(event) => setMediaCaption(event.target.value)}
-              />
-            </label>
-            <label>
-              Video file
-              <input
-                required
-                accept="video/*"
-                type="file"
-                onChange={(event) => setMediaFile(event.target.files?.[0] ?? null)}
-              />
-            </label>
-            <button disabled={isMediaSaving || !mediaFile} type="submit">
-              Upload
-            </button>
-          </form>
-        </section>
-
         <section className="panel boulder-climbers-panel">
           <div className="panel-heading">
             <span className="section-kicker">Climbers</span>
@@ -471,12 +341,7 @@ export default function BoulderDetailPage({
               </thead>
               <tbody>
                 {sortedRecords.map((record) => (
-                  <tr
-                    key={
-                      record.ascent_id ??
-                      `${record.climber}-${record.climbed_on}-${record.own_grade}`
-                    }
-                  >
+                  <tr key={`${record.climber}-${record.climbed_on}-${record.own_grade}`}>
                     <th>{record.climber || "-"}</th>
                     <td>{record.own_grade}</td>
                     <td>{record.grade_27crags}</td>

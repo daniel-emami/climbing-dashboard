@@ -140,7 +140,6 @@ class TheTopoParser:
             guide_grade="",
             own_grade=own_grade,
             area=area,
-            sector="",
             climber="",
             flash=ascent_type.strip().lower() == "flash",
             climbed_on=climbed_on,
