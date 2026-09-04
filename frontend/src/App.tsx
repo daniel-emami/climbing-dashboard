@@ -12,6 +12,12 @@ import {
   fetchBoulderComments,
   updateBoulderComment
 } from "./Api/commentApi";
+import {
+  deleteBoulderMedia,
+  fetchBoulderMedia,
+  uploadBoulderVideo
+} from "./Api/mediaApi";
+import ActivityFeed from "./Components/ActivityFeed";
 import AreaChart from "./Components/AreaChart";
 import AreaGradeMatrix from "./Components/AreaGradeMatrix";
 import BoulderDetailPage from "./Components/BoulderDetailPage";
@@ -34,6 +40,8 @@ import type {
   BoulderCommentUpdateRequest,
   BoulderCreateRequest,
   BoulderIdentity,
+  BoulderMedia,
+  BoulderMediaUploadRequest,
   BoulderPageIdentity,
   BoulderRecord,
   BouldersResponse,
@@ -47,6 +55,14 @@ const DASHBOARD_GRADE_SOURCE_FIELDS: GradeField[] = [
   "guide_grade"
 ];
 
+type DashboardPage = "feed" | "logbook" | "map";
+
+const DASHBOARD_PAGES: Array<{ key: DashboardPage; label: string }> = [
+  { key: "feed", label: "Feed" },
+  { key: "logbook", label: "Logbook" },
+  { key: "map", label: "Map" }
+];
+
 function formatRefreshTime(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -58,10 +74,11 @@ function boulderIdentityFromHash(): BoulderPageIdentity | null {
   }
   const name = params.get("name")?.trim();
   const area = params.get("area")?.trim();
+  const sector = params.get("sector")?.trim() ?? "";
   if (!name || !area) {
     return null;
   }
-  return { name, area };
+  return { name, area, sector };
 }
 
 function writeBoulderHash(identity: BoulderPageIdentity | null) {
@@ -72,7 +89,8 @@ function writeBoulderHash(identity: BoulderPageIdentity | null) {
   const params = new URLSearchParams({
     view: "boulder",
     name: identity.name,
-    area: identity.area
+    area: identity.area,
+    sector: identity.sector
   });
   window.history.pushState(null, "", `#${params.toString()}`);
 }
@@ -80,7 +98,8 @@ function writeBoulderHash(identity: BoulderPageIdentity | null) {
 function isSameBoulder(record: BoulderRecord, identity: BoulderPageIdentity): boolean {
   return (
     record.name.trim().toLocaleLowerCase() === identity.name.trim().toLocaleLowerCase() &&
-    record.area.trim().toLocaleLowerCase() === identity.area.trim().toLocaleLowerCase()
+    record.area.trim().toLocaleLowerCase() === identity.area.trim().toLocaleLowerCase() &&
+    record.sector.trim().toLocaleLowerCase() === identity.sector.trim().toLocaleLowerCase()
   );
 }
 
@@ -176,6 +195,7 @@ function recordMatchesSearch(record: BoulderRecord, searchQuery: string): boolea
   return [
     record.name,
     record.area,
+    record.sector,
     record.climber,
     record.grade_27crags,
     record.guide_grade,
@@ -197,14 +217,18 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("own_grade");
   const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("own_grade");
+  const [activePage, setActivePage] = useState<DashboardPage>("feed");
   const [selectedClimber, setSelectedClimber] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBoulder, setSelectedBoulder] = useState<BoulderPageIdentity | null>(
     boulderIdentityFromHash
   );
   const [selectedBoulderComments, setSelectedBoulderComments] = useState<BoulderComment[]>([]);
+  const [selectedBoulderMedia, setSelectedBoulderMedia] = useState<BoulderMedia[]>([]);
   const [isCommentsLoading, setIsCommentsLoading] = useState(false);
   const [isCommentSaving, setIsCommentSaving] = useState(false);
+  const [isMediaLoading, setIsMediaLoading] = useState(false);
+  const [isMediaSaving, setIsMediaSaving] = useState(false);
 
   const loadStoredData = useCallback(async () => {
     try {
@@ -267,6 +291,38 @@ export default function App() {
     };
   }, [selectedBoulder]);
 
+  useEffect(() => {
+    if (!selectedBoulder) {
+      setSelectedBoulderMedia([]);
+      return;
+    }
+
+    let ignoreResult = false;
+    setSelectedBoulderMedia([]);
+    setIsMediaLoading(true);
+    fetchBoulderMedia(selectedBoulder)
+      .then((payload) => {
+        if (!ignoreResult) {
+          setSelectedBoulderMedia(payload.media);
+          setError(null);
+        }
+      })
+      .catch((unknownError: unknown) => {
+        if (!ignoreResult) {
+          setError(unknownError instanceof Error ? unknownError.message : "Unknown media error");
+        }
+      })
+      .finally(() => {
+        if (!ignoreResult) {
+          setIsMediaLoading(false);
+        }
+      });
+
+    return () => {
+      ignoreResult = true;
+    };
+  }, [selectedBoulder]);
+
   const knownAreas = useMemo(
     () => data?.stats.areas.map((area) => area.area).sort((a, b) => a.localeCompare(b)) ?? [],
     [data]
@@ -275,6 +331,13 @@ export default function App() {
   const knownClimbers = useMemo(
     () =>
       Array.from(new Set(data?.records.map((record) => record.climber).filter(Boolean) ?? []))
+        .sort((left, right) => left.localeCompare(right)),
+    [data]
+  );
+
+  const knownSectors = useMemo(
+    () =>
+      Array.from(new Set(data?.records.map((record) => record.sector).filter(Boolean) ?? []))
         .sort((left, right) => left.localeCompare(right)),
     [data]
   );
@@ -407,6 +470,7 @@ export default function App() {
       const payload = await addBoulderComment({
         name: selectedBoulder.name,
         area: selectedBoulder.area,
+        sector: selectedBoulder.sector,
         climber,
         body
       });
@@ -448,6 +512,44 @@ export default function App() {
       throw unknownError;
     } finally {
       setIsCommentSaving(false);
+    }
+  };
+
+  const handleUploadBoulderVideo = async (
+    request: Omit<BoulderMediaUploadRequest, "name" | "area" | "sector">
+  ) => {
+    if (!selectedBoulder) {
+      return;
+    }
+    setIsMediaSaving(true);
+    try {
+      const payload = await uploadBoulderVideo({
+        ...request,
+        name: selectedBoulder.name,
+        area: selectedBoulder.area,
+        sector: selectedBoulder.sector
+      });
+      setSelectedBoulderMedia(payload.media);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown media error");
+      throw unknownError;
+    } finally {
+      setIsMediaSaving(false);
+    }
+  };
+
+  const handleDeleteBoulderMedia = async (mediaId: number) => {
+    setIsMediaSaving(true);
+    try {
+      const payload = await deleteBoulderMedia(mediaId);
+      setSelectedBoulderMedia(payload.media);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown media error");
+      throw unknownError;
+    } finally {
+      setIsMediaSaving(false);
     }
   };
 
@@ -506,37 +608,55 @@ export default function App() {
             isSaving={isSaving}
             isCommentsLoading={isCommentsLoading}
             isCommentSaving={isCommentSaving}
+            isMediaLoading={isMediaLoading}
+            isMediaSaving={isMediaSaving}
+            media={selectedBoulderMedia}
             records={selectedBoulderRecords}
             onAddComment={handleAddBoulderComment}
             onBack={handleCloseBoulder}
             onDeleteComment={handleDeleteBoulderComment}
+            onDeleteMedia={handleDeleteBoulderMedia}
+            onUploadVideo={handleUploadBoulderVideo}
             onUpdateComment={handleUpdateBoulderComment}
             onUpdate={handleUpdateBoulder}
           />
         </>
       ) : (
-      <div className="dashboard-layout">
-        <aside className="control-rail">
-          <TheTopoImportPanel
-            onImported={handleImportedBoulders}
-            onError={setError}
-          />
-          <BoulderForm
-            isSaving={isSaving}
-            knownAreas={knownAreas}
-            knownClimbers={knownClimbers}
-            knownGrades={knownGrades}
-            onSubmit={handleAddBoulder}
-          />
+        <div className="dashboard-layout">
+          <aside className="control-rail">
+            <TheTopoImportPanel
+              onImported={handleImportedBoulders}
+              onError={setError}
+            />
+            <BoulderForm
+              isSaving={isSaving}
+              knownAreas={knownAreas}
+              knownClimbers={knownClimbers}
+              knownGrades={knownGrades}
+              knownSectors={knownSectors}
+              onSubmit={handleAddBoulder}
+            />
+          </aside>
 
-        </aside>
+          <section className="dashboard-main" aria-label="Climbing Dashboard">
+            {isInitialLoading && <LoadingState />}
+            {error && <ErrorState message={error} />}
+            {visibleData && !isInitialLoading && (
+              <>
+                <SummaryStrip data={visibleData} />
 
-        <section className="dashboard-main" aria-label="Climbing Dashboard">
-          {isInitialLoading && <LoadingState />}
-          {error && <ErrorState message={error} />}
-          {visibleData && !isInitialLoading && (
-            <>
-              <SummaryStrip data={visibleData} />
+                <nav className="dashboard-page-tabs" aria-label="Dashboard pages">
+                  {DASHBOARD_PAGES.map((page) => (
+                    <button
+                      className={activePage === page.key ? "active" : ""}
+                      key={page.key}
+                      type="button"
+                      onClick={() => setActivePage(page.key)}
+                    >
+                      {page.label}
+                    </button>
+                  ))}
+                </nav>
 
               <section className="panel dashboard-controls-panel">
                 <div className="dashboard-control-group grade-source-control">
@@ -597,31 +717,47 @@ export default function App() {
                 </div>
               </section>
 
-              <div className="insight-grid">
-                <GradeChart
-                  title={gradeChartTitle}
+              {activePage === "feed" && (
+                <>
+                  <ActivityFeed
+                    currentClimber={selectedClimber}
+                    knownClimbers={knownClimbers}
+                    records={visibleData.records}
+                    onError={setError}
+                    onOpenBoulder={handleOpenBoulder}
+                  />
+                  <div className="insight-grid">
+                    <GradeChart
+                      title={gradeChartTitle}
+                      gradeOrder={visibleData.grade_order}
+                      series={gradeChartSeries}
+                    />
+                    <AreaChart
+                      data={visibleData.stats.area_counts_by_grade_source[activeAreaMapGradeField]}
+                      gradeSourceLabel={activeAreaMapGradeLabel}
+                    />
+                  </div>
+                </>
+              )}
+
+              {activePage === "logbook" && (
+                <BoulderTable
+                  records={visibleData.records}
                   gradeOrder={visibleData.grade_order}
-                  series={gradeChartSeries}
+                  isSaving={isSaving}
+                  onDelete={handleDeleteBoulder}
+                  onOpenBoulder={handleOpenBoulder}
+                  onUpdate={handleUpdateBoulder}
                 />
-                <AreaChart
-                  data={visibleData.stats.area_counts_by_grade_source[activeAreaMapGradeField]}
+              )}
+
+              {activePage === "map" && (
+                <AreaGradeMatrix
+                  rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
+                  grades={visibleData.grade_order}
                   gradeSourceLabel={activeAreaMapGradeLabel}
                 />
-              </div>
-
-              <BoulderTable
-                records={visibleData.records}
-                gradeOrder={visibleData.grade_order}
-                isSaving={isSaving}
-                onDelete={handleDeleteBoulder}
-                onOpenBoulder={handleOpenBoulder}
-                onUpdate={handleUpdateBoulder}
-              />
-              <AreaGradeMatrix
-                rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
-                grades={visibleData.grade_order}
-                gradeSourceLabel={activeAreaMapGradeLabel}
-              />
+              )}
             </>
           )}
         </section>

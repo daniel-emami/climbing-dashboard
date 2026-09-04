@@ -13,10 +13,13 @@ class BoulderRecord:
     guide_grade: str
     own_grade: str
     area: str
+    sector: str
     climber: str
     flash: bool
     climbed_on: date | None
     rating: int | None
+    ascent_id: int | None = None
+    added_at: str | None = None
 
     def to_payload(self) -> dict[str, object]:
         """Return a frontend-friendly representation."""
@@ -27,8 +30,11 @@ class BoulderRecord:
             "guide_grade": self.guide_grade,
             "own_grade": self.own_grade,
             "area": self.area,
+            "sector": self.sector,
             "climber": self.climber,
             "flash": self.flash,
             "climbed_on": self.climbed_on.isoformat() if self.climbed_on else None,
             "rating": self.rating,
+            "ascent_id": self.ascent_id,
+            "added_at": self.added_at,
         }
