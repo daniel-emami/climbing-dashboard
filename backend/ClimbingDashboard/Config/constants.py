@@ -42,3 +42,5 @@ BOULDER_EXPORT_COLUMNS = (
     "Climber",
     "Rating",
 )
+
+DEFAULT_MAX_VIDEO_UPLOAD_BYTES = 500 * 1024 * 1024

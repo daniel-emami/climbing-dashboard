@@ -4,7 +4,9 @@ from abc import ABC, abstractmethod
 
 from ClimbingDashboard.Models.ascent_comment import AscentComment
 from ClimbingDashboard.Models.boulder_comment import BoulderComment
+from ClimbingDashboard.Models.boulder_media import BoulderMedia
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
+from ClimbingDashboard.Models.stored_media_file import StoredMediaFile
 
 
 class BaseStorage(ABC):
@@ -97,3 +99,28 @@ class BaseStorage(ABC):
     @abstractmethod
     def delete_ascent_comment(self, comment_id: int) -> AscentComment:
         """Soft-delete one persisted ascent comment."""
+
+    @abstractmethod
+    def read_boulder_media(self, name: str, area: str, sector: str) -> list[BoulderMedia]:
+        """Read all public media for one boulder problem."""
+
+    @abstractmethod
+    def read_recent_boulder_media(self, limit: int) -> list[BoulderMedia]:
+        """Read recent public boulder media across all boulder problems."""
+
+    @abstractmethod
+    def append_boulder_media(
+        self,
+        name: str,
+        area: str,
+        sector: str,
+        ascent_id: int | None,
+        climber: str,
+        caption: str,
+        stored_file: StoredMediaFile,
+    ) -> BoulderMedia:
+        """Append and persist one uploaded boulder media record."""
+
+    @abstractmethod
+    def delete_boulder_media(self, media_id: int) -> BoulderMedia:
+        """Soft-delete one persisted media record."""

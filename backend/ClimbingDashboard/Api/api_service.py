@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from pathlib import Path
+from typing import BinaryIO
 
 from ClimbingDashboard.Api.api_models import (
     AscentCommentCreateRequest,
@@ -12,21 +13,30 @@ from ClimbingDashboard.Api.api_models import (
     BoulderCommentsPayload,
     BoulderCommentUpdateRequest,
     BoulderCreateRequest,
+    BoulderMediaPayload,
+    BoulderMediaUploadRequest,
     BouldersPayload,
 )
 from ClimbingDashboard.Api.base_api_service import BaseApiService
-from ClimbingDashboard.Config.constants import GRADE_ORDER, GRADE_SOURCE_FIELDS
+from ClimbingDashboard.Config.constants import (
+    DEFAULT_MAX_VIDEO_UPLOAD_BYTES,
+    GRADE_ORDER,
+    GRADE_SOURCE_FIELDS,
+)
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
 from ClimbingDashboard.Exceptions.storage_error import StorageError
 from ClimbingDashboard.Models.area_grade_matrix_row import AreaGradeMatrixRow
 from ClimbingDashboard.Models.ascent_comment import AscentComment
 from ClimbingDashboard.Models.boulder_comment import BoulderComment
+from ClimbingDashboard.Models.boulder_media import BoulderMedia
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Models.dashboard_stats import (
     AreaCount,
     DashboardStats,
     GradeCount,
 )
+from ClimbingDashboard.Models.stored_media_file import StoredMediaFile
+from ClimbingDashboard.Storage.local_media_file_storage import LocalMediaFileStorage
 from ClimbingDashboard.Storage.sqlite_storage import SqliteStorage
 from ClimbingDashboard.Utilities.location_normalizer import (
     LocationNormalizer,
@@ -41,10 +51,19 @@ class ApiService(BaseApiService):
         self,
         database_path: str | Path,
         location_normalizer: LocationNormalizer | None = None,
+        uploads_path: str | Path | None = None,
+        max_video_upload_bytes: int = DEFAULT_MAX_VIDEO_UPLOAD_BYTES,
     ) -> None:
         """Create the API service for a selected database path."""
 
-        self.storage = SqliteStorage(database_path)
+        selected_database_path = Path(database_path)
+        self.storage = SqliteStorage(selected_database_path)
+        self.media_file_storage = LocalMediaFileStorage(
+            uploads_path
+            if uploads_path is not None
+            else selected_database_path.parent / "uploads",
+            max_video_upload_bytes,
+        )
         self.location_normalizer = (
             location_normalizer if location_normalizer is not None else LocationNormalizer()
         )
@@ -246,6 +265,74 @@ class ApiService(BaseApiService):
             raise ApiDataError(f"Could not delete ascent comment: {exc}") from exc
         return self._ascent_comments_payload(comments)
 
+    def get_boulder_media(
+        self,
+        name: str,
+        area: str,
+        sector: str,
+    ) -> BoulderMediaPayload:
+        """Return uploaded media for one boulder problem."""
+
+        try:
+            media = self._read_media_from_first_existing_location(name, area, sector)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read boulder media: {exc}") from exc
+        return self._media_payload(media)
+
+    def get_recent_boulder_media(self, limit: int = 30) -> BoulderMediaPayload:
+        """Return recent uploaded boulder media across the whole dashboard."""
+
+        try:
+            media = self.storage.read_recent_boulder_media(limit)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read recent boulder media: {exc}") from exc
+        return self._media_payload(media)
+
+    def save_boulder_video(
+        self,
+        request: BoulderMediaUploadRequest,
+        source: BinaryIO,
+        original_filename: str,
+        mime_type: str | None,
+    ) -> BoulderMediaPayload:
+        """Save one video file and attach it to a boulder problem."""
+
+        try:
+            stored_file = self.media_file_storage.save_video(
+                source,
+                original_filename,
+                mime_type,
+            )
+        except StorageError as exc:
+            raise ApiDataError(f"Could not save video file: {exc}") from exc
+
+        try:
+            media = self._append_media_to_first_existing_location(request, stored_file)
+            refreshed_media = self.storage.read_boulder_media(
+                media.boulder_name,
+                media.area,
+                media.sector,
+            )
+        except StorageError as exc:
+            self.media_file_storage.delete(stored_file.relative_path)
+            raise ApiDataError(f"Could not save boulder media: {exc}") from exc
+        return self._media_payload(refreshed_media)
+
+    def delete_boulder_media(self, media_id: int) -> BoulderMediaPayload:
+        """Soft-delete one media item, remove its file, and return refreshed boulder media."""
+
+        try:
+            media = self.storage.delete_boulder_media(media_id)
+            self.media_file_storage.delete(media.file_path)
+            refreshed_media = self.storage.read_boulder_media(
+                media.boulder_name,
+                media.area,
+                media.sector,
+            )
+        except StorageError as exc:
+            raise ApiDataError(f"Could not delete boulder media: {exc}") from exc
+        return self._media_payload(refreshed_media)
+
     def _read_records(self) -> list[BoulderRecord]:
         try:
             return self.storage.read_boulders()
@@ -260,6 +347,9 @@ class ApiService(BaseApiService):
         comments: list[AscentComment],
     ) -> AscentCommentsPayload:
         return {"comments": [comment.to_payload() for comment in comments]}
+
+    def _media_payload(self, media: list[BoulderMedia]) -> BoulderMediaPayload:
+        return {"media": [media_item.to_payload() for media_item in media]}
 
     def _record_from_request(self, request: BoulderCreateRequest) -> BoulderRecord:
         record = BoulderRecord(
@@ -309,6 +399,41 @@ class ApiService(BaseApiService):
                     body,
                 )
                 return self.storage.read_boulder_comments(name, location.area, location.sector)
+            except StorageError as exc:
+                last_error = exc
+        raise last_error if last_error is not None else StorageError("Boulder problem not found")
+
+    def _read_media_from_first_existing_location(
+        self,
+        name: str,
+        area: str,
+        sector: str,
+    ) -> list[BoulderMedia]:
+        last_error: StorageError | None = None
+        for location in self._location_candidates(area, sector):
+            try:
+                return self.storage.read_boulder_media(name, location.area, location.sector)
+            except StorageError as exc:
+                last_error = exc
+        raise last_error if last_error is not None else StorageError("Boulder problem not found")
+
+    def _append_media_to_first_existing_location(
+        self,
+        request: BoulderMediaUploadRequest,
+        stored_file: StoredMediaFile,
+    ) -> BoulderMedia:
+        last_error: StorageError | None = None
+        for location in self._location_candidates(request.area, request.sector):
+            try:
+                return self.storage.append_boulder_media(
+                    request.name,
+                    location.area,
+                    location.sector,
+                    request.ascent_id,
+                    request.climber,
+                    request.caption,
+                    stored_file,
+                )
             except StorageError as exc:
                 last_error = exc
         raise last_error if last_error is not None else StorageError("Boulder problem not found")

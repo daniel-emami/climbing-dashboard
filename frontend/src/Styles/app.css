@@ -534,6 +534,7 @@ h2 {
   gap: 16px;
 }
 
+.boulder-media-panel,
 .boulder-climbers-panel,
 .boulder-comments-panel {
   grid-column: 1 / -1;
@@ -597,6 +598,7 @@ h2 {
 }
 
 .comment-form,
+.media-upload-form,
 .comment-edit-form {
   display: grid;
   gap: 10px;
@@ -608,7 +610,14 @@ h2 {
   margin-top: 14px;
 }
 
+.media-upload-form {
+  grid-template-columns: minmax(140px, 190px) minmax(0, 1fr) minmax(190px, 260px) auto;
+  align-items: end;
+  margin-top: 14px;
+}
+
 .comment-form label,
+.media-upload-form label,
 .comment-edit-form label {
   display: grid;
   gap: 5px;
@@ -621,6 +630,8 @@ h2 {
 
 .comment-form input,
 .comment-form textarea,
+.media-upload-form input,
+.media-upload-form select,
 .comment-edit-form input,
 .comment-edit-form textarea {
   width: 100%;
@@ -633,6 +644,8 @@ h2 {
 }
 
 .comment-form input,
+.media-upload-form input,
+.media-upload-form select,
 .comment-edit-form input {
   min-height: 38px;
 }
@@ -645,6 +658,8 @@ h2 {
 
 .comment-form input:focus,
 .comment-form textarea:focus,
+.media-upload-form input:focus,
+.media-upload-form select:focus,
 .comment-edit-form input:focus,
 .comment-edit-form textarea:focus {
   border-color: #0f766e;
@@ -652,6 +667,7 @@ h2 {
 }
 
 .comment-form button,
+.media-upload-form button,
 .comment-actions button {
   min-height: 38px;
   border: 1px solid #cbd5e1;
@@ -663,6 +679,7 @@ h2 {
 }
 
 .comment-form button:hover:not(:disabled),
+.media-upload-form button:hover:not(:disabled),
 .comment-actions button:hover:not(:disabled) {
   border-color: #0f766e;
   background: #d9f3ee;
@@ -727,6 +744,68 @@ h2 {
   border-color: #dc2626;
   background: #fee2e2;
   color: #991b1b;
+}
+
+.media-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.media-item {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.media-item video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: #111827;
+  object-fit: contain;
+}
+
+.media-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.media-meta strong,
+.media-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-meta strong {
+  color: #111827;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.media-meta span {
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.media-item p {
+  margin: 0;
+  color: #233044;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
 }
 
 .segmented-control {
@@ -837,6 +916,37 @@ h2 {
   color: #64748b;
   font-size: 0.76rem;
   font-weight: 800;
+}
+
+.activity-media-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-media-item {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.activity-media-item video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: #111827;
+  object-fit: contain;
+}
+
+.activity-media-item p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .activity-ascent-comments {
@@ -1243,6 +1353,10 @@ tbody tr:hover td {
   }
 
   .comment-form {
+    grid-template-columns: 1fr;
+  }
+
+  .media-upload-form {
     grid-template-columns: 1fr;
   }
 

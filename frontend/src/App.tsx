@@ -12,6 +12,11 @@ import {
   fetchBoulderComments,
   updateBoulderComment
 } from "./Api/commentApi";
+import {
+  deleteBoulderMedia,
+  fetchBoulderMedia,
+  uploadBoulderVideo
+} from "./Api/mediaApi";
 import ActivityFeed from "./Components/ActivityFeed";
 import AreaChart from "./Components/AreaChart";
 import AreaGradeMatrix from "./Components/AreaGradeMatrix";
@@ -35,6 +40,8 @@ import type {
   BoulderCommentUpdateRequest,
   BoulderCreateRequest,
   BoulderIdentity,
+  BoulderMedia,
+  BoulderMediaUploadRequest,
   BoulderPageIdentity,
   BoulderRecord,
   BouldersResponse,
@@ -217,8 +224,11 @@ export default function App() {
     boulderIdentityFromHash
   );
   const [selectedBoulderComments, setSelectedBoulderComments] = useState<BoulderComment[]>([]);
+  const [selectedBoulderMedia, setSelectedBoulderMedia] = useState<BoulderMedia[]>([]);
   const [isCommentsLoading, setIsCommentsLoading] = useState(false);
   const [isCommentSaving, setIsCommentSaving] = useState(false);
+  const [isMediaLoading, setIsMediaLoading] = useState(false);
+  const [isMediaSaving, setIsMediaSaving] = useState(false);
 
   const loadStoredData = useCallback(async () => {
     try {
@@ -273,6 +283,38 @@ export default function App() {
       .finally(() => {
         if (!ignoreResult) {
           setIsCommentsLoading(false);
+        }
+      });
+
+    return () => {
+      ignoreResult = true;
+    };
+  }, [selectedBoulder]);
+
+  useEffect(() => {
+    if (!selectedBoulder) {
+      setSelectedBoulderMedia([]);
+      return;
+    }
+
+    let ignoreResult = false;
+    setSelectedBoulderMedia([]);
+    setIsMediaLoading(true);
+    fetchBoulderMedia(selectedBoulder)
+      .then((payload) => {
+        if (!ignoreResult) {
+          setSelectedBoulderMedia(payload.media);
+          setError(null);
+        }
+      })
+      .catch((unknownError: unknown) => {
+        if (!ignoreResult) {
+          setError(unknownError instanceof Error ? unknownError.message : "Unknown media error");
+        }
+      })
+      .finally(() => {
+        if (!ignoreResult) {
+          setIsMediaLoading(false);
         }
       });
 
@@ -473,6 +515,44 @@ export default function App() {
     }
   };
 
+  const handleUploadBoulderVideo = async (
+    request: Omit<BoulderMediaUploadRequest, "name" | "area" | "sector">
+  ) => {
+    if (!selectedBoulder) {
+      return;
+    }
+    setIsMediaSaving(true);
+    try {
+      const payload = await uploadBoulderVideo({
+        ...request,
+        name: selectedBoulder.name,
+        area: selectedBoulder.area,
+        sector: selectedBoulder.sector
+      });
+      setSelectedBoulderMedia(payload.media);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown media error");
+      throw unknownError;
+    } finally {
+      setIsMediaSaving(false);
+    }
+  };
+
+  const handleDeleteBoulderMedia = async (mediaId: number) => {
+    setIsMediaSaving(true);
+    try {
+      const payload = await deleteBoulderMedia(mediaId);
+      setSelectedBoulderMedia(payload.media);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown media error");
+      throw unknownError;
+    } finally {
+      setIsMediaSaving(false);
+    }
+  };
+
   const handleExportVisibleBoulders = async () => {
     if (!visibleData) {
       return;
@@ -528,51 +608,55 @@ export default function App() {
             isSaving={isSaving}
             isCommentsLoading={isCommentsLoading}
             isCommentSaving={isCommentSaving}
+            isMediaLoading={isMediaLoading}
+            isMediaSaving={isMediaSaving}
+            media={selectedBoulderMedia}
             records={selectedBoulderRecords}
             onAddComment={handleAddBoulderComment}
             onBack={handleCloseBoulder}
             onDeleteComment={handleDeleteBoulderComment}
+            onDeleteMedia={handleDeleteBoulderMedia}
+            onUploadVideo={handleUploadBoulderVideo}
             onUpdateComment={handleUpdateBoulderComment}
             onUpdate={handleUpdateBoulder}
           />
         </>
       ) : (
-      <div className="dashboard-layout">
-        <aside className="control-rail">
-          <TheTopoImportPanel
-            onImported={handleImportedBoulders}
-            onError={setError}
-          />
-          <BoulderForm
-            isSaving={isSaving}
-            knownAreas={knownAreas}
-            knownClimbers={knownClimbers}
-            knownGrades={knownGrades}
-            knownSectors={knownSectors}
-            onSubmit={handleAddBoulder}
-          />
+        <div className="dashboard-layout">
+          <aside className="control-rail">
+            <TheTopoImportPanel
+              onImported={handleImportedBoulders}
+              onError={setError}
+            />
+            <BoulderForm
+              isSaving={isSaving}
+              knownAreas={knownAreas}
+              knownClimbers={knownClimbers}
+              knownGrades={knownGrades}
+              knownSectors={knownSectors}
+              onSubmit={handleAddBoulder}
+            />
+          </aside>
 
-        </aside>
+          <section className="dashboard-main" aria-label="Climbing Dashboard">
+            {isInitialLoading && <LoadingState />}
+            {error && <ErrorState message={error} />}
+            {visibleData && !isInitialLoading && (
+              <>
+                <SummaryStrip data={visibleData} />
 
-        <section className="dashboard-main" aria-label="Climbing Dashboard">
-          {isInitialLoading && <LoadingState />}
-          {error && <ErrorState message={error} />}
-          {visibleData && !isInitialLoading && (
-            <>
-              <SummaryStrip data={visibleData} />
-
-              <nav className="dashboard-page-tabs" aria-label="Dashboard pages">
-                {DASHBOARD_PAGES.map((page) => (
-                  <button
-                    className={activePage === page.key ? "active" : ""}
-                    key={page.key}
-                    type="button"
-                    onClick={() => setActivePage(page.key)}
-                  >
-                    {page.label}
-                  </button>
-                ))}
-              </nav>
+                <nav className="dashboard-page-tabs" aria-label="Dashboard pages">
+                  {DASHBOARD_PAGES.map((page) => (
+                    <button
+                      className={activePage === page.key ? "active" : ""}
+                      key={page.key}
+                      type="button"
+                      onClick={() => setActivePage(page.key)}
+                    >
+                      {page.label}
+                    </button>
+                  ))}
+                </nav>
 
               <section className="panel dashboard-controls-panel">
                 <div className="dashboard-control-group grade-source-control">
