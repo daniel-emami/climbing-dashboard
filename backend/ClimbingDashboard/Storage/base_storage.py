@@ -10,15 +10,23 @@ class BaseStorage(ABC):
     """Interface for boulder persistence implementations."""
 
     @abstractmethod
-    def read_boulders(self) -> list[BoulderRecord]:
+    def read_boulders(self, private_user_id: int | None = None) -> list[BoulderRecord]:
         """Read all stored boulder records."""
 
     @abstractmethod
-    def append_boulder(self, record: BoulderRecord) -> BoulderRecord:
+    def append_boulder(
+        self,
+        record: BoulderRecord,
+        user_id: int | None = None,
+    ) -> BoulderRecord:
         """Append and persist one boulder record."""
 
     @abstractmethod
-    def append_boulders(self, records: list[BoulderRecord]) -> list[BoulderRecord]:
+    def append_boulders(
+        self,
+        records: list[BoulderRecord],
+        user_id: int | None = None,
+    ) -> list[BoulderRecord]:
         """Append and persist multiple boulder records."""
 
     @abstractmethod
@@ -28,6 +36,7 @@ class BaseStorage(ABC):
         original_area: str,
         original_climber: str,
         record: BoulderRecord,
+        user_id: int | None = None,
     ) -> BoulderRecord:
         """Update one persisted boulder record."""
 
@@ -46,6 +55,7 @@ class BaseStorage(ABC):
         area: str,
         climber: str,
         body: str,
+        user_id: int | None = None,
     ) -> BoulderComment:
         """Append and persist one boulder comment."""
 
@@ -55,9 +65,15 @@ class BaseStorage(ABC):
         comment_id: int,
         climber: str,
         body: str,
+        user_id: int | None = None,
     ) -> BoulderComment:
         """Update one persisted boulder comment."""
 
     @abstractmethod
-    def delete_boulder_comment(self, comment_id: int) -> BoulderComment:
+    def delete_boulder_comment(
+        self,
+        comment_id: int,
+        climber: str,
+        user_id: int | None = None,
+    ) -> BoulderComment:
         """Soft-delete one persisted boulder comment."""

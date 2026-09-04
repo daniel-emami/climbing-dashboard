@@ -4,6 +4,7 @@ import logging
 import sqlite3
 from pathlib import Path
 
+from ClimbingDashboard.Config.constants import ASCENT_VISIBILITY_PUBLIC
 from ClimbingDashboard.Exceptions.storage_error import StorageError
 from ClimbingDashboard.Models.boulder_comment import BoulderComment
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
@@ -23,7 +24,7 @@ class SqliteStorage(BaseStorage):
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
         self._create_schema()
 
-    def read_boulders(self) -> list[BoulderRecord]:
+    def read_boulders(self, private_user_id: int | None = None) -> list[BoulderRecord]:
         """Read all stored ascent records joined with their boulder problem."""
 
         try:
@@ -39,12 +40,16 @@ class SqliteStorage(BaseStorage):
                         ascents.climber,
                         ascents.flash,
                         ascents.climbed_on,
-                        ascents.rating
+                        ascents.rating,
+                        ascents.visibility
                     FROM ascents
                     INNER JOIN boulder_problems AS problems
                         ON problems.id = ascents.boulder_id
+                    WHERE ascents.visibility = 'public'
+                        OR (? IS NOT NULL AND ascents.user_id = ?)
                     ORDER BY ascents.id
-                    """
+                    """,
+                    (private_user_id, private_user_id),
                 ).fetchall()
         except sqlite3.Error as exc:
             raise StorageError(f"Failed to read ascents: {exc}") from exc
@@ -60,17 +65,26 @@ class SqliteStorage(BaseStorage):
                 flash=bool(row["flash"]),
                 climbed_on=parse_climbed_date(row["climbed_on"]),
                 rating=None if row["rating"] is None else int(row["rating"]),
+                visibility=str(row["visibility"]),
             )
             for row in rows
         ]
 
-    def append_boulder(self, record: BoulderRecord) -> BoulderRecord:
+    def append_boulder(
+        self,
+        record: BoulderRecord,
+        user_id: int | None = None,
+    ) -> BoulderRecord:
         """Append one boulder record to the database."""
 
-        self.append_boulders([record])
+        self.append_boulders([record], user_id)
         return record
 
-    def append_boulders(self, records: list[BoulderRecord]) -> list[BoulderRecord]:
+    def append_boulders(
+        self,
+        records: list[BoulderRecord],
+        user_id: int | None = None,
+    ) -> list[BoulderRecord]:
         """Append ascent records to the database, skipping duplicates."""
 
         appended_records: list[BoulderRecord] = []
@@ -82,17 +96,19 @@ class SqliteStorage(BaseStorage):
                         """
                         INSERT OR IGNORE INTO ascents (
                             boulder_id,
+                            user_id,
                             climber,
                             grade_27crags,
                             guide_grade,
                             own_grade,
                             flash,
                             climbed_on,
-                            rating
+                            rating,
+                            visibility
                         )
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
-                        (problem_id, *self._ascent_values(record)),
+                        (problem_id, user_id, *self._ascent_values(record)),
                     )
                     if cursor.rowcount > 0:
                         appended_records.append(record)
@@ -108,6 +124,7 @@ class SqliteStorage(BaseStorage):
         original_area: str,
         original_climber: str,
         record: BoulderRecord,
+        user_id: int | None = None,
     ) -> BoulderRecord:
         """Update one ascent matched by its original boulder, area, and climber."""
 
@@ -136,6 +153,7 @@ class SqliteStorage(BaseStorage):
                     UPDATE ascents
                     SET
                         boulder_id = ?,
+                        user_id = ?,
                         climber = ?,
                         grade_27crags = ?,
                         guide_grade = ?,
@@ -143,10 +161,11 @@ class SqliteStorage(BaseStorage):
                         flash = ?,
                         climbed_on = ?,
                         rating = ?,
+                        visibility = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                     """,
-                    (new_problem_id, *self._ascent_values(record), int(target["id"])),
+                    (new_problem_id, user_id, *self._ascent_values(record), int(target["id"])),
                 )
                 if old_problem_id != new_problem_id:
                     self._delete_unused_problem(connection, old_problem_id)
@@ -193,6 +212,7 @@ class SqliteStorage(BaseStorage):
                         comments.id,
                         problems.name,
                         problems.area,
+                        comments.user_id,
                         comments.climber,
                         comments.body,
                         comments.created_at,
@@ -217,6 +237,7 @@ class SqliteStorage(BaseStorage):
         area: str,
         climber: str,
         body: str,
+        user_id: int | None = None,
     ) -> BoulderComment:
         """Append one public comment to an existing boulder problem."""
 
@@ -227,10 +248,10 @@ class SqliteStorage(BaseStorage):
                     raise StorageError(f"Boulder problem does not exist: {name} in {area}")
                 cursor = connection.execute(
                     """
-                    INSERT INTO boulder_comments (boulder_id, climber, body)
-                    VALUES (?, ?, ?)
+                    INSERT INTO boulder_comments (boulder_id, user_id, climber, body)
+                    VALUES (?, ?, ?, ?)
                     """,
-                    (problem_id, climber, body),
+                    (problem_id, user_id, climber, body),
                 )
                 comment = self._find_comment(connection, int(cursor.lastrowid))
                 if comment is None:
@@ -245,6 +266,7 @@ class SqliteStorage(BaseStorage):
         comment_id: int,
         climber: str,
         body: str,
+        user_id: int | None = None,
     ) -> BoulderComment:
         """Update one public boulder comment."""
 
@@ -253,17 +275,19 @@ class SqliteStorage(BaseStorage):
                 existing = self._find_comment(connection, comment_id)
                 if existing is None:
                     raise StorageError(f"Boulder comment does not exist: {comment_id}")
+                self._ensure_comment_owner(existing, climber, user_id)
                 connection.execute(
                     """
                     UPDATE boulder_comments
                     SET
+                        user_id = ?,
                         climber = ?,
                         body = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                         AND deleted_at IS NULL
                     """,
-                    (climber, body, comment_id),
+                    (user_id, climber, body, comment_id),
                 )
                 comment = self._find_comment(connection, comment_id)
                 if comment is None:
@@ -273,7 +297,12 @@ class SqliteStorage(BaseStorage):
 
         return comment
 
-    def delete_boulder_comment(self, comment_id: int) -> BoulderComment:
+    def delete_boulder_comment(
+        self,
+        comment_id: int,
+        climber: str,
+        user_id: int | None = None,
+    ) -> BoulderComment:
         """Soft-delete one public boulder comment."""
 
         try:
@@ -281,6 +310,7 @@ class SqliteStorage(BaseStorage):
                 comment = self._find_comment(connection, comment_id)
                 if comment is None:
                     raise StorageError(f"Boulder comment does not exist: {comment_id}")
+                self._ensure_comment_owner(comment, climber, user_id)
                 connection.execute(
                     """
                     UPDATE boulder_comments
@@ -307,6 +337,7 @@ class SqliteStorage(BaseStorage):
         try:
             with self._connect() as connection:
                 self._create_normalized_tables(connection)
+                self._migrate_normalized_columns(connection)
                 self._migrate_legacy_boulders_table(connection)
         except sqlite3.Error as exc:
             raise StorageError(f"Failed to create SQLite schema: {exc}") from exc
@@ -334,6 +365,7 @@ class SqliteStorage(BaseStorage):
             CREATE TABLE IF NOT EXISTS ascents (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 boulder_id INTEGER NOT NULL,
+                user_id INTEGER,
                 climber TEXT NOT NULL DEFAULT '',
                 grade_27crags TEXT NOT NULL DEFAULT '',
                 guide_grade TEXT NOT NULL DEFAULT '',
@@ -341,6 +373,7 @@ class SqliteStorage(BaseStorage):
                 flash INTEGER NOT NULL DEFAULT 0,
                 climbed_on TEXT,
                 rating INTEGER,
+                visibility TEXT NOT NULL DEFAULT 'public',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (boulder_id)
@@ -360,6 +393,7 @@ class SqliteStorage(BaseStorage):
             CREATE TABLE IF NOT EXISTS boulder_comments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 boulder_id INTEGER NOT NULL,
+                user_id INTEGER,
                 climber TEXT NOT NULL,
                 body TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -377,6 +411,19 @@ class SqliteStorage(BaseStorage):
             ON boulder_comments (boulder_id, created_at)
             """
         )
+
+    def _migrate_normalized_columns(self, connection: sqlite3.Connection) -> None:
+        ascent_columns = self._column_names(connection, "ascents")
+        if "user_id" not in ascent_columns:
+            connection.execute("ALTER TABLE ascents ADD COLUMN user_id INTEGER")
+        if "visibility" not in ascent_columns:
+            connection.execute(
+                "ALTER TABLE ascents ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'"
+            )
+
+        comment_columns = self._column_names(connection, "boulder_comments")
+        if "user_id" not in comment_columns:
+            connection.execute("ALTER TABLE boulder_comments ADD COLUMN user_id INTEGER")
 
     def _migrate_legacy_boulders_table(self, connection: sqlite3.Connection) -> None:
         if not self._table_exists(connection, "boulders"):
@@ -412,6 +459,7 @@ class SqliteStorage(BaseStorage):
                 """
                 INSERT OR IGNORE INTO ascents (
                     boulder_id,
+                    user_id,
                     climber,
                     grade_27crags,
                     guide_grade,
@@ -419,17 +467,19 @@ class SqliteStorage(BaseStorage):
                     flash,
                     climbed_on,
                     rating,
+                    visibility,
                     created_at,
                     updated_at
                 )
                 VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     COALESCE(?, CURRENT_TIMESTAMP),
                     COALESCE(?, CURRENT_TIMESTAMP)
                 )
                 """,
                 (
                     problem_id,
+                    None,
                     str(row["climber"]),
                     str(row["grade_27crags"]),
                     str(row["guide_grade"]),
@@ -437,6 +487,7 @@ class SqliteStorage(BaseStorage):
                     1 if row["flash"] else 0,
                     row["climbed_on"],
                     row["rating"],
+                    ASCENT_VISIBILITY_PUBLIC,
                     row["created_at"],
                     row["updated_at"],
                 ),
@@ -528,7 +579,9 @@ class SqliteStorage(BaseStorage):
             """
             SELECT
                 ascents.id,
-                ascents.boulder_id
+                ascents.boulder_id,
+                ascents.user_id,
+                ascents.climber
             FROM ascents
             INNER JOIN boulder_problems AS problems
                 ON problems.id = ascents.boulder_id
@@ -587,6 +640,7 @@ class SqliteStorage(BaseStorage):
                 comments.id,
                 problems.name,
                 problems.area,
+                comments.user_id,
                 comments.climber,
                 comments.body,
                 comments.created_at,
@@ -610,12 +664,24 @@ class SqliteStorage(BaseStorage):
             body=str(row["body"]),
             created_at=str(row["created_at"]),
             updated_at=str(row["updated_at"]),
+            user_id=None if row["user_id"] is None else int(row["user_id"]),
         )
+
+    def _ensure_comment_owner(
+        self,
+        comment: BoulderComment,
+        climber: str,
+        user_id: int | None,
+    ) -> None:
+        if comment.user_id is not None and comment.user_id != user_id:
+            raise PermissionError("You can only edit your own comments")
+        if comment.user_id is None and comment.climber.lower() != climber.lower():
+            raise PermissionError("You can only edit your own comments")
 
     def _ascent_values(
         self,
         record: BoulderRecord,
-    ) -> tuple[str, str, str, str, int, str | None, int | None]:
+    ) -> tuple[str, str, str, str, int, str | None, int | None, str]:
         return (
             record.climber,
             record.grade_27crags,
@@ -624,4 +690,5 @@ class SqliteStorage(BaseStorage):
             1 if record.flash else 0,
             record.climbed_on.isoformat() if record.climbed_on else None,
             record.rating,
+            record.visibility,
         )

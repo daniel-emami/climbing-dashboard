@@ -1,9 +1,10 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { confirmTheTopoImport, previewTheTopoImport } from "../Api/importApi";
 import type { BoulderRecord, BouldersResponse } from "../Types/boulderTypes";
 import type { ImportPreviewResponse } from "../Types/importTypes";
 
 type TheTopoImportPanelProps = {
+  currentUsername: string | null;
   onImported: (payload: BouldersResponse) => void;
   onError: (message: string) => void;
 };
@@ -12,7 +13,11 @@ function boulderKey(boulder: BoulderRecord): string {
   return `${boulder.name}::${boulder.area}::${boulder.climber}`.toLowerCase();
 }
 
-export default function TheTopoImportPanel({ onImported, onError }: TheTopoImportPanelProps) {
+export default function TheTopoImportPanel({
+  currentUsername,
+  onImported,
+  onError
+}: TheTopoImportPanelProps) {
   const [username, setUsername] = useState("");
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
@@ -23,6 +28,12 @@ export default function TheTopoImportPanel({ onImported, onError }: TheTopoImpor
     () => preview?.boulders.filter((boulder) => selectedKeys.has(boulderKey(boulder))) ?? [],
     [preview, selectedKeys]
   );
+
+  useEffect(() => {
+    if (currentUsername && !username) {
+      setUsername(currentUsername);
+    }
+  }, [currentUsername, username]);
 
   const handlePreview = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -53,6 +64,10 @@ export default function TheTopoImportPanel({ onImported, onError }: TheTopoImpor
 
   const handleConfirm = async () => {
     if (!preview || selectedBoulders.length === 0) {
+      return;
+    }
+    if (!currentUsername) {
+      onError("Log in before importing boulders.");
       return;
     }
     setIsConfirming(true);
@@ -99,11 +114,15 @@ export default function TheTopoImportPanel({ onImported, onError }: TheTopoImpor
           </div>
           <button
             className="primary-button"
-            disabled={isConfirming || selectedBoulders.length === 0}
+            disabled={isConfirming || selectedBoulders.length === 0 || !currentUsername}
             type="button"
             onClick={() => void handleConfirm()}
           >
-            {isConfirming ? "Importing..." : "Import Selected"}
+            {isConfirming
+              ? "Importing..."
+              : currentUsername
+                ? "Import Selected"
+                : "Login To Import"}
           </button>
           <div className="import-preview-list">
             {preview.boulders.map((boulder) => (

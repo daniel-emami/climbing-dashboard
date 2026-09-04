@@ -148,6 +148,23 @@ h2 {
   gap: 14px;
 }
 
+.auth-form {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-mode-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.auth-help-text {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
 .control-heading,
 .panel-heading {
   display: flex;
@@ -579,7 +596,7 @@ h2 {
 }
 
 .comment-form {
-  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   margin-top: 14px;
 }
@@ -775,19 +792,23 @@ table {
 
 .logbook-table {
   table-layout: fixed;
-  min-width: 1240px;
+  min-width: 1280px;
 }
 
 .logbook-name-column {
-  width: 18%;
+  width: 14%;
 }
 
 .logbook-area-column {
-  width: 15%;
+  width: 12%;
 }
 
 .logbook-climber-column {
-  width: 11%;
+  width: 10%;
+}
+
+.logbook-visibility-column {
+  width: 8%;
 }
 
 .logbook-grade-column {
@@ -803,11 +824,11 @@ table {
 }
 
 .logbook-rating-column {
-  width: 8%;
+  width: 7%;
 }
 
 .logbook-actions-column {
-  width: 12%;
+  width: 13%;
 }
 
 th,

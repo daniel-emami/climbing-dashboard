@@ -22,7 +22,9 @@ export async function fetchBoulderComments(
     name: identity.name,
     area: identity.area
   });
-  const response = await fetch(`${API_BASE_URL}/api/boulders/comments?${params.toString()}`);
+  const response = await fetch(`${API_BASE_URL}/api/boulders/comments?${params.toString()}`, {
+    credentials: "include"
+  });
   return parseCommentsResponse(response);
 }
 
@@ -31,6 +33,7 @@ export async function addBoulderComment(
 ): Promise<BoulderCommentsResponse> {
   const response = await fetch(`${API_BASE_URL}/api/boulders/comments`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
@@ -45,6 +48,7 @@ export async function updateBoulderComment(
 ): Promise<BoulderCommentsResponse> {
   const response = await fetch(`${API_BASE_URL}/api/boulders/comments/${commentId}`, {
     method: "PUT",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
@@ -55,7 +59,8 @@ export async function updateBoulderComment(
 
 export async function deleteBoulderComment(commentId: number): Promise<BoulderCommentsResponse> {
   const response = await fetch(`${API_BASE_URL}/api/boulders/comments/${commentId}`, {
-    method: "DELETE"
+    method: "DELETE",
+    credentials: "include"
   });
   return parseCommentsResponse(response);
 }

@@ -9,6 +9,8 @@ class AppSettings:
 
     app_name = "Climbing Dashboard"
     local_frontend_origin_regex = r"^http://(localhost|127\.0\.0\.1):51\d{2}$"
+    session_cookie_name = "climbing_dashboard_session"
+    session_lifetime_days = 14
 
     @property
     def default_database_path(self) -> Path:
@@ -26,3 +28,22 @@ class AppSettings:
             for origin in raw_origins.split(",")
             if origin.strip()
         ]
+
+    @property
+    def signup_invite_code(self) -> str:
+        """Return the invite code required when creating a user."""
+
+        return os.environ.get("CLIMBING_DASHBOARD_INVITE_CODE", "").strip()
+
+    @property
+    def secure_auth_cookies(self) -> bool:
+        """Return whether session cookies should be marked secure-only."""
+
+        raw_value = os.environ.get("CLIMBING_DASHBOARD_SECURE_COOKIES", "")
+        return raw_value.strip().lower() in {"1", "true", "yes", "y"}
+
+    @property
+    def session_cookie_max_age_seconds(self) -> int:
+        """Return the browser cookie lifetime in seconds."""
+
+        return self.session_lifetime_days * 24 * 60 * 60

@@ -11,6 +11,10 @@ from ClimbingDashboard.Api.api_models import (
     BoulderCreateRequest,
 )
 from ClimbingDashboard.Api.api_service import ApiService
+from ClimbingDashboard.Api.auth_dependencies import (
+    current_user_from_request,
+    require_current_user,
+)
 from ClimbingDashboard.Api.boulder_payload_mapper import BoulderPayloadMapper
 from ClimbingDashboard.Api.import_service import ImportService
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
@@ -41,7 +45,8 @@ def get_boulders(request: Request) -> dict[str, object]:
     """Return climbed boulders and dashboard statistics."""
 
     try:
-        return get_api_service(request).get_boulders()
+        current_user = current_user_from_request(request)
+        return get_api_service(request).get_boulders(current_user)
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -54,8 +59,9 @@ def add_boulder(
     """Append a climbed boulder to the database."""
 
     try:
+        current_user = require_current_user(request)
         boulder = BoulderCreateRequest.from_payload(payload)
-        return get_api_service(request).save_boulder(boulder)
+        return get_api_service(request).save_boulder(boulder, current_user)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ApiDataError as exc:
@@ -70,6 +76,7 @@ def update_boulder(
     """Update a climbed boulder in the database."""
 
     try:
+        current_user = require_current_user(request)
         original = payload.get("original", {})
         if not isinstance(original, dict):
             raise ValueError("original must be an object")
@@ -79,7 +86,7 @@ def update_boulder(
         boulder = BoulderCreateRequest.from_payload(boulder_payload)
         original_name = str(original.get("name", "")).strip()
         original_area = str(original.get("area", "")).strip()
-        original_climber = str(original.get("climber", "")).strip()
+        original_climber = str(original.get("climber", current_user.username)).strip()
         if not original_name or not original_area:
             raise ValueError("original name and area are required")
         return get_api_service(request).update_boulder(
@@ -87,9 +94,12 @@ def update_boulder(
             original_area=original_area,
             original_climber=original_climber,
             request=boulder,
+            current_user=current_user,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -102,14 +112,17 @@ def delete_boulder(
     """Delete a climbed boulder from the database."""
 
     try:
+        current_user = require_current_user(request)
         name = str(payload.get("name", "")).strip()
         area = str(payload.get("area", "")).strip()
-        climber = str(payload.get("climber", "")).strip()
+        climber = str(payload.get("climber", current_user.username)).strip()
         if not name or not area:
             raise ValueError("name and area are required")
-        return get_api_service(request).delete_boulder(name, area, climber)
+        return get_api_service(request).delete_boulder(name, area, climber, current_user)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -142,8 +155,9 @@ def add_boulder_comment(
     """Append a public comment to one boulder problem."""
 
     try:
+        current_user = require_current_user(request)
         comment = BoulderCommentCreateRequest.from_payload(payload)
-        return get_api_service(request).save_boulder_comment(comment)
+        return get_api_service(request).save_boulder_comment(comment, current_user)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ApiDataError as exc:
@@ -159,10 +173,17 @@ def update_boulder_comment(
     """Update a public boulder comment."""
 
     try:
+        current_user = require_current_user(request)
         comment = BoulderCommentUpdateRequest.from_payload(payload)
-        return get_api_service(request).update_boulder_comment(comment_id, comment)
+        return get_api_service(request).update_boulder_comment(
+            comment_id,
+            comment,
+            current_user,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -172,7 +193,10 @@ def delete_boulder_comment(comment_id: int, request: Request) -> dict[str, objec
     """Soft-delete a public boulder comment."""
 
     try:
-        return get_api_service(request).delete_boulder_comment(comment_id)
+        current_user = require_current_user(request)
+        return get_api_service(request).delete_boulder_comment(comment_id, current_user)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -201,6 +225,7 @@ def confirm_import(
     """Save selected imported boulder ascents from a supported external source."""
 
     try:
+        current_user = require_current_user(request)
         if source.strip().lower() != str(payload.get("source", source)).strip().lower():
             raise ValueError("Import source in URL and payload must match")
         get_import_service(request).ensure_supported_source(source)
@@ -208,9 +233,11 @@ def confirm_import(
         if not isinstance(boulders_payload, list):
             raise ValueError("boulders must be a list")
         boulders = BOULDER_PAYLOAD_MAPPER.boulders_from_payloads(boulders_payload)
-        return get_import_service(request).confirm_import(boulders)
+        return get_import_service(request).confirm_import(boulders, current_user)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     except StorageError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

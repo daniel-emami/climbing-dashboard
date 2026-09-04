@@ -22,6 +22,7 @@ from ClimbingDashboard.Models.dashboard_stats import (
     DashboardStats,
     GradeCount,
 )
+from ClimbingDashboard.Models.user_account import UserAccount
 from ClimbingDashboard.Storage.sqlite_storage import SqliteStorage
 
 
@@ -33,25 +34,29 @@ class ApiService(BaseApiService):
 
         self.storage = SqliteStorage(database_path)
 
-    def get_boulders(self) -> BouldersPayload:
+    def get_boulders(self, current_user: UserAccount | None = None) -> BouldersPayload:
         """Return boulders with calculated stats."""
 
-        records = self._read_records()
+        records = self._read_records(current_user)
         return {
             "records": [record.to_payload() for record in records],
             "stats": self._build_stats(records).to_payload(),
             "grade_order": list(GRADE_ORDER),
         }
 
-    def save_boulder(self, request: BoulderCreateRequest) -> BouldersPayload:
+    def save_boulder(
+        self,
+        request: BoulderCreateRequest,
+        current_user: UserAccount,
+    ) -> BouldersPayload:
         """Append one boulder, then return the refreshed dashboard payload."""
 
-        record = self._record_from_request(request)
+        record = self._record_from_request(request, current_user)
         try:
-            self.storage.append_boulder(record)
+            self.storage.append_boulder(record, current_user.id)
         except StorageError as exc:
             raise ApiDataError(f"Could not save boulder: {exc}") from exc
-        return self.get_boulders()
+        return self.get_boulders(current_user)
 
     def update_boulder(
         self,
@@ -59,24 +64,39 @@ class ApiService(BaseApiService):
         original_area: str,
         original_climber: str,
         request: BoulderCreateRequest,
+        current_user: UserAccount,
     ) -> BouldersPayload:
         """Update one boulder, then return the refreshed dashboard payload."""
 
-        record = self._record_from_request(request)
+        self._ensure_can_change_ascent(original_climber, current_user)
+        record = self._record_from_request(request, current_user)
         try:
-            self.storage.update_boulder(original_name, original_area, original_climber, record)
+            self.storage.update_boulder(
+                original_name,
+                original_area,
+                original_climber,
+                record,
+                current_user.id,
+            )
         except StorageError as exc:
             raise ApiDataError(f"Could not update boulder: {exc}") from exc
-        return self.get_boulders()
+        return self.get_boulders(current_user)
 
-    def delete_boulder(self, name: str, area: str, climber: str) -> BouldersPayload:
+    def delete_boulder(
+        self,
+        name: str,
+        area: str,
+        climber: str,
+        current_user: UserAccount,
+    ) -> BouldersPayload:
         """Delete one boulder, then return the refreshed dashboard payload."""
 
+        self._ensure_can_change_ascent(climber, current_user)
         try:
             self.storage.delete_boulder(name, area, climber)
         except StorageError as exc:
             raise ApiDataError(f"Could not delete boulder: {exc}") from exc
-        return self.get_boulders()
+        return self.get_boulders(current_user)
 
     def get_boulder_comments(self, name: str, area: str) -> BoulderCommentsPayload:
         """Return public comments for one boulder problem."""
@@ -90,6 +110,7 @@ class ApiService(BaseApiService):
     def save_boulder_comment(
         self,
         request: BoulderCommentCreateRequest,
+        current_user: UserAccount,
     ) -> BoulderCommentsPayload:
         """Append one boulder comment, then return the refreshed comment thread."""
 
@@ -97,8 +118,9 @@ class ApiService(BaseApiService):
             self.storage.append_boulder_comment(
                 request.name,
                 request.area,
-                request.climber,
+                current_user.username,
                 request.body,
+                current_user.id,
             )
             comments = self.storage.read_boulder_comments(request.name, request.area)
         except StorageError as exc:
@@ -109,51 +131,76 @@ class ApiService(BaseApiService):
         self,
         comment_id: int,
         request: BoulderCommentUpdateRequest,
+        current_user: UserAccount,
     ) -> BoulderCommentsPayload:
         """Update one boulder comment, then return the refreshed comment thread."""
 
         try:
             comment = self.storage.update_boulder_comment(
                 comment_id,
-                request.climber,
+                current_user.username,
                 request.body,
+                current_user.id,
             )
             comments = self.storage.read_boulder_comments(comment.boulder_name, comment.area)
+        except PermissionError:
+            raise
         except StorageError as exc:
             raise ApiDataError(f"Could not update boulder comment: {exc}") from exc
         return self._comments_payload(comments)
 
-    def delete_boulder_comment(self, comment_id: int) -> BoulderCommentsPayload:
+    def delete_boulder_comment(
+        self,
+        comment_id: int,
+        current_user: UserAccount,
+    ) -> BoulderCommentsPayload:
         """Soft-delete one boulder comment, then return the refreshed comment thread."""
 
         try:
-            comment = self.storage.delete_boulder_comment(comment_id)
+            comment = self.storage.delete_boulder_comment(
+                comment_id,
+                current_user.username,
+                current_user.id,
+            )
             comments = self.storage.read_boulder_comments(comment.boulder_name, comment.area)
+        except PermissionError:
+            raise
         except StorageError as exc:
             raise ApiDataError(f"Could not delete boulder comment: {exc}") from exc
         return self._comments_payload(comments)
 
-    def _read_records(self) -> list[BoulderRecord]:
+    def _read_records(self, current_user: UserAccount | None = None) -> list[BoulderRecord]:
         try:
-            return self.storage.read_boulders()
+            return self.storage.read_boulders(
+                private_user_id=current_user.id if current_user is not None else None
+            )
         except StorageError as exc:
             raise ApiDataError(f"Could not read boulders: {exc}") from exc
 
     def _comments_payload(self, comments: list[BoulderComment]) -> BoulderCommentsPayload:
         return {"comments": [comment.to_payload() for comment in comments]}
 
-    def _record_from_request(self, request: BoulderCreateRequest) -> BoulderRecord:
+    def _record_from_request(
+        self,
+        request: BoulderCreateRequest,
+        current_user: UserAccount,
+    ) -> BoulderRecord:
         return BoulderRecord(
             name=request.name,
             grade_27crags=request.grade_27crags,
             guide_grade=request.guide_grade,
             own_grade=request.own_grade,
             area=request.area,
-            climber=request.climber,
+            climber=current_user.username,
             flash=request.flash,
             climbed_on=request.climbed_on,
             rating=request.rating,
+            visibility=request.visibility,
         )
+
+    def _ensure_can_change_ascent(self, climber: str, current_user: UserAccount) -> None:
+        if climber.lower() != current_user.username.lower():
+            raise PermissionError("You can only change your own ascents")
 
     def _build_stats(self, records: list[BoulderRecord]) -> DashboardStats:
         by_area = Counter(record.area for record in records if record.area)

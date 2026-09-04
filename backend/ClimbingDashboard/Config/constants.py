@@ -30,6 +30,13 @@ GRADE_SOURCE_FIELDS = (
     "own_grade",
 )
 
+ASCENT_VISIBILITY_PUBLIC = "public"
+ASCENT_VISIBILITY_PRIVATE = "private"
+ASCENT_VISIBILITY_OPTIONS = (
+    ASCENT_VISIBILITY_PUBLIC,
+    ASCENT_VISIBILITY_PRIVATE,
+)
+
 BOULDER_EXPORT_COLUMNS = (
     "Navn",
     "27Crags grade",
@@ -40,4 +47,5 @@ BOULDER_EXPORT_COLUMNS = (
     "Dato",
     "Climber",
     "Rating",
+    "Visibility",
 )

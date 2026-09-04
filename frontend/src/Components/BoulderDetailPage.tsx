@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type {
   BoulderComment,
   BoulderCommentUpdateRequest,
@@ -15,8 +15,9 @@ type BoulderDetailPageProps = {
   isSaving: boolean;
   isCommentsLoading: boolean;
   isCommentSaving: boolean;
+  currentUsername: string | null;
   records: BoulderRecord[];
-  onAddComment: (climber: string, body: string) => Promise<void>;
+  onAddComment: (body: string) => Promise<void>;
   onBack: () => void;
   onDeleteComment: (commentId: number) => Promise<void>;
   onUpdateComment: (
@@ -95,7 +96,8 @@ function recordToRequest(record: BoulderRecord): BoulderCreateRequest {
     climber: record.climber,
     flash: record.flash,
     climbed_on: record.climbed_on,
-    rating: record.rating
+    rating: record.rating,
+    visibility: record.visibility
   };
 }
 
@@ -154,6 +156,7 @@ export default function BoulderDetailPage({
   isSaving,
   isCommentsLoading,
   isCommentSaving,
+  currentUsername,
   records,
   onAddComment,
   onBack,
@@ -161,17 +164,8 @@ export default function BoulderDetailPage({
   onUpdateComment,
   onUpdate
 }: BoulderDetailPageProps) {
-  const climberOptions = useMemo(
-    () =>
-      Array.from(new Set(records.map((record) => record.climber).filter(Boolean))).sort(
-        (left, right) => left.localeCompare(right)
-      ),
-    [records]
-  );
-  const [commentClimber, setCommentClimber] = useState("");
   const [commentBody, setCommentBody] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
-  const [editingClimber, setEditingClimber] = useState("");
   const [editingBody, setEditingBody] = useState("");
   const sortedRecords = records
     .slice()
@@ -185,10 +179,8 @@ export default function BoulderDetailPage({
   useEffect(() => {
     setCommentBody("");
     setEditingCommentId(null);
-    setEditingClimber("");
     setEditingBody("");
-    setCommentClimber((current) => current || climberOptions[0] || "");
-  }, [climberOptions, identity.area, identity.name]);
+  }, [identity.area, identity.name]);
 
   const updateRating = async (record: BoulderRecord, rating: number | null) => {
     try {
@@ -206,24 +198,21 @@ export default function BoulderDetailPage({
 
   const submitComment = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const climber = commentClimber.trim();
     const body = commentBody.trim();
-    if (!climber || !body) {
+    if (!currentUsername || !body) {
       return;
     }
-    await onAddComment(climber, body);
+    await onAddComment(body);
     setCommentBody("");
   };
 
   const startEditingComment = (comment: BoulderComment) => {
     setEditingCommentId(comment.id);
-    setEditingClimber(comment.climber);
     setEditingBody(comment.body);
   };
 
   const cancelEditingComment = () => {
     setEditingCommentId(null);
-    setEditingClimber("");
     setEditingBody("");
   };
 
@@ -231,12 +220,11 @@ export default function BoulderDetailPage({
     if (editingCommentId === null) {
       return;
     }
-    const climber = editingClimber.trim();
     const body = editingBody.trim();
-    if (!climber || !body) {
+    if (!currentUsername || !body) {
       return;
     }
-    await onUpdateComment(editingCommentId, { climber, body });
+    await onUpdateComment(editingCommentId, { body });
     cancelEditingComment();
   };
 
@@ -350,7 +338,12 @@ export default function BoulderDetailPage({
                     <td>{record.climbed_on ?? ""}</td>
                     <td>
                       <RatingButtons
-                        disabled={isSaving}
+                        disabled={
+                          isSaving ||
+                          currentUsername === null ||
+                          record.climber.toLocaleLowerCase() !==
+                            currentUsername.toLocaleLowerCase()
+                        }
                         rating={record.rating}
                         onChange={(rating) => void updateRating(record, rating)}
                       />
@@ -375,18 +368,13 @@ export default function BoulderDetailPage({
             <ol className="comment-list">
               {comments.map((comment) => {
                 const isEditing = editingCommentId === comment.id;
+                const canEditComment =
+                  currentUsername !== null &&
+                  comment.climber.toLocaleLowerCase() === currentUsername.toLocaleLowerCase();
                 return (
                   <li className="comment-item" key={comment.id}>
                     {isEditing ? (
                       <div className="comment-edit-form">
-                        <label>
-                          Climber
-                          <input
-                            required
-                            value={editingClimber}
-                            onChange={(event) => setEditingClimber(event.target.value)}
-                          />
-                        </label>
                         <label>
                           Comment
                           <textarea
@@ -398,7 +386,7 @@ export default function BoulderDetailPage({
                         </label>
                         <div className="comment-actions">
                           <button
-                            disabled={isCommentSaving}
+                            disabled={isCommentSaving || !canEditComment}
                             type="button"
                             onClick={() => void saveEditingComment()}
                           >
@@ -420,23 +408,25 @@ export default function BoulderDetailPage({
                           <span>{formatCommentTime(comment.created_at)}</span>
                         </div>
                         <p>{comment.body}</p>
-                        <div className="comment-actions">
-                          <button
-                            disabled={isCommentSaving}
-                            type="button"
-                            onClick={() => startEditingComment(comment)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="danger-button"
-                            disabled={isCommentSaving}
-                            type="button"
-                            onClick={() => void deleteComment(comment)}
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        {canEditComment && (
+                          <div className="comment-actions">
+                            <button
+                              disabled={isCommentSaving}
+                              type="button"
+                              onClick={() => startEditingComment(comment)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="danger-button"
+                              disabled={isCommentSaving}
+                              type="button"
+                              onClick={() => void deleteComment(comment)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </>
                     )}
                   </li>
@@ -447,31 +437,19 @@ export default function BoulderDetailPage({
 
           <form className="comment-form" onSubmit={(event) => void submitComment(event)}>
             <label>
-              Climber
-              <input
-                required
-                list="comment-climbers"
-                value={commentClimber}
-                onChange={(event) => setCommentClimber(event.target.value)}
-              />
-            </label>
-            <label>
               Comment
               <textarea
                 required
+                disabled={!currentUsername}
                 rows={3}
                 value={commentBody}
+                placeholder={currentUsername ? "" : "Log in to comment"}
                 onChange={(event) => setCommentBody(event.target.value)}
               />
             </label>
-            <button disabled={isCommentSaving} type="submit">
-              Post
+            <button disabled={isCommentSaving || !currentUsername} type="submit">
+              {currentUsername ? "Post" : "Login To Post"}
             </button>
-            <datalist id="comment-climbers">
-              {climberOptions.map((climber) => (
-                <option key={climber} value={climber} />
-              ))}
-            </datalist>
           </form>
         </section>
       </div>

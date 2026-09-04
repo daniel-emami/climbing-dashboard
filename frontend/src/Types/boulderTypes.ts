@@ -8,7 +8,10 @@ export type BoulderRecord = {
   flash: boolean;
   climbed_on: string | null;
   rating: number | null;
+  visibility: AscentVisibility;
 };
+
+export type AscentVisibility = "public" | "private";
 
 export type GradeCount = {
   grade: string;
@@ -58,6 +61,7 @@ export type BoulderCreateRequest = {
   flash: boolean;
   climbed_on: string | null;
   rating: number | null;
+  visibility: AscentVisibility;
 };
 
 export type BoulderIdentity = {
@@ -79,6 +83,7 @@ export type BoulderComment = {
   body: string;
   created_at: string;
   updated_at: string;
+  user_id: number | null;
 };
 
 export type BoulderCommentsResponse = {
@@ -88,12 +93,10 @@ export type BoulderCommentsResponse = {
 export type BoulderCommentCreateRequest = {
   name: string;
   area: string;
-  climber: string;
   body: string;
 };
 
 export type BoulderCommentUpdateRequest = {
-  climber: string;
   body: string;
 };
 

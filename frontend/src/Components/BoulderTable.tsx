@@ -10,6 +10,7 @@ type BoulderTableProps = {
   records: BoulderRecord[];
   gradeOrder: string[];
   isSaving: boolean;
+  currentUsername: string | null;
   onDelete: (request: BoulderIdentity) => Promise<void>;
   onOpenBoulder: (identity: BoulderPageIdentity) => void;
   onUpdate: (original: BoulderIdentity, boulder: BoulderCreateRequest) => Promise<void>;
@@ -24,7 +25,8 @@ type SortKey =
   | "own_grade"
   | "flash"
   | "climbed_on"
-  | "rating";
+  | "rating"
+  | "visibility";
 
 type SortDirection = "asc" | "desc";
 
@@ -37,6 +39,7 @@ const HEADERS: Array<{ key: SortKey; label: string }> = [
   { key: "name", label: "Name" },
   { key: "area", label: "Area" },
   { key: "climber", label: "Climber" },
+  { key: "visibility", label: "Visible" },
   { key: "grade_27crags", label: "27Crags" },
   { key: "guide_grade", label: "Guide" },
   { key: "own_grade", label: "Own" },
@@ -62,7 +65,8 @@ function recordToDraft(record: BoulderRecord): BoulderCreateRequest {
     climber: record.climber,
     flash: record.flash,
     climbed_on: record.climbed_on,
-    rating: record.rating
+    rating: record.rating,
+    visibility: record.visibility
   };
 }
 
@@ -114,6 +118,7 @@ export default function BoulderTable({
   records,
   gradeOrder,
   isSaving,
+  currentUsername,
   onDelete,
   onOpenBoulder,
   onUpdate
@@ -184,8 +189,12 @@ export default function BoulderTable({
     if (!draft) {
       return;
     }
-    if (!draft.name.trim() || !draft.area.trim() || !draft.climber.trim()) {
-      window.alert("Name, area, and climber are required.");
+    if (!currentUsername) {
+      window.alert("Log in before editing ascents.");
+      return;
+    }
+    if (!draft.name.trim() || !draft.area.trim()) {
+      window.alert("Name and area are required.");
       return;
     }
     try {
@@ -193,6 +202,7 @@ export default function BoulderTable({
         { name: record.name, area: record.area, climber: record.climber },
         {
           ...draft,
+          climber: currentUsername,
           climbed_on: draft.climbed_on || null
         }
       );
@@ -203,6 +213,10 @@ export default function BoulderTable({
   };
 
   const deleteRecord = async (record: BoulderRecord) => {
+    if (!currentUsername) {
+      window.alert("Log in before deleting ascents.");
+      return;
+    }
     const shouldDelete = window.confirm(
       `Remove ${record.name} from ${record.area} for ${record.climber}?`
     );
@@ -249,6 +263,7 @@ export default function BoulderTable({
             <col className="logbook-name-column" />
             <col className="logbook-area-column" />
             <col className="logbook-climber-column" />
+            <col className="logbook-visibility-column" />
             <col className="logbook-grade-column" />
             <col className="logbook-grade-column" />
             <col className="logbook-grade-column" />
@@ -280,6 +295,9 @@ export default function BoulderTable({
             {pagedRecords.map((record) => {
               const isEditing = editingKey === recordKey(record);
               const editableRecord = isEditing && draft ? draft : record;
+              const canChange =
+                currentUsername !== null &&
+                record.climber.toLocaleLowerCase() === currentUsername.toLocaleLowerCase();
 
               return (
                 <tr key={`${record.name}-${record.area}-${record.climber}-${record.climbed_on}`}>
@@ -320,12 +338,33 @@ export default function BoulderTable({
                       <input
                         aria-label="Climber"
                         className="table-inline-input"
+                        disabled
                         required
-                        value={editableRecord.climber}
+                        value={currentUsername ?? editableRecord.climber}
                         onChange={(event) => updateDraft("climber", event.target.value)}
                       />
                     ) : (
                       record.climber
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <select
+                        aria-label="Visibility"
+                        className="table-inline-input"
+                        value={editableRecord.visibility}
+                        onChange={(event) =>
+                          updateDraft(
+                            "visibility",
+                            event.target.value as BoulderCreateRequest["visibility"]
+                          )
+                        }
+                      >
+                        <option value="public">Public</option>
+                        <option value="private">Private</option>
+                      </select>
+                    ) : (
+                      record.visibility
                     )}
                   </td>
                   <td>
@@ -421,7 +460,7 @@ export default function BoulderTable({
                       {isEditing ? (
                         <>
                           <button
-                            disabled={isSaving}
+                            disabled={isSaving || !canChange}
                             type="button"
                             onClick={() => void saveEditing(record)}
                           >
@@ -434,7 +473,7 @@ export default function BoulderTable({
                       ) : (
                         <>
                           <button
-                            disabled={isSaving}
+                            disabled={isSaving || !canChange}
                             type="button"
                             onClick={() => startEditing(record)}
                           >
@@ -442,7 +481,7 @@ export default function BoulderTable({
                           </button>
                           <button
                             className="danger-button"
-                            disabled={isSaving}
+                            disabled={isSaving || !canChange}
                             type="button"
                             onClick={() => void deleteRecord(record)}
                           >

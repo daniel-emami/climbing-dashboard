@@ -5,6 +5,9 @@ services:
       dockerfile: Dockerfile.backend
     ports:
       - "8000:8000"
+    environment:
+      CLIMBING_DASHBOARD_INVITE_CODE: ${CLIMBING_DASHBOARD_INVITE_CODE:-}
+      CLIMBING_DASHBOARD_SECURE_COOKIES: ${CLIMBING_DASHBOARD_SECURE_COOKIES:-false}
     volumes:
       - ./data:/app/data
     healthcheck:

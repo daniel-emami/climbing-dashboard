@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from ClimbingDashboard.Config.constants import (
+    ASCENT_VISIBILITY_OPTIONS,
+    ASCENT_VISIBILITY_PUBLIC,
+)
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Utilities.date_utils import parse_climbed_date
 
@@ -22,6 +26,7 @@ class BoulderPayloadMapper:
             flash=bool(payload.get("flash", False)),
             climbed_on=parse_climbed_date(payload.get("climbed_on")),
             rating=self._rating(payload.get("rating")),
+            visibility=self._visibility(payload.get("visibility", ASCENT_VISIBILITY_PUBLIC)),
         )
 
     def boulders_from_payloads(self, payloads: list[object]) -> list[BoulderRecord]:
@@ -56,3 +61,13 @@ class BoulderPayloadMapper:
         if rating < 1 or rating > 5:
             raise ValueError("rating must be empty or a number from 1 to 5")
         return rating
+
+    def _visibility(self, value: object) -> str:
+        visibility = (
+            ASCENT_VISIBILITY_PUBLIC
+            if value is None
+            else str(value).strip().lower()
+        )
+        if visibility not in ASCENT_VISIBILITY_OPTIONS:
+            raise ValueError("visibility must be public or private")
+        return visibility

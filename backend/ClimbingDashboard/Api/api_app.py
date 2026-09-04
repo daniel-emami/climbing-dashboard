@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ClimbingDashboard.Api.api_router import router
 from ClimbingDashboard.Api.api_service import ApiService
+from ClimbingDashboard.Api.auth_router import router as auth_router
+from ClimbingDashboard.Api.auth_service import AuthService
 from ClimbingDashboard.Api.import_service import ImportService
 from ClimbingDashboard.Config.app_settings import AppSettings
 
@@ -22,6 +24,12 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         Path(database_path) if database_path is not None else settings.default_database_path
     )
     app = FastAPI(title=settings.app_name)
+    app.state.settings = settings
+    app.state.auth_service = AuthService(
+        database_path=selected_database_path,
+        invite_code=settings.signup_invite_code,
+        session_lifetime_days=settings.session_lifetime_days,
+    )
     app.state.api_service = ApiService(database_path=selected_database_path)
     app.state.import_service = ImportService(database_path=selected_database_path)
     app.add_middleware(
@@ -32,6 +40,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.include_router(auth_router)
     app.include_router(router)
     logger.info("API application created with SQLite path %s", selected_database_path)
 
@@ -43,6 +52,10 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
             "app": settings.app_name,
             "routes": {
                 "health": "/health",
+                "auth_me": "/api/auth/me",
+                "auth_signup": "/api/auth/signup",
+                "auth_login": "/api/auth/login",
+                "auth_logout": "/api/auth/logout",
                 "boulders": "/api/boulders",
                 "import_preview": "/api/imports/{source}/preview",
                 "import_confirm": "/api/imports/{source}/confirm",

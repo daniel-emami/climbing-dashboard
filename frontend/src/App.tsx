@@ -7,6 +7,12 @@ import {
   updateBoulder
 } from "./Api/boulderApi";
 import {
+  fetchCurrentUser,
+  login as loginUser,
+  logout as logoutUser,
+  signup as signupUser
+} from "./Api/authApi";
+import {
   addBoulderComment,
   deleteBoulderComment,
   fetchBoulderComments,
@@ -14,6 +20,7 @@ import {
 } from "./Api/commentApi";
 import AreaChart from "./Components/AreaChart";
 import AreaGradeMatrix from "./Components/AreaGradeMatrix";
+import AuthPanel from "./Components/AuthPanel";
 import BoulderDetailPage from "./Components/BoulderDetailPage";
 import BoulderForm from "./Components/BoulderForm";
 import BoulderTable from "./Components/BoulderTable";
@@ -28,6 +35,7 @@ import {
   GRADE_SOURCE_LABELS,
   type GradeChartMode
 } from "./Config/gradeSources";
+import type { AuthUser, LoginRequest, SignupRequest } from "./Types/authTypes";
 import type {
   AreaCount,
   BoulderComment,
@@ -182,6 +190,7 @@ function recordMatchesSearch(record: BoulderRecord, searchQuery: string): boolea
     record.own_grade,
     record.climbed_on ?? "",
     record.flash ? "flash" : "",
+    record.visibility,
     record.rating === null ? "" : `${record.rating}/5`
   ]
     .join(" ")
@@ -205,6 +214,9 @@ export default function App() {
   const [selectedBoulderComments, setSelectedBoulderComments] = useState<BoulderComment[]>([]);
   const [isCommentsLoading, setIsCommentsLoading] = useState(false);
   const [isCommentSaving, setIsCommentSaving] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAuthSaving, setIsAuthSaving] = useState(false);
 
   const loadStoredData = useCallback(async () => {
     try {
@@ -222,6 +234,22 @@ export default function App() {
   useEffect(() => {
     void loadStoredData();
   }, [loadStoredData]);
+
+  const loadCurrentAuthUser = useCallback(async () => {
+    setIsAuthLoading(true);
+    try {
+      const payload = await fetchCurrentUser();
+      setCurrentUser(payload.user);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown auth error");
+    } finally {
+      setIsAuthLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadCurrentAuthUser();
+  }, [loadCurrentAuthUser]);
 
   useEffect(() => {
     const syncRouteFromHash = () => setSelectedBoulder(boulderIdentityFromHash());
@@ -335,9 +363,13 @@ export default function App() {
       : `Boulders by ${GRADE_SOURCE_LABELS[gradeChartMode].toLowerCase()}`;
 
   const handleAddBoulder = async (request: BoulderCreateRequest) => {
+    if (!currentUser) {
+      setError("You must be logged in to save boulders.");
+      return;
+    }
     setIsSaving(true);
     try {
-      const payload = await addBoulder(request);
+      const payload = await addBoulder({ ...request, climber: currentUser.username });
       setData(payload);
       setError(null);
       setLastUpdated(formatRefreshTime());
@@ -353,9 +385,16 @@ export default function App() {
     original: BoulderIdentity,
     boulder: BoulderCreateRequest
   ) => {
+    if (!currentUser) {
+      setError("You must be logged in to edit boulders.");
+      return;
+    }
     setIsSaving(true);
     try {
-      const payload = await updateBoulder({ original, boulder });
+      const payload = await updateBoulder({
+        original,
+        boulder: { ...boulder, climber: currentUser.username }
+      });
       setData(payload);
       setError(null);
       setLastUpdated(formatRefreshTime());
@@ -368,6 +407,10 @@ export default function App() {
   };
 
   const handleDeleteBoulder = async (request: BoulderIdentity) => {
+    if (!currentUser) {
+      setError("You must be logged in to delete boulders.");
+      return;
+    }
     setIsSaving(true);
     try {
       const payload = await deleteBoulder(request);
@@ -379,6 +422,52 @@ export default function App() {
       throw unknownError;
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleLogin = async (request: LoginRequest) => {
+    setIsAuthSaving(true);
+    try {
+      const payload = await loginUser(request);
+      setCurrentUser(payload.user);
+      setError(null);
+      await loadStoredData();
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown auth error");
+      throw unknownError;
+    } finally {
+      setIsAuthSaving(false);
+    }
+  };
+
+  const handleSignup = async (request: SignupRequest) => {
+    setIsAuthSaving(true);
+    try {
+      const payload = await signupUser(request);
+      setCurrentUser(payload.user);
+      setError(null);
+      await loadStoredData();
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown auth error");
+      throw unknownError;
+    } finally {
+      setIsAuthSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    setIsAuthSaving(true);
+    try {
+      await logoutUser();
+      setCurrentUser(null);
+      setSelectedClimber("");
+      setError(null);
+      await loadStoredData();
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown auth error");
+      throw unknownError;
+    } finally {
+      setIsAuthSaving(false);
     }
   };
 
@@ -398,8 +487,12 @@ export default function App() {
     writeBoulderHash(null);
   };
 
-  const handleAddBoulderComment = async (climber: string, body: string) => {
+  const handleAddBoulderComment = async (body: string) => {
     if (!selectedBoulder) {
+      return;
+    }
+    if (!currentUser) {
+      setError("You must be logged in to comment.");
       return;
     }
     setIsCommentSaving(true);
@@ -407,7 +500,6 @@ export default function App() {
       const payload = await addBoulderComment({
         name: selectedBoulder.name,
         area: selectedBoulder.area,
-        climber,
         body
       });
       setSelectedBoulderComments(payload.comments);
@@ -424,6 +516,10 @@ export default function App() {
     commentId: number,
     request: BoulderCommentUpdateRequest
   ) => {
+    if (!currentUser) {
+      setError("You must be logged in to edit comments.");
+      return;
+    }
     setIsCommentSaving(true);
     try {
       const payload = await updateBoulderComment(commentId, request);
@@ -438,6 +534,10 @@ export default function App() {
   };
 
   const handleDeleteBoulderComment = async (commentId: number) => {
+    if (!currentUser) {
+      setError("You must be logged in to delete comments.");
+      return;
+    }
     setIsCommentSaving(true);
     try {
       const payload = await deleteBoulderComment(commentId);
@@ -506,6 +606,7 @@ export default function App() {
             isSaving={isSaving}
             isCommentsLoading={isCommentsLoading}
             isCommentSaving={isCommentSaving}
+            currentUsername={currentUser?.username ?? null}
             records={selectedBoulderRecords}
             onAddComment={handleAddBoulderComment}
             onBack={handleCloseBoulder}
@@ -517,7 +618,16 @@ export default function App() {
       ) : (
       <div className="dashboard-layout">
         <aside className="control-rail">
+          <AuthPanel
+            user={currentUser}
+            isLoading={isAuthLoading}
+            isSaving={isAuthSaving}
+            onLogin={handleLogin}
+            onLogout={handleLogout}
+            onSignup={handleSignup}
+          />
           <TheTopoImportPanel
+            currentUsername={currentUser?.username ?? null}
             onImported={handleImportedBoulders}
             onError={setError}
           />
@@ -526,6 +636,7 @@ export default function App() {
             knownAreas={knownAreas}
             knownClimbers={knownClimbers}
             knownGrades={knownGrades}
+            currentUsername={currentUser?.username ?? null}
             onSubmit={handleAddBoulder}
           />
 
@@ -613,6 +724,7 @@ export default function App() {
                 records={visibleData.records}
                 gradeOrder={visibleData.grade_order}
                 isSaving={isSaving}
+                currentUsername={currentUser?.username ?? null}
                 onDelete={handleDeleteBoulder}
                 onOpenBoulder={handleOpenBoulder}
                 onUpdate={handleUpdateBoulder}

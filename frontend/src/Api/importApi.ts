@@ -14,6 +14,7 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
 export async function previewTheTopoImport(username: string): Promise<ImportPreviewResponse> {
   const response = await fetch(`${API_BASE_URL}/api/imports/thetopo/preview`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
@@ -27,6 +28,7 @@ export async function confirmTheTopoImport(
 ): Promise<BouldersResponse> {
   const response = await fetch(`${API_BASE_URL}/api/imports/thetopo/confirm`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },

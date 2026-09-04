@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+from ClimbingDashboard.Config.constants import ASCENT_VISIBILITY_PUBLIC
+
 
 @dataclass(frozen=True)
 class BoulderRecord:
@@ -17,6 +19,7 @@ class BoulderRecord:
     flash: bool
     climbed_on: date | None
     rating: int | None
+    visibility: str = ASCENT_VISIBILITY_PUBLIC
 
     def to_payload(self) -> dict[str, object]:
         """Return a frontend-friendly representation."""
@@ -31,4 +34,5 @@ class BoulderRecord:
             "flash": self.flash,
             "climbed_on": self.climbed_on.isoformat() if self.climbed_on else None,
             "rating": self.rating,
+            "visibility": self.visibility,
         }

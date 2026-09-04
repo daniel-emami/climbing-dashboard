@@ -3,6 +3,10 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from ClimbingDashboard.Config.constants import (
+    ASCENT_VISIBILITY_OPTIONS,
+    ASCENT_VISIBILITY_PUBLIC,
+)
 from ClimbingDashboard.Utilities.date_utils import parse_climbed_date
 
 
@@ -20,6 +24,7 @@ class BoulderCreateRequest:
         flash: bool = False,
         climbed_on: date | None = None,
         rating: int | str | None = None,
+        visibility: object = ASCENT_VISIBILITY_PUBLIC,
     ) -> None:
         """Create a request object after primitive payload conversion."""
 
@@ -28,10 +33,11 @@ class BoulderCreateRequest:
         self.guide_grade = self._optional_text(guide_grade)
         self.own_grade = self._optional_text(own_grade)
         self.area = self._required_text(area, "area")
-        self.climber = self._required_text(climber, "climber")
+        self.climber = self._optional_text(climber)
         self.flash = self._bool(flash)
         self.climbed_on = climbed_on
         self.rating = self._rating(rating)
+        self.visibility = self._visibility(visibility)
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> BoulderCreateRequest:
@@ -47,6 +53,7 @@ class BoulderCreateRequest:
             flash=payload.get("flash", False),
             climbed_on=parse_climbed_date(payload.get("climbed_on")),
             rating=payload.get("rating"),
+            visibility=payload.get("visibility", ASCENT_VISIBILITY_PUBLIC),
         )
 
     def to_error_payload(self) -> dict[str, object]:
@@ -62,6 +69,7 @@ class BoulderCreateRequest:
             "flash": self.flash,
             "climbed_on": self.climbed_on.isoformat() if self.climbed_on else None,
             "rating": self.rating,
+            "visibility": self.visibility,
         }
 
     @staticmethod
@@ -111,6 +119,17 @@ class BoulderCreateRequest:
             raise ValueError("rating must be empty or a number from 1 to 5")
         return rating
 
+    @staticmethod
+    def _visibility(value: object) -> str:
+        visibility = (
+            ASCENT_VISIBILITY_PUBLIC
+            if value is None
+            else str(value).strip().lower()
+        )
+        if visibility not in ASCENT_VISIBILITY_OPTIONS:
+            raise ValueError("visibility must be public or private")
+        return visibility
+
 
 type BoulderPayload = dict[str, object]
 type BouldersPayload = dict[str, object]
@@ -123,14 +142,12 @@ class BoulderCommentCreateRequest:
         self,
         name: object,
         area: object,
-        climber: object,
         body: object,
     ) -> None:
         """Create a request object after primitive payload conversion."""
 
         self.name = BoulderCreateRequest._required_text(name, "name")
         self.area = BoulderCreateRequest._required_text(area, "area")
-        self.climber = BoulderCreateRequest._required_text(climber, "climber")
         self.body = BoulderCreateRequest._required_text(body, "comment")
 
     @classmethod
@@ -140,7 +157,6 @@ class BoulderCommentCreateRequest:
         return cls(
             name=payload.get("name"),
             area=payload.get("area"),
-            climber=payload.get("climber"),
             body=payload.get("body"),
         )
 
@@ -148,10 +164,9 @@ class BoulderCommentCreateRequest:
 class BoulderCommentUpdateRequest:
     """Validated request object for editing a boulder comment."""
 
-    def __init__(self, climber: object, body: object) -> None:
+    def __init__(self, body: object) -> None:
         """Create a request object after primitive payload conversion."""
 
-        self.climber = BoulderCreateRequest._required_text(climber, "climber")
         self.body = BoulderCreateRequest._required_text(body, "comment")
 
     @classmethod
@@ -159,7 +174,6 @@ class BoulderCommentUpdateRequest:
         """Build a request object from a JSON-like dictionary."""
 
         return cls(
-            climber=payload.get("climber"),
             body=payload.get("body"),
         )
 
