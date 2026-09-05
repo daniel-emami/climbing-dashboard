@@ -26,6 +26,7 @@ class BaseApiService(ABC):
         self,
         original_name: str,
         original_area: str,
+        original_sector: str,
         original_climber: str,
         request: BoulderCreateRequest,
         current_user: UserAccount,
@@ -37,6 +38,7 @@ class BaseApiService(ABC):
         self,
         name: str,
         area: str,
+        sector: str,
         climber: str,
         current_user: UserAccount,
     ) -> BouldersPayload:

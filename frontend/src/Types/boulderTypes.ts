@@ -4,11 +4,14 @@ export type BoulderRecord = {
   guide_grade: string;
   own_grade: string;
   area: string;
+  sector: string;
   climber: string;
   flash: boolean;
   climbed_on: string | null;
   rating: number | null;
   visibility: AscentVisibility;
+  ascent_id: number | null;
+  added_at: string | null;
 };
 
 export type AscentVisibility = "public" | "private";
@@ -57,6 +60,7 @@ export type BoulderCreateRequest = {
   guide_grade: string;
   own_grade: string;
   area: string;
+  sector: string;
   climber: string;
   flash: boolean;
   climbed_on: string | null;
@@ -67,18 +71,21 @@ export type BoulderCreateRequest = {
 export type BoulderIdentity = {
   name: string;
   area: string;
+  sector: string;
   climber: string;
 };
 
 export type BoulderPageIdentity = {
   name: string;
   area: string;
+  sector: string;
 };
 
 export type BoulderComment = {
   id: number;
   boulder_name: string;
   area: string;
+  sector: string;
   climber: string;
   body: string;
   created_at: string;
@@ -93,11 +100,70 @@ export type BoulderCommentsResponse = {
 export type BoulderCommentCreateRequest = {
   name: string;
   area: string;
+  sector: string;
   body: string;
 };
 
 export type BoulderCommentUpdateRequest = {
   body: string;
+};
+
+export type AscentComment = {
+  id: number;
+  ascent_id: number;
+  climber: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AscentCommentsResponse = {
+  comments: AscentComment[];
+};
+
+export type AscentCommentsByAscentResponse = {
+  comments_by_ascent_id: Record<string, AscentComment[]>;
+};
+
+export type AscentCommentCreateRequest = {
+  ascent_id: number;
+  climber: string;
+  body: string;
+};
+
+export type AscentCommentUpdateRequest = {
+  climber: string;
+  body: string;
+};
+
+export type BoulderMedia = {
+  id: number;
+  boulder_name: string;
+  area: string;
+  sector: string;
+  ascent_id: number | null;
+  climber: string;
+  media_type: "video";
+  url: string;
+  original_filename: string;
+  mime_type: string;
+  file_size: number;
+  caption: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BoulderMediaResponse = {
+  media: BoulderMedia[];
+};
+
+export type BoulderMediaUploadRequest = {
+  name: string;
+  area: string;
+  sector: string;
+  climber: string;
+  caption: string;
+  file: File;
 };
 
 export type BoulderUpdateRequest = {

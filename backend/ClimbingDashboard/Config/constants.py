@@ -43,9 +43,12 @@ BOULDER_EXPORT_COLUMNS = (
     "Guide grade",
     "Own grade",
     "Område",
+    "Sector",
     "Flash",
     "Dato",
     "Climber",
     "Rating",
     "Visibility",
 )
+
+DEFAULT_MAX_VIDEO_UPLOAD_BYTES = 500 * 1024 * 1024

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from ClimbingDashboard.Api.api_router import router
 from ClimbingDashboard.Api.api_service import ApiService
@@ -23,6 +24,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     selected_database_path = (
         Path(database_path) if database_path is not None else settings.default_database_path
     )
+    settings.uploads_path.mkdir(parents=True, exist_ok=True)
     app = FastAPI(title=settings.app_name)
     app.state.settings = settings
     app.state.auth_service = AuthService(
@@ -30,7 +32,11 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         invite_code=settings.signup_invite_code,
         session_lifetime_days=settings.session_lifetime_days,
     )
-    app.state.api_service = ApiService(database_path=selected_database_path)
+    app.state.api_service = ApiService(
+        database_path=selected_database_path,
+        uploads_path=settings.uploads_path,
+        max_video_upload_bytes=settings.max_video_upload_bytes,
+    )
     app.state.import_service = ImportService(database_path=selected_database_path)
     app.add_middleware(
         CORSMiddleware,
@@ -42,6 +48,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     )
     app.include_router(auth_router)
     app.include_router(router)
+    app.mount("/uploads", StaticFiles(directory=settings.uploads_path), name="uploads")
     logger.info("API application created with SQLite path %s", selected_database_path)
 
     @app.get("/")
@@ -60,6 +67,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
                 "import_preview": "/api/imports/{source}/preview",
                 "import_confirm": "/api/imports/{source}/confirm",
                 "export_boulders": "/api/exports/boulders",
+                "uploads": "/uploads",
                 "docs": "/docs",
             },
         }

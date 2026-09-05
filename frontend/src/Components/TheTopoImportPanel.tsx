@@ -10,7 +10,7 @@ type TheTopoImportPanelProps = {
 };
 
 function boulderKey(boulder: BoulderRecord): string {
-  return `${boulder.name}::${boulder.area}::${boulder.climber}`.toLowerCase();
+  return `${boulder.name}::${boulder.area}::${boulder.sector}::${boulder.climber}`.toLowerCase();
 }
 
 export default function TheTopoImportPanel({
@@ -129,8 +129,9 @@ export default function TheTopoImportPanel({
                 <span>
                   <strong>{boulder.name}</strong>
                   <small>
-                    {boulder.area} · {boulder.climber || preview.username} ·{" "}
-                    {boulder.grade_27crags || "-"} · {boulder.climbed_on ?? "-"}
+                    {[boulder.area, boulder.sector].filter(Boolean).join(" / ")} ·{" "}
+                    {boulder.climber || preview.username} · {boulder.grade_27crags || "-"} ·{" "}
+                    {boulder.climbed_on ?? "-"}
                   </small>
                 </span>
               </label>

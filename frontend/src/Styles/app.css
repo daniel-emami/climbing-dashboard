@@ -394,6 +394,30 @@ h2 {
   padding: 10px 14px;
 }
 
+.dashboard-page-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.dashboard-page-tabs button {
+  min-height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #233044;
+  padding: 0 14px;
+  font-weight: 900;
+}
+
+.dashboard-page-tabs button:hover,
+.dashboard-page-tabs button.active {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #ffffff;
+}
+
 .dashboard-control-group {
   display: flex;
   align-items: center;
@@ -527,6 +551,7 @@ h2 {
   gap: 16px;
 }
 
+.boulder-media-panel,
 .boulder-climbers-panel,
 .boulder-comments-panel {
   grid-column: 1 / -1;
@@ -590,6 +615,7 @@ h2 {
 }
 
 .comment-form,
+.media-upload-form,
 .comment-edit-form {
   display: grid;
   gap: 10px;
@@ -601,7 +627,14 @@ h2 {
   margin-top: 14px;
 }
 
+.media-upload-form {
+  grid-template-columns: minmax(140px, 190px) minmax(0, 1fr) minmax(190px, 260px) auto;
+  align-items: end;
+  margin-top: 14px;
+}
+
 .comment-form label,
+.media-upload-form label,
 .comment-edit-form label {
   display: grid;
   gap: 5px;
@@ -614,6 +647,8 @@ h2 {
 
 .comment-form input,
 .comment-form textarea,
+.media-upload-form input,
+.media-upload-form select,
 .comment-edit-form input,
 .comment-edit-form textarea {
   width: 100%;
@@ -626,6 +661,8 @@ h2 {
 }
 
 .comment-form input,
+.media-upload-form input,
+.media-upload-form select,
 .comment-edit-form input {
   min-height: 38px;
 }
@@ -638,6 +675,8 @@ h2 {
 
 .comment-form input:focus,
 .comment-form textarea:focus,
+.media-upload-form input:focus,
+.media-upload-form select:focus,
 .comment-edit-form input:focus,
 .comment-edit-form textarea:focus {
   border-color: #0f766e;
@@ -645,6 +684,7 @@ h2 {
 }
 
 .comment-form button,
+.media-upload-form button,
 .comment-actions button {
   min-height: 38px;
   border: 1px solid #cbd5e1;
@@ -656,6 +696,7 @@ h2 {
 }
 
 .comment-form button:hover:not(:disabled),
+.media-upload-form button:hover:not(:disabled),
 .comment-actions button:hover:not(:disabled) {
   border-color: #0f766e;
   background: #d9f3ee;
@@ -722,6 +763,68 @@ h2 {
   color: #991b1b;
 }
 
+.media-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.media-item {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.media-item video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: #111827;
+  object-fit: contain;
+}
+
+.media-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.media-meta strong,
+.media-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-meta strong {
+  color: #111827;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.media-meta span {
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.media-item p {
+  margin: 0;
+  color: #233044;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
 .segmented-control {
   display: flex;
   flex-wrap: wrap;
@@ -738,6 +841,234 @@ h2 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
+}
+
+.activity-feed-panel {
+  padding-bottom: 4px;
+}
+
+.activity-feed-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-feed-item {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  padding: 13px 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.activity-feed-item:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.activity-feed-avatar {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  background: #eef6f5;
+  color: #0f766e;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.activity-feed-body {
+  min-width: 0;
+}
+
+.activity-feed-copy,
+.activity-feed-meta,
+.activity-feed-time {
+  margin: 0;
+}
+
+.activity-feed-copy {
+  color: #233044;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.activity-feed-copy strong {
+  color: #111827;
+}
+
+.activity-feed-link {
+  max-width: 100%;
+  border: 0;
+  background: transparent;
+  color: #0f766e;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  font: inherit;
+  font-weight: 900;
+  vertical-align: baseline;
+}
+
+.activity-feed-link:hover {
+  color: #115e59;
+  text-decoration: underline;
+}
+
+.activity-feed-meta {
+  margin-top: 4px;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.activity-feed-time {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.activity-media-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-media-item {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.activity-media-item video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: #111827;
+  object-fit: contain;
+}
+
+.activity-media-item p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.activity-ascent-comments {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.activity-comment-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-comment-item {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 8px 9px;
+}
+
+.activity-comment-item p {
+  margin: 0;
+  color: #233044;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.activity-comment-item strong {
+  color: #111827;
+  font-weight: 900;
+}
+
+.activity-comment-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.activity-comment-form,
+.activity-comment-edit-form {
+  display: grid;
+  grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+}
+
+.activity-comment-edit-form {
+  grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) auto auto;
+}
+
+.activity-comment-form input,
+.activity-comment-edit-form input {
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #172033;
+  padding: 0 9px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.activity-comment-form input:focus,
+.activity-comment-edit-form input:focus {
+  border-color: #0f766e;
+  outline: 2px solid rgba(15, 118, 110, 0.16);
+}
+
+.activity-comment-form button,
+.activity-comment-edit-form button,
+.activity-comment-actions button {
+  min-height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #233044;
+  padding: 0 9px;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.activity-comment-form button:hover:not(:disabled),
+.activity-comment-edit-form button:hover:not(:disabled),
+.activity-comment-actions button:hover:not(:disabled) {
+  border-color: #0f766e;
+  background: #d9f3ee;
+  color: #0f3f3a;
+}
+
+.activity-comment-actions .danger-button:hover:not(:disabled) {
+  border-color: #dc2626;
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .chart-panel {
@@ -792,35 +1123,43 @@ table {
 
 .logbook-table {
   table-layout: fixed;
-  min-width: 1280px;
+  min-width: 1180px;
 }
 
 .logbook-name-column {
-  width: 14%;
+  width: 11%;
 }
 
 .logbook-area-column {
-  width: 12%;
+  width: 11%;
+}
+
+.logbook-sector-column {
+  width: 9%;
+}
+
+.logbook-climber-column {
+  width: 9%;
+}
+
+.logbook-visibility-column {
+  width: 7%;
 }
 
 .logbook-climber-column {
   width: 10%;
 }
 
-.logbook-visibility-column {
-  width: 8%;
-}
-
 .logbook-grade-column {
-  width: 7%;
-}
-
-.logbook-flash-column {
   width: 6%;
 }
 
+.logbook-flash-column {
+  width: 5%;
+}
+
 .logbook-date-column {
-  width: 9%;
+  width: 8%;
 }
 
 .logbook-rating-column {
@@ -828,7 +1167,7 @@ table {
 }
 
 .logbook-actions-column {
-  width: 13%;
+  width: 15%;
 }
 
 th,
@@ -1039,6 +1378,15 @@ tbody tr:hover td {
   }
 
   .comment-form {
+    grid-template-columns: 1fr;
+  }
+
+  .media-upload-form {
+    grid-template-columns: 1fr;
+  }
+
+  .activity-comment-form,
+  .activity-comment-edit-form {
     grid-template-columns: 1fr;
   }
 

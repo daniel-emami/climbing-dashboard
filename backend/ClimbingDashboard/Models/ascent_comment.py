@@ -4,30 +4,24 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class BoulderComment:
-    """One public comment on a boulder problem."""
+class AscentComment:
+    """One public comment on a specific ascent."""
 
     id: int
-    boulder_name: str
-    area: str
-    sector: str
+    ascent_id: int
     climber: str
     body: str
     created_at: str
     updated_at: str
-    user_id: int | None = None
 
     def to_payload(self) -> dict[str, object]:
         """Return a frontend-friendly representation."""
 
         return {
             "id": self.id,
-            "boulder_name": self.boulder_name,
-            "area": self.area,
-            "sector": self.sector,
+            "ascent_id": self.ascent_id,
             "climber": self.climber,
             "body": self.body,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
-            "user_id": self.user_id,
         }

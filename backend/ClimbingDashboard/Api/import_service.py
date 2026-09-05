@@ -9,6 +9,7 @@ from ClimbingDashboard.Import.importer_factory import AscentsImporterFactory
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Models.user_account import UserAccount
 from ClimbingDashboard.Storage.sqlite_storage import SqliteStorage
+from ClimbingDashboard.Utilities.location_normalizer import LocationNormalizer
 
 
 class ImportService:
@@ -18,11 +19,15 @@ class ImportService:
         self,
         database_path: str | Path,
         importer_factory: AscentsImporterFactory | None = None,
+        location_normalizer: LocationNormalizer | None = None,
     ) -> None:
         """Create the import service."""
 
         self.storage = SqliteStorage(database_path)
-        self.api_service = ApiService(database_path)
+        self.location_normalizer = (
+            location_normalizer if location_normalizer is not None else LocationNormalizer()
+        )
+        self.api_service = ApiService(database_path, self.location_normalizer)
         self.importer_factory = (
             importer_factory if importer_factory is not None else AscentsImporterFactory()
         )
@@ -34,7 +39,14 @@ class ImportService:
         if not clean_username:
             raise ValueError("username is required")
         importer = self.importer_factory.get_importer(source)
-        return importer.preview(clean_username)
+        preview = importer.preview(clean_username)
+        return replace(
+            preview,
+            boulders=[
+                self.location_normalizer.normalize_record(boulder)
+                for boulder in preview.boulders
+            ],
+        )
 
     def confirm_import(
         self,
@@ -44,7 +56,11 @@ class ImportService:
         """Save selected imported boulder ascents and return refreshed dashboard data."""
 
         owned_boulders = [
-            replace(boulder, climber=current_user.username) for boulder in boulders
+            replace(
+                self.location_normalizer.normalize_record(boulder),
+                climber=current_user.username,
+            )
+            for boulder in boulders
         ]
         self.storage.append_boulders(owned_boulders, current_user.id)
         return self.api_service.get_boulders(current_user)
