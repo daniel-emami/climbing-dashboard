@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { confirmTheTopoImport, previewTheTopoImport } from "../Api/importApi";
 import type { BoulderRecord, BouldersResponse } from "../Types/boulderTypes";
 import type { ImportPreviewResponse } from "../Types/importTypes";
@@ -28,12 +28,6 @@ export default function TheTopoImportPanel({
     () => preview?.boulders.filter((boulder) => selectedKeys.has(boulderKey(boulder))) ?? [],
     [preview, selectedKeys]
   );
-
-  useEffect(() => {
-    if (currentUsername && !username) {
-      setUsername(currentUsername);
-    }
-  }, [currentUsername, username]);
 
   const handlePreview = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
