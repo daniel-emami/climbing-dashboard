@@ -139,6 +139,12 @@ Signup is blocked unless `CLIMBING_DASHBOARD_INVITE_CODE` is set on the backend.
 Use a temporary code while testing with friends, and change it whenever you want
 to close the invite window.
 
+The username is the account's permanent identity and is used for ascent ownership,
+comments, and database relationships. The optional display name is the public name
+shown in the dashboard. For example, a user can log in as `alfredben`, choose
+`benzen` as their display name, and still keep every ascent assigned to the
+`alfredben` account. When no display name is entered, the username is shown instead.
+
 ## Data Files
 
 The app writes current data to:

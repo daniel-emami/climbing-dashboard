@@ -266,7 +266,9 @@ export default function BoulderDetailPage({
   };
 
   const deleteComment = async (comment: BoulderComment) => {
-    const shouldDelete = window.confirm(`Delete comment from ${comment.climber}?`);
+    const shouldDelete = window.confirm(
+      `Delete comment from ${comment.climber_display_name}?`
+    );
     if (!shouldDelete) {
       return;
     }
@@ -293,7 +295,9 @@ export default function BoulderDetailPage({
   };
 
   const deleteMedia = async (mediaItem: BoulderMedia) => {
-    const shouldDelete = window.confirm(`Delete video from ${mediaItem.climber}?`);
+    const shouldDelete = window.confirm(
+      `Delete video from ${mediaItem.climber_display_name}?`
+    );
     if (!shouldDelete) {
       return;
     }
@@ -386,7 +390,7 @@ export default function BoulderDetailPage({
                 <li className="media-item" key={mediaItem.id}>
                   <video controls playsInline preload="metadata" src={mediaUrl(mediaItem.url)} />
                   <div className="media-meta">
-                    <strong>{mediaItem.climber}</strong>
+                    <strong>{mediaItem.climber_display_name}</strong>
                     <span>
                       {formatCommentTime(mediaItem.created_at)} ·{" "}
                       {formatMediaSize(mediaItem.file_size)}
@@ -465,7 +469,7 @@ export default function BoulderDetailPage({
                       `${record.climber}-${record.climbed_on}-${record.own_grade}`
                     }
                   >
-                    <th>{record.climber || "-"}</th>
+                    <th>{record.climber_display_name || "-"}</th>
                     <td>{record.own_grade}</td>
                     <td>{record.grade_27crags}</td>
                     <td>{record.guide_grade}</td>
@@ -539,7 +543,7 @@ export default function BoulderDetailPage({
                     ) : (
                       <>
                         <div className="comment-meta">
-                          <strong>{comment.climber}</strong>
+                          <strong>{comment.climber_display_name}</strong>
                           <span>{formatCommentTime(comment.created_at)}</span>
                         </div>
                         <p>{comment.body}</p>

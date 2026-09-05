@@ -205,6 +205,7 @@ function recordMatchesSearch(record: BoulderRecord, searchQuery: string): boolea
     record.area,
     record.sector,
     record.climber,
+    record.climber_display_name,
     record.grade_27crags,
     record.guide_grade,
     record.own_grade,
@@ -360,6 +361,14 @@ export default function App() {
     () =>
       Array.from(new Set(data?.records.map((record) => record.climber).filter(Boolean) ?? []))
         .sort((left, right) => left.localeCompare(right)),
+    [data]
+  );
+
+  const climberDisplayNames = useMemo(
+    () =>
+      new Map(
+        data?.records.map((record) => [record.climber, record.climber_display_name] as const) ?? []
+      ),
     [data]
   );
 
@@ -741,9 +750,9 @@ export default function App() {
             <BoulderForm
               isSaving={isSaving}
               knownAreas={knownAreas}
-              knownClimbers={knownClimbers}
               knownGrades={knownGrades}
               knownSectors={knownSectors}
+              currentDisplayName={currentUser?.display_name ?? null}
               currentUsername={currentUser?.username ?? null}
               onSubmit={handleAddBoulder}
             />
@@ -805,7 +814,7 @@ export default function App() {
                     <option value="">All climbers</option>
                     {knownClimbers.map((climber) => (
                       <option key={climber} value={climber}>
-                        {climber}
+                        {climberDisplayNames.get(climber) ?? climber}
                       </option>
                     ))}
                   </select>
@@ -856,6 +865,7 @@ export default function App() {
                   records={visibleData.records}
                   gradeOrder={visibleData.grade_order}
                   isSaving={isSaving}
+                  currentDisplayName={currentUser?.display_name ?? null}
                   currentUsername={currentUser?.username ?? null}
                   onDelete={handleDeleteBoulder}
                   onOpenBoulder={handleOpenBoulder}

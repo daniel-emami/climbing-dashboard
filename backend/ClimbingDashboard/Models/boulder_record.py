@@ -23,6 +23,7 @@ class BoulderRecord:
     visibility: str = ASCENT_VISIBILITY_PUBLIC
     ascent_id: int | None = None
     added_at: str | None = None
+    climber_display_name: str = ""
 
     def to_payload(self) -> dict[str, object]:
         """Return a frontend-friendly representation."""
@@ -41,4 +42,5 @@ class BoulderRecord:
             "visibility": self.visibility,
             "ascent_id": self.ascent_id,
             "added_at": self.added_at,
+            "climber_display_name": self.climber_display_name or self.climber,
         }

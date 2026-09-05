@@ -337,7 +337,9 @@ export default function ActivityFeed({
   };
 
   const removeComment = async (comment: AscentComment) => {
-    const shouldDelete = window.confirm(`Delete comment from ${comment.climber}?`);
+    const shouldDelete = window.confirm(
+      `Delete comment from ${comment.climber_display_name}?`
+    );
     if (!shouldDelete) {
       return;
     }
@@ -369,11 +371,11 @@ export default function ActivityFeed({
     return (
       <li className="activity-feed-item" key={item.key}>
         <div className="activity-feed-avatar" aria-hidden="true">
-          {initials(record.climber)}
+          {initials(record.climber_display_name)}
         </div>
         <div className="activity-feed-body">
           <p className="activity-feed-copy">
-            <strong>{record.climber || "Unknown climber"}</strong>{" "}
+            <strong>{record.climber_display_name || "Unknown climber"}</strong>{" "}
             {record.flash ? "flashed" : "logged"}{" "}
             <button
               className="activity-feed-link"
@@ -430,7 +432,7 @@ export default function ActivityFeed({
                       ) : (
                         <>
                           <p>
-                            <strong>{comment.climber}</strong> {comment.body}
+                            <strong>{comment.climber_display_name}</strong> {comment.body}
                           </p>
                           <div className="activity-comment-actions">
                             <span>{formatDateTime(comment.created_at)}</span>
@@ -491,11 +493,11 @@ export default function ActivityFeed({
     return (
       <li className="activity-feed-item activity-video-feed-item" key={item.key}>
         <div className="activity-feed-avatar" aria-hidden="true">
-          {initials(media.climber)}
+          {initials(media.climber_display_name)}
         </div>
         <div className="activity-feed-body">
           <p className="activity-feed-copy">
-            <strong>{media.climber || "Unknown climber"}</strong> uploaded a video to{" "}
+            <strong>{media.climber_display_name || "Unknown climber"}</strong> uploaded a video to{" "}
             <button
               className="activity-feed-link"
               type="button"

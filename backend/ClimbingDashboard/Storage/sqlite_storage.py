@@ -12,6 +12,7 @@ from ClimbingDashboard.Models.boulder_media import BoulderMedia
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Models.stored_media_file import StoredMediaFile
 from ClimbingDashboard.Storage.base_storage import BaseStorage
+from ClimbingDashboard.Storage.sqlite_user_schema import ensure_users_schema
 from ClimbingDashboard.Utilities.date_utils import parse_climbed_date
 
 logger = logging.getLogger(__name__)
@@ -47,10 +48,21 @@ class SqliteStorage(BaseStorage):
                         ascents.climbed_on,
                         ascents.rating,
                         ascents.visibility,
-                        ascents.created_at
+                        ascents.created_at,
+                        COALESCE(NULLIF(users.display_name, ''), ascents.climber)
+                            AS climber_display_name
                     FROM ascents
                     INNER JOIN boulder_problems AS problems
                         ON problems.id = ascents.boulder_id
+                    LEFT JOIN users
+                        ON users.deleted_at IS NULL
+                        AND (
+                            users.id = ascents.user_id
+                            OR (
+                                ascents.user_id IS NULL
+                                AND lower(users.username) = lower(ascents.climber)
+                            )
+                        )
                     WHERE ascents.visibility = 'public'
                         OR (? IS NOT NULL AND ascents.user_id = ?)
                     ORDER BY ascents.id
@@ -75,6 +87,7 @@ class SqliteStorage(BaseStorage):
                 visibility=str(row["visibility"]),
                 ascent_id=int(row["id"]),
                 added_at=str(row["created_at"]),
+                climber_display_name=str(row["climber_display_name"]),
             )
             for row in rows
         ]
@@ -239,10 +252,21 @@ class SqliteStorage(BaseStorage):
                         comments.climber,
                         comments.body,
                         comments.created_at,
-                        comments.updated_at
+                        comments.updated_at,
+                        COALESCE(NULLIF(users.display_name, ''), comments.climber)
+                            AS climber_display_name
                     FROM boulder_comments AS comments
                     INNER JOIN boulder_problems AS problems
                         ON problems.id = comments.boulder_id
+                    LEFT JOIN users
+                        ON users.deleted_at IS NULL
+                        AND (
+                            users.id = comments.user_id
+                            OR (
+                                comments.user_id IS NULL
+                                AND lower(users.username) = lower(comments.climber)
+                            )
+                        )
                     WHERE comments.boulder_id = ?
                         AND comments.deleted_at IS NULL
                     ORDER BY comments.created_at DESC, comments.id DESC
@@ -363,17 +387,28 @@ class SqliteStorage(BaseStorage):
                 rows = connection.execute(
                     """
                     SELECT
-                        id,
-                        ascent_id,
-                        user_id,
-                        climber,
-                        body,
-                        created_at,
-                        updated_at
+                        ascent_comments.id,
+                        ascent_comments.ascent_id,
+                        ascent_comments.user_id,
+                        ascent_comments.climber,
+                        ascent_comments.body,
+                        ascent_comments.created_at,
+                        ascent_comments.updated_at,
+                        COALESCE(NULLIF(users.display_name, ''), ascent_comments.climber)
+                            AS climber_display_name
                     FROM ascent_comments
-                    WHERE ascent_id = ?
-                        AND deleted_at IS NULL
-                    ORDER BY created_at ASC, id ASC
+                    LEFT JOIN users
+                        ON users.deleted_at IS NULL
+                        AND (
+                            users.id = ascent_comments.user_id
+                            OR (
+                                ascent_comments.user_id IS NULL
+                                AND lower(users.username) = lower(ascent_comments.climber)
+                            )
+                        )
+                    WHERE ascent_comments.ascent_id = ?
+                        AND ascent_comments.deleted_at IS NULL
+                    ORDER BY ascent_comments.created_at ASC, ascent_comments.id ASC
                     """,
                     (ascent_id,),
                 ).fetchall()
@@ -401,17 +436,30 @@ class SqliteStorage(BaseStorage):
                 rows = connection.execute(
                     f"""
                     SELECT
-                        id,
-                        ascent_id,
-                        user_id,
-                        climber,
-                        body,
-                        created_at,
-                        updated_at
+                        ascent_comments.id,
+                        ascent_comments.ascent_id,
+                        ascent_comments.user_id,
+                        ascent_comments.climber,
+                        ascent_comments.body,
+                        ascent_comments.created_at,
+                        ascent_comments.updated_at,
+                        COALESCE(NULLIF(users.display_name, ''), ascent_comments.climber)
+                            AS climber_display_name
                     FROM ascent_comments
-                    WHERE ascent_id IN ({placeholders})
-                        AND deleted_at IS NULL
-                    ORDER BY ascent_id, created_at ASC, id ASC
+                    LEFT JOIN users
+                        ON users.deleted_at IS NULL
+                        AND (
+                            users.id = ascent_comments.user_id
+                            OR (
+                                ascent_comments.user_id IS NULL
+                                AND lower(users.username) = lower(ascent_comments.climber)
+                            )
+                        )
+                    WHERE ascent_comments.ascent_id IN ({placeholders})
+                        AND ascent_comments.deleted_at IS NULL
+                    ORDER BY ascent_comments.ascent_id,
+                        ascent_comments.created_at ASC,
+                        ascent_comments.id ASC
                     """,
                     clean_ascent_ids,
                 ).fetchall()
@@ -543,10 +591,15 @@ class SqliteStorage(BaseStorage):
                         media.file_size,
                         media.caption,
                         media.created_at,
-                        media.updated_at
+                        media.updated_at,
+                        COALESCE(NULLIF(users.display_name, ''), media.climber)
+                            AS climber_display_name
                     FROM boulder_media AS media
                     INNER JOIN boulder_problems AS problems
                         ON problems.id = media.boulder_id
+                    LEFT JOIN users
+                        ON users.deleted_at IS NULL
+                        AND lower(users.username) = lower(media.climber)
                     WHERE media.boulder_id = ?
                         AND media.deleted_at IS NULL
                     ORDER BY media.created_at DESC, media.id DESC
@@ -580,10 +633,15 @@ class SqliteStorage(BaseStorage):
                         media.file_size,
                         media.caption,
                         media.created_at,
-                        media.updated_at
+                        media.updated_at,
+                        COALESCE(NULLIF(users.display_name, ''), media.climber)
+                            AS climber_display_name
                     FROM boulder_media AS media
                     INNER JOIN boulder_problems AS problems
                         ON problems.id = media.boulder_id
+                    LEFT JOIN users
+                        ON users.deleted_at IS NULL
+                        AND lower(users.username) = lower(media.climber)
                     WHERE media.deleted_at IS NULL
                     ORDER BY media.created_at DESC, media.id DESC
                     LIMIT ?
@@ -695,6 +753,7 @@ class SqliteStorage(BaseStorage):
             raise StorageError(f"Failed to create SQLite schema: {exc}") from exc
 
     def _create_normalized_tables(self, connection: sqlite3.Connection) -> None:
+        ensure_users_schema(connection)
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS boulder_problems (
@@ -1130,10 +1189,21 @@ class SqliteStorage(BaseStorage):
                 comments.climber,
                 comments.body,
                 comments.created_at,
-                comments.updated_at
+                comments.updated_at,
+                COALESCE(NULLIF(users.display_name, ''), comments.climber)
+                    AS climber_display_name
             FROM boulder_comments AS comments
             INNER JOIN boulder_problems AS problems
                 ON problems.id = comments.boulder_id
+            LEFT JOIN users
+                ON users.deleted_at IS NULL
+                AND (
+                    users.id = comments.user_id
+                    OR (
+                        comments.user_id IS NULL
+                        AND lower(users.username) = lower(comments.climber)
+                    )
+                )
             WHERE comments.id = ?
                 AND comments.deleted_at IS NULL
             """,
@@ -1152,6 +1222,7 @@ class SqliteStorage(BaseStorage):
             created_at=str(row["created_at"]),
             updated_at=str(row["updated_at"]),
             user_id=None if row["user_id"] is None else int(row["user_id"]),
+            climber_display_name=str(row["climber_display_name"]),
         )
 
     def _ensure_comment_owner(
@@ -1173,16 +1244,27 @@ class SqliteStorage(BaseStorage):
         row = connection.execute(
             """
             SELECT
-                id,
-                ascent_id,
-                user_id,
-                climber,
-                body,
-                created_at,
-                updated_at
+                ascent_comments.id,
+                ascent_comments.ascent_id,
+                ascent_comments.user_id,
+                ascent_comments.climber,
+                ascent_comments.body,
+                ascent_comments.created_at,
+                ascent_comments.updated_at,
+                COALESCE(NULLIF(users.display_name, ''), ascent_comments.climber)
+                    AS climber_display_name
             FROM ascent_comments
-            WHERE id = ?
-                AND deleted_at IS NULL
+            LEFT JOIN users
+                ON users.deleted_at IS NULL
+                AND (
+                    users.id = ascent_comments.user_id
+                    OR (
+                        ascent_comments.user_id IS NULL
+                        AND lower(users.username) = lower(ascent_comments.climber)
+                    )
+                )
+            WHERE ascent_comments.id = ?
+                AND ascent_comments.deleted_at IS NULL
             """,
             (comment_id,),
         ).fetchone()
@@ -1197,6 +1279,7 @@ class SqliteStorage(BaseStorage):
             created_at=str(row["created_at"]),
             updated_at=str(row["updated_at"]),
             user_id=None if row["user_id"] is None else int(row["user_id"]),
+            climber_display_name=str(row["climber_display_name"]),
         )
 
     def _ensure_ascent_comment_owner(
@@ -1231,10 +1314,15 @@ class SqliteStorage(BaseStorage):
                 media.file_size,
                 media.caption,
                 media.created_at,
-                media.updated_at
+                media.updated_at,
+                COALESCE(NULLIF(users.display_name, ''), media.climber)
+                    AS climber_display_name
             FROM boulder_media AS media
             INNER JOIN boulder_problems AS problems
                 ON problems.id = media.boulder_id
+            LEFT JOIN users
+                ON users.deleted_at IS NULL
+                AND lower(users.username) = lower(media.climber)
             WHERE media.id = ?
                 AND media.deleted_at IS NULL
             """,
@@ -1259,6 +1347,7 @@ class SqliteStorage(BaseStorage):
             caption=str(row["caption"]),
             created_at=str(row["created_at"]),
             updated_at=str(row["updated_at"]),
+            climber_display_name=str(row["climber_display_name"]),
         )
 
     def _ascent_values(

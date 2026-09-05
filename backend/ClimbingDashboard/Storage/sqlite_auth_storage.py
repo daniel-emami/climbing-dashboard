@@ -7,6 +7,7 @@ from ClimbingDashboard.Exceptions.storage_error import StorageError
 from ClimbingDashboard.Models.user_account import UserAccount
 from ClimbingDashboard.Models.user_credentials import UserCredentials
 from ClimbingDashboard.Storage.base_auth_storage import BaseAuthStorage
+from ClimbingDashboard.Storage.sqlite_user_schema import ensure_users_schema
 
 
 class SqliteAuthStorage(BaseAuthStorage):
@@ -157,26 +158,7 @@ class SqliteAuthStorage(BaseAuthStorage):
     def _create_schema(self) -> None:
         try:
             with self._connect() as connection:
-                connection.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username TEXT NOT NULL,
-                        display_name TEXT NOT NULL DEFAULT '',
-                        password_hash TEXT NOT NULL,
-                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        deleted_at TEXT
-                    )
-                    """
-                )
-                connection.execute(
-                    """
-                    CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique_key
-                    ON users (lower(username))
-                    WHERE deleted_at IS NULL
-                    """
-                )
+                ensure_users_schema(connection)
                 connection.execute(
                     """
                     CREATE TABLE IF NOT EXISTS auth_sessions (

@@ -20,8 +20,8 @@ const RATING_OPTIONS = [1, 2, 3, 4, 5];
 type BoulderFormProps = {
   isSaving: boolean;
   knownAreas: string[];
-  knownClimbers: string[];
   knownGrades: string[];
+  currentDisplayName: string | null;
   currentUsername: string | null;
   knownSectors: string[];
   onSubmit: (request: BoulderCreateRequest) => Promise<void>;
@@ -30,8 +30,8 @@ type BoulderFormProps = {
 export default function BoulderForm({
   isSaving,
   knownAreas,
-  knownClimbers,
   knownGrades,
+  currentDisplayName,
   currentUsername,
   knownSectors,
   onSubmit
@@ -79,9 +79,7 @@ export default function BoulderForm({
         <input
           required
           disabled
-          list="known-climbers"
-          value={currentUsername ?? form.climber}
-          onChange={(event) => updateForm("climber", event.target.value)}
+          value={currentDisplayName ?? currentUsername ?? ""}
         />
       </label>
 
@@ -194,11 +192,6 @@ export default function BoulderForm({
       <datalist id="known-grades">
         {knownGrades.map((grade) => (
           <option value={grade} key={grade} />
-        ))}
-      </datalist>
-      <datalist id="known-climbers">
-        {knownClimbers.map((climber) => (
-          <option value={climber} key={climber} />
         ))}
       </datalist>
       <datalist id="known-sectors">

@@ -6,6 +6,7 @@ export type BoulderRecord = {
   area: string;
   sector: string;
   climber: string;
+  climber_display_name: string;
   flash: boolean;
   climbed_on: string | null;
   rating: number | null;
@@ -87,6 +88,7 @@ export type BoulderComment = {
   area: string;
   sector: string;
   climber: string;
+  climber_display_name: string;
   body: string;
   created_at: string;
   updated_at: string;
@@ -112,6 +114,7 @@ export type AscentComment = {
   id: number;
   ascent_id: number;
   climber: string;
+  climber_display_name: string;
   body: string;
   created_at: string;
   updated_at: string;
@@ -142,6 +145,7 @@ export type BoulderMedia = {
   sector: string;
   ascent_id: number | null;
   climber: string;
+  climber_display_name: string;
   media_type: "video";
   url: string;
   original_filename: string;

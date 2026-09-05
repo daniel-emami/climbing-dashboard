@@ -10,6 +10,7 @@ type BoulderTableProps = {
   records: BoulderRecord[];
   gradeOrder: string[];
   isSaving: boolean;
+  currentDisplayName: string | null;
   currentUsername: string | null;
   onDelete: (request: BoulderIdentity) => Promise<void>;
   onOpenBoulder: (identity: BoulderPageIdentity) => void;
@@ -125,6 +126,7 @@ export default function BoulderTable({
   records,
   gradeOrder,
   isSaving,
+  currentDisplayName,
   currentUsername,
   onDelete,
   onOpenBoulder,
@@ -225,7 +227,7 @@ export default function BoulderTable({
       return;
     }
     const shouldDelete = window.confirm(
-      `Remove ${record.name} from ${formatLocation(record)} for ${record.climber}?`
+      `Remove ${record.name} from ${formatLocation(record)} for ${record.climber_display_name}?`
     );
     if (!shouldDelete) {
       return;
@@ -373,11 +375,10 @@ export default function BoulderTable({
                         className="table-inline-input"
                         disabled
                         required
-                        value={currentUsername ?? editableRecord.climber}
-                        onChange={(event) => updateDraft("climber", event.target.value)}
+                        value={currentDisplayName ?? currentUsername ?? editableRecord.climber}
                       />
                     ) : (
-                      record.climber
+                      record.climber_display_name
                     )}
                   </td>
                   <td>

@@ -14,6 +14,7 @@ class AscentComment:
     created_at: str
     updated_at: str
     user_id: int | None = None
+    climber_display_name: str = ""
 
     def to_payload(self) -> dict[str, object]:
         """Return a frontend-friendly representation."""
@@ -26,4 +27,5 @@ class AscentComment:
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "user_id": self.user_id,
+            "climber_display_name": self.climber_display_name or self.climber,
         }
