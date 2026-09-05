@@ -14,8 +14,8 @@ import type {
 } from "../Types/boulderTypes";
 
 type ActivityFeedProps = {
-  currentClimber: string;
-  knownClimbers: string[];
+  currentUsername: string | null;
+  selectedClimber: string;
   records: BoulderRecord[];
   onError: (message: string) => void;
   onOpenBoulder: (identity: BoulderPageIdentity) => void;
@@ -41,7 +41,6 @@ const FEED_LIMIT = 30;
 const RECENT_MEDIA_LIMIT = 60;
 
 type CommentDraft = {
-  climber: string;
   body: string;
 };
 
@@ -151,8 +150,8 @@ function recordKey(record: BoulderRecord): string {
 }
 
 export default function ActivityFeed({
-  currentClimber,
-  knownClimbers,
+  currentUsername,
+  selectedClimber,
   records,
   onError,
   onOpenBoulder
@@ -164,7 +163,7 @@ export default function ActivityFeed({
   const [draftsByAscentId, setDraftsByAscentId] = useState<Record<number, CommentDraft>>({});
   const [savingAscentIds, setSavingAscentIds] = useState<Set<number>>(new Set());
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
-  const [editingDraft, setEditingDraft] = useState<CommentDraft>({ climber: "", body: "" });
+  const [editingDraft, setEditingDraft] = useState<CommentDraft>({ body: "" });
 
   useEffect(() => {
     let ignoreResult = false;
@@ -198,9 +197,9 @@ export default function ActivityFeed({
       recentMedia.filter(
         (media) =>
           visibleBoulderKeys.has(boulderKey(media.boulder_name, media.area, media.sector)) &&
-          (!currentClimber || media.climber === currentClimber)
+          (!selectedClimber || media.climber === selectedClimber)
       ),
-    [currentClimber, recentMedia, visibleBoulderKeys]
+    [recentMedia, selectedClimber, visibleBoulderKeys]
   );
 
   const feedItems = useMemo<FeedItem[]>(
@@ -265,10 +264,8 @@ export default function ActivityFeed({
     };
   }, [feedAscentIds, onError]);
 
-  const defaultClimber = currentClimber || knownClimbers[0] || "";
-
   const draftForAscent = (ascentId: number): CommentDraft =>
-    draftsByAscentId[ascentId] ?? { climber: defaultClimber, body: "" };
+    draftsByAscentId[ascentId] ?? { body: "" };
 
   const updateDraft = (ascentId: number, draft: CommentDraft) => {
     setDraftsByAscentId((current) => ({ ...current, [ascentId]: draft }));
@@ -292,17 +289,16 @@ export default function ActivityFeed({
   ) => {
     event.preventDefault();
     const draft = draftForAscent(ascentId);
-    const climber = draft.climber.trim();
     const body = draft.body.trim();
-    if (!climber || !body) {
+    if (!currentUsername || !body) {
       return;
     }
 
     setSaving(ascentId, true);
     try {
-      const payload = await addAscentComment({ ascent_id: ascentId, climber, body });
+      const payload = await addAscentComment({ ascent_id: ascentId, body });
       setCommentsByAscentId((current) => ({ ...current, [ascentId]: payload.comments }));
-      updateDraft(ascentId, { climber, body: "" });
+      updateDraft(ascentId, { body: "" });
     } catch (unknownError: unknown) {
       onError(unknownError instanceof Error ? unknownError.message : "Unknown ascent comment error");
     } finally {
@@ -312,23 +308,22 @@ export default function ActivityFeed({
 
   const startEditingComment = (comment: AscentComment) => {
     setEditingCommentId(comment.id);
-    setEditingDraft({ climber: comment.climber, body: comment.body });
+    setEditingDraft({ body: comment.body });
   };
 
   const cancelEditingComment = () => {
     setEditingCommentId(null);
-    setEditingDraft({ climber: "", body: "" });
+    setEditingDraft({ body: "" });
   };
 
   const saveEditingComment = async (comment: AscentComment) => {
-    const climber = editingDraft.climber.trim();
     const body = editingDraft.body.trim();
-    if (!climber || !body) {
+    if (!currentUsername || !body) {
       return;
     }
     setSaving(comment.ascent_id, true);
     try {
-      const payload = await updateAscentComment(comment.id, { climber, body });
+      const payload = await updateAscentComment(comment.id, { body });
       setCommentsByAscentId((current) => ({
         ...current,
         [comment.ascent_id]: payload.comments
@@ -368,7 +363,7 @@ export default function ActivityFeed({
     const rating = formatRating(record.rating);
     const ascentId = record.ascent_id;
     const comments = ascentId === null ? [] : commentsByAscentId[ascentId] ?? [];
-    const draft = ascentId === null ? { climber: "", body: "" } : draftForAscent(ascentId);
+    const draft = ascentId === null ? { body: "" } : draftForAscent(ascentId);
     const isSavingComment = ascentId !== null && savingAscentIds.has(ascentId);
 
     return (
@@ -400,21 +395,13 @@ export default function ActivityFeed({
               <ol className="activity-comment-list">
                 {comments.map((comment) => {
                   const isEditing = editingCommentId === comment.id;
+                  const canEditComment =
+                    currentUsername !== null &&
+                    comment.climber.toLocaleLowerCase() === currentUsername.toLocaleLowerCase();
                   return (
                     <li className="activity-comment-item" key={comment.id}>
                       {isEditing ? (
                         <div className="activity-comment-edit-form">
-                          <input
-                            aria-label="Comment climber"
-                            list="feed-comment-climbers"
-                            value={editingDraft.climber}
-                            onChange={(event) =>
-                              setEditingDraft((current) => ({
-                                ...current,
-                                climber: event.target.value
-                              }))
-                            }
-                          />
                           <input
                             aria-label="Comment"
                             value={editingDraft.body}
@@ -426,7 +413,7 @@ export default function ActivityFeed({
                             }
                           />
                           <button
-                            disabled={isSavingComment}
+                            disabled={isSavingComment || !canEditComment}
                             type="button"
                             onClick={() => void saveEditingComment(comment)}
                           >
@@ -447,21 +434,25 @@ export default function ActivityFeed({
                           </p>
                           <div className="activity-comment-actions">
                             <span>{formatDateTime(comment.created_at)}</span>
-                            <button
-                              disabled={isSavingComment}
-                              type="button"
-                              onClick={() => startEditingComment(comment)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="danger-button"
-                              disabled={isSavingComment}
-                              type="button"
-                              onClick={() => void removeComment(comment)}
-                            >
-                              Delete
-                            </button>
+                            {canEditComment && (
+                              <>
+                                <button
+                                  disabled={isSavingComment}
+                                  type="button"
+                                  onClick={() => startEditingComment(comment)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="danger-button"
+                                  disabled={isSavingComment}
+                                  type="button"
+                                  onClick={() => void removeComment(comment)}
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
                           </div>
                         </>
                       )}
@@ -476,24 +467,16 @@ export default function ActivityFeed({
                 onSubmit={(event) => void submitComment(event, ascentId)}
               >
                 <input
-                  aria-label="Comment climber"
-                  list="feed-comment-climbers"
-                  placeholder="Climber"
-                  value={draft.climber}
-                  onChange={(event) =>
-                    updateDraft(ascentId, { ...draft, climber: event.target.value })
-                  }
-                />
-                <input
                   aria-label="Ascent comment"
-                  placeholder="Comment on this ascent"
+                  disabled={!currentUsername}
+                  placeholder={currentUsername ? "Comment on this ascent" : "Log in to comment"}
                   value={draft.body}
                   onChange={(event) =>
                     updateDraft(ascentId, { ...draft, body: event.target.value })
                   }
                 />
-                <button disabled={isSavingComment} type="submit">
-                  Post
+                <button disabled={isSavingComment || !currentUsername} type="submit">
+                  {currentUsername ? "Post" : "Login To Post"}
                 </button>
               </form>
             )}
@@ -549,11 +532,6 @@ export default function ActivityFeed({
           )}
         </ol>
       )}
-      <datalist id="feed-comment-climbers">
-        {knownClimbers.map((climber) => (
-          <option key={climber} value={climber} />
-        ))}
-      </datalist>
     </section>
   );
 }

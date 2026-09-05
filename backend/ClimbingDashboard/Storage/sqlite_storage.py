@@ -365,6 +365,7 @@ class SqliteStorage(BaseStorage):
                     SELECT
                         id,
                         ascent_id,
+                        user_id,
                         climber,
                         body,
                         created_at,
@@ -402,6 +403,7 @@ class SqliteStorage(BaseStorage):
                     SELECT
                         id,
                         ascent_id,
+                        user_id,
                         climber,
                         body,
                         created_at,
@@ -426,6 +428,7 @@ class SqliteStorage(BaseStorage):
         ascent_id: int,
         climber: str,
         body: str,
+        user_id: int | None = None,
     ) -> AscentComment:
         """Append one public comment to an existing ascent."""
 
@@ -435,10 +438,10 @@ class SqliteStorage(BaseStorage):
                     raise StorageError(f"Ascent does not exist: {ascent_id}")
                 cursor = connection.execute(
                     """
-                    INSERT INTO ascent_comments (ascent_id, climber, body)
-                    VALUES (?, ?, ?)
+                    INSERT INTO ascent_comments (ascent_id, user_id, climber, body)
+                    VALUES (?, ?, ?, ?)
                     """,
-                    (ascent_id, climber, body),
+                    (ascent_id, user_id, climber, body),
                 )
                 comment = self._find_ascent_comment(connection, int(cursor.lastrowid))
                 if comment is None:
@@ -453,6 +456,7 @@ class SqliteStorage(BaseStorage):
         comment_id: int,
         climber: str,
         body: str,
+        user_id: int | None = None,
     ) -> AscentComment:
         """Update one public ascent comment."""
 
@@ -461,17 +465,19 @@ class SqliteStorage(BaseStorage):
                 existing = self._find_ascent_comment(connection, comment_id)
                 if existing is None:
                     raise StorageError(f"Ascent comment does not exist: {comment_id}")
+                self._ensure_ascent_comment_owner(existing, climber, user_id)
                 connection.execute(
                     """
                     UPDATE ascent_comments
                     SET
+                        user_id = ?,
                         climber = ?,
                         body = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                         AND deleted_at IS NULL
                     """,
-                    (climber, body, comment_id),
+                    (user_id, climber, body, comment_id),
                 )
                 comment = self._find_ascent_comment(connection, comment_id)
                 if comment is None:
@@ -481,7 +487,12 @@ class SqliteStorage(BaseStorage):
 
         return comment
 
-    def delete_ascent_comment(self, comment_id: int) -> AscentComment:
+    def delete_ascent_comment(
+        self,
+        comment_id: int,
+        climber: str,
+        user_id: int | None = None,
+    ) -> AscentComment:
         """Soft-delete one public ascent comment."""
 
         try:
@@ -489,6 +500,7 @@ class SqliteStorage(BaseStorage):
                 comment = self._find_ascent_comment(connection, comment_id)
                 if comment is None:
                     raise StorageError(f"Ascent comment does not exist: {comment_id}")
+                self._ensure_ascent_comment_owner(comment, climber, user_id)
                 connection.execute(
                     """
                     UPDATE ascent_comments
@@ -753,6 +765,7 @@ class SqliteStorage(BaseStorage):
             CREATE TABLE IF NOT EXISTS ascent_comments (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ascent_id INTEGER NOT NULL,
+                user_id INTEGER,
                 climber TEXT NOT NULL,
                 body TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -820,6 +833,10 @@ class SqliteStorage(BaseStorage):
         comment_columns = self._column_names(connection, "boulder_comments")
         if "user_id" not in comment_columns:
             connection.execute("ALTER TABLE boulder_comments ADD COLUMN user_id INTEGER")
+
+        ascent_comment_columns = self._column_names(connection, "ascent_comments")
+        if "user_id" not in ascent_comment_columns:
+            connection.execute("ALTER TABLE ascent_comments ADD COLUMN user_id INTEGER")
 
     def _migrate_legacy_boulders_table(self, connection: sqlite3.Connection) -> None:
         if not self._table_exists(connection, "boulders"):
@@ -1158,6 +1175,7 @@ class SqliteStorage(BaseStorage):
             SELECT
                 id,
                 ascent_id,
+                user_id,
                 climber,
                 body,
                 created_at,
@@ -1178,7 +1196,19 @@ class SqliteStorage(BaseStorage):
             body=str(row["body"]),
             created_at=str(row["created_at"]),
             updated_at=str(row["updated_at"]),
+            user_id=None if row["user_id"] is None else int(row["user_id"]),
         )
+
+    def _ensure_ascent_comment_owner(
+        self,
+        comment: AscentComment,
+        climber: str,
+        user_id: int | None,
+    ) -> None:
+        if comment.user_id is not None and comment.user_id != user_id:
+            raise PermissionError("You can only edit your own comments")
+        if comment.user_id is None and comment.climber.lower() != climber.lower():
+            raise PermissionError("You can only edit your own comments")
 
     def _find_media(
         self,

@@ -115,6 +115,7 @@ export type AscentComment = {
   body: string;
   created_at: string;
   updated_at: string;
+  user_id: number | null;
 };
 
 export type AscentCommentsResponse = {
@@ -127,12 +128,10 @@ export type AscentCommentsByAscentResponse = {
 
 export type AscentCommentCreateRequest = {
   ascent_id: number;
-  climber: string;
   body: string;
 };
 
 export type AscentCommentUpdateRequest = {
-  climber: string;
   body: string;
 };
 

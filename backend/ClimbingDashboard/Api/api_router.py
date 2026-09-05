@@ -343,8 +343,9 @@ def add_ascent_comment(
     """Append a public comment to one ascent."""
 
     try:
+        current_user = require_current_user(request)
         comment = AscentCommentCreateRequest.from_payload(payload)
-        return get_api_service(request).save_ascent_comment(comment)
+        return get_api_service(request).save_ascent_comment(comment, current_user)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ApiDataError as exc:
@@ -360,10 +361,17 @@ def update_ascent_comment(
     """Update a public ascent comment."""
 
     try:
+        current_user = require_current_user(request)
         comment = AscentCommentUpdateRequest.from_payload(payload)
-        return get_api_service(request).update_ascent_comment(comment_id, comment)
+        return get_api_service(request).update_ascent_comment(
+            comment_id,
+            comment,
+            current_user,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -373,7 +381,10 @@ def delete_ascent_comment(comment_id: int, request: Request) -> dict[str, object
     """Soft-delete a public ascent comment."""
 
     try:
-        return get_api_service(request).delete_ascent_comment(comment_id)
+        current_user = require_current_user(request)
+        return get_api_service(request).delete_ascent_comment(comment_id, current_user)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

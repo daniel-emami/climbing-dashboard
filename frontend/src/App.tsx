@@ -831,8 +831,8 @@ export default function App() {
               {activePage === "feed" && (
                 <>
                   <ActivityFeed
-                    currentClimber={selectedClimber}
-                    knownClimbers={knownClimbers}
+                    currentUsername={currentUser?.username ?? null}
+                    selectedClimber={selectedClimber}
                     records={visibleData.records}
                     onError={setError}
                     onOpenBoulder={handleOpenBoulder}

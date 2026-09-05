@@ -100,6 +100,7 @@ class BaseStorage(ABC):
         ascent_id: int,
         climber: str,
         body: str,
+        user_id: int | None = None,
     ) -> AscentComment:
         """Append and persist one ascent comment."""
 
@@ -109,11 +110,17 @@ class BaseStorage(ABC):
         comment_id: int,
         climber: str,
         body: str,
+        user_id: int | None = None,
     ) -> AscentComment:
         """Update one persisted ascent comment."""
 
     @abstractmethod
-    def delete_ascent_comment(self, comment_id: int) -> AscentComment:
+    def delete_ascent_comment(
+        self,
+        comment_id: int,
+        climber: str,
+        user_id: int | None = None,
+    ) -> AscentComment:
         """Soft-delete one persisted ascent comment."""
 
     @abstractmethod

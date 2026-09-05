@@ -249,14 +249,16 @@ class ApiService(BaseApiService):
     def save_ascent_comment(
         self,
         request: AscentCommentCreateRequest,
+        current_user: UserAccount,
     ) -> AscentCommentsPayload:
         """Append one ascent comment, then return the refreshed comment thread."""
 
         try:
             self.storage.append_ascent_comment(
                 request.ascent_id,
-                request.climber,
+                current_user.username,
                 request.body,
+                current_user.id,
             )
             comments = self.storage.read_ascent_comments(request.ascent_id)
         except StorageError as exc:
@@ -267,26 +269,40 @@ class ApiService(BaseApiService):
         self,
         comment_id: int,
         request: AscentCommentUpdateRequest,
+        current_user: UserAccount,
     ) -> AscentCommentsPayload:
         """Update one ascent comment, then return the refreshed comment thread."""
 
         try:
             comment = self.storage.update_ascent_comment(
                 comment_id,
-                request.climber,
+                current_user.username,
                 request.body,
+                current_user.id,
             )
             comments = self.storage.read_ascent_comments(comment.ascent_id)
+        except PermissionError:
+            raise
         except StorageError as exc:
             raise ApiDataError(f"Could not update ascent comment: {exc}") from exc
         return self._ascent_comments_payload(comments)
 
-    def delete_ascent_comment(self, comment_id: int) -> AscentCommentsPayload:
+    def delete_ascent_comment(
+        self,
+        comment_id: int,
+        current_user: UserAccount,
+    ) -> AscentCommentsPayload:
         """Soft-delete one ascent comment, then return the refreshed comment thread."""
 
         try:
-            comment = self.storage.delete_ascent_comment(comment_id)
+            comment = self.storage.delete_ascent_comment(
+                comment_id,
+                current_user.username,
+                current_user.id,
+            )
             comments = self.storage.read_ascent_comments(comment.ascent_id)
+        except PermissionError:
+            raise
         except StorageError as exc:
             raise ApiDataError(f"Could not delete ascent comment: {exc}") from exc
         return self._ascent_comments_payload(comments)

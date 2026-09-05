@@ -111,9 +111,9 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 - `DELETE /api/boulders/media/{media_id}` soft-deletes one uploaded media item.
 - `GET /api/ascents/{ascent_id}/comments` returns public comments for one ascent.
 - `GET /api/ascents/comments?ascent_ids=1,2,3` returns public comments grouped by ascent id.
-- `POST /api/ascents/comments` appends a public comment to one ascent.
-- `PUT /api/ascents/comments/{comment_id}` updates a public ascent comment.
-- `DELETE /api/ascents/comments/{comment_id}` soft-deletes a public ascent comment.
+- `POST /api/ascents/comments` appends a comment using the logged-in username.
+- `PUT /api/ascents/comments/{comment_id}` updates the logged-in user's own ascent comment.
+- `DELETE /api/ascents/comments/{comment_id}` soft-deletes the logged-in user's own ascent comment.
 - `POST /api/imports/thetopo/preview` previews public TheTopo boulders for a username.
 - `POST /api/imports/thetopo/confirm` saves selected preview boulders for the logged-in user.
 - `POST /api/exports/boulders` exports supplied boulder rows to an Excel workbook.
