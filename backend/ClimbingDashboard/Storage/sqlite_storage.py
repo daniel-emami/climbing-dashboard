@@ -709,6 +709,71 @@ class SqliteStorage(BaseStorage):
             raise PermissionError("You do not have access to this video")
         return media
 
+    def read_profile_media(
+        self,
+        username: str,
+        user_id: int,
+        include_private: bool,
+    ) -> list[BoulderMedia]:
+        """Read one user's public media and private media when viewed by its owner."""
+
+        try:
+            with self._connect() as connection:
+                rows = connection.execute(
+                    """
+                    SELECT
+                        media.id,
+                        problems.name,
+                        problems.area,
+                        problems.sector,
+                        media.ascent_id,
+                        media.user_id,
+                        media.climber,
+                        media.media_type,
+                        media.file_path,
+                        media.original_filename,
+                        media.mime_type,
+                        media.file_size,
+                        media.caption,
+                        media.created_at,
+                        media.updated_at,
+                        COALESCE(ascents.visibility, 'private') AS visibility,
+                        COALESCE(NULLIF(users.display_name, ''), media.climber)
+                            AS climber_display_name
+                    FROM boulder_media AS media
+                    INNER JOIN boulder_problems AS problems
+                        ON problems.id = media.boulder_id
+                    LEFT JOIN ascents
+                        ON ascents.id = media.ascent_id
+                    LEFT JOIN users
+                        ON users.deleted_at IS NULL
+                        AND (
+                            users.id = media.user_id
+                            OR (
+                                media.user_id IS NULL
+                                AND lower(users.username) = lower(media.climber)
+                            )
+                        )
+                    WHERE media.deleted_at IS NULL
+                        AND (
+                            media.user_id = ?
+                            OR (
+                                media.user_id IS NULL
+                                AND lower(media.climber) = lower(?)
+                            )
+                        )
+                        AND (
+                            ascents.visibility = 'public'
+                            OR (? = 1 AND media.user_id = ?)
+                        )
+                    ORDER BY media.created_at DESC, media.id DESC
+                    """,
+                    (user_id, username, 1 if include_private else 0, user_id),
+                ).fetchall()
+        except sqlite3.Error as exc:
+            raise StorageError(f"Failed to read profile media: {exc}") from exc
+        return [self._media_from_row(row) for row in rows]
+
     def append_boulder_media(
         self,
         name: str,

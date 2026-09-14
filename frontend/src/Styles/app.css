@@ -520,6 +520,296 @@ h2 {
   color: #0f3f3a;
 }
 
+.profile-link-button {
+  border: 0;
+  background: transparent;
+  color: #0f766e;
+  padding: 0;
+  font: inherit;
+  font-weight: 900;
+}
+
+.profile-link-button:hover {
+  color: #115e59;
+  text-decoration: underline;
+}
+
+.boulderer-page {
+  min-width: 0;
+}
+
+.boulderer-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+}
+
+.boulderer-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 16px;
+}
+
+.boulderer-avatar {
+  width: 104px;
+  height: 104px;
+  flex: 0 0 104px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #b7c4d4;
+  border-radius: 50%;
+  background: #d9f3ee;
+  color: #0f766e;
+  font-size: 1.7rem;
+  font-weight: 900;
+}
+
+.boulderer-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.boulderer-identity h2 {
+  margin: 5px 0 0;
+  font-size: 1.8rem;
+}
+
+.boulderer-identity p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-weight: 850;
+}
+
+.boulderer-hero > button,
+.boulderer-edit-form button {
+  min-height: 36px;
+  border: 1px solid #0f766e;
+  border-radius: 6px;
+  background: #0f766e;
+  color: #ffffff;
+  padding: 0 13px;
+  font-weight: 900;
+}
+
+.boulderer-hero > button:hover:not(:disabled),
+.boulderer-edit-form button:hover:not(:disabled) {
+  border-color: #115e59;
+  background: #115e59;
+}
+
+.boulderer-edit-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(240px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.boulderer-edit-form label {
+  display: grid;
+  gap: 5px;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.boulderer-edit-form input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #172033;
+  padding: 7px 9px;
+}
+
+.boulderer-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.boulderer-summary div {
+  min-width: 0;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px 14px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+.boulderer-summary dt,
+.boulderer-highest-grades dt {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.boulderer-summary dd {
+  margin: 8px 0 0;
+  overflow: hidden;
+  color: #111827;
+  font-size: 1.25rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boulderer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+  gap: 16px;
+}
+
+.boulderer-grid .panel {
+  margin-bottom: 0;
+}
+
+.boulderer-recent-panel,
+.boulderer-grades-panel,
+.boulderer-ratings-panel,
+.boulderer-videos-panel {
+  min-width: 0;
+}
+
+.boulderer-ratings-panel,
+.boulderer-videos-panel {
+  grid-column: 1 / -1;
+}
+
+.boulderer-ascent-list,
+.boulderer-grade-bars,
+.boulderer-rating-list,
+.boulderer-video-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.boulderer-ascent-list li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(130px, 0.8fr) 50px 100px;
+  gap: 10px;
+  align-items: center;
+  min-height: 39px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+}
+
+.boulderer-ascent-list li:first-child,
+.boulderer-rating-list li:first-child {
+  border-top: 0;
+}
+
+.boulderer-ascent-list button,
+.boulderer-rating-list button,
+.boulderer-video-list button {
+  border: 0;
+  background: transparent;
+  color: #0f766e;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.boulderer-ascent-list span,
+.boulderer-ascent-list time,
+.boulderer-rating-list span,
+.boulderer-video-list span {
+  overflow: hidden;
+  color: #64748b;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boulderer-grade-bars {
+  display: grid;
+  gap: 8px;
+}
+
+.boulderer-grade-bars li {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 28px;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.78rem;
+}
+
+.boulderer-grade-bars li > div {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #e2e8f0;
+}
+
+.boulderer-grade-bars i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: #0f766e;
+}
+
+.boulderer-highest-grades {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 15px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.boulderer-highest-grades dd {
+  margin: 5px 0 0;
+  color: #111827;
+  font-weight: 900;
+}
+
+.boulderer-rating-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+}
+
+.boulderer-rating-list li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 0.8fr) 48px;
+  gap: 10px;
+  align-items: center;
+  min-height: 38px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+}
+
+.boulderer-video-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.boulderer-video-list li {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.boulderer-video-list video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: #111827;
+  object-fit: contain;
+}
+
 .boulder-detail-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
@@ -1372,7 +1662,17 @@ tbody tr:hover td {
   .dashboard-layout,
   .insight-grid,
   .boulder-detail-hero,
-  .boulder-detail-grid {
+  .boulder-detail-grid,
+  .boulderer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .boulderer-ratings-panel,
+  .boulderer-videos-panel {
+    grid-column: auto;
+  }
+
+  .boulderer-edit-form {
     grid-template-columns: 1fr;
   }
 
@@ -1435,8 +1735,40 @@ tbody tr:hover td {
   }
 
   .workspace-status,
-  .summary-strip {
+  .summary-strip,
+  .boulderer-summary,
+  .boulderer-video-list,
+  .boulderer-rating-list {
     grid-template-columns: 1fr;
+  }
+
+  .boulderer-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .boulderer-hero > button {
+    width: 100%;
+  }
+
+  .boulderer-avatar {
+    width: 78px;
+    height: 78px;
+    flex-basis: 78px;
+  }
+
+  .boulderer-ascent-list li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 8px 0;
+  }
+
+  .boulderer-ascent-list span,
+  .boulderer-ascent-list time {
+    grid-column: 1 / -1;
+  }
+
+  .boulderer-ascent-list strong {
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .boulder-detail-stats {

@@ -4,6 +4,7 @@ export type AuthUser = {
   display_name: string;
   created_at: string;
   updated_at: string;
+  profile_picture_url: string | null;
   is_admin: boolean;
 };
 

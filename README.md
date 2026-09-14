@@ -4,6 +4,8 @@ SQLite-backed FastAPI and React dashboard for outdoor boulders you have climbed.
 
 The SQLite database `data/climbing_dashboard.db` is the source of truth. The frontend lets you add climbs and explore grade, area, flash, climber, and area-by-grade summaries.
 Accounts are invite-gated. Logged-in users can add/edit their own ascents, write comments without typing their name, and mark ascents as public or private.
+Each account also has a boulderer page with climbing highlights, ratings, videos,
+and an owner-editable display name and profile picture.
 Uploaded boulder videos are saved as local files under `data/uploads/videos`,
 with metadata stored in SQLite. Videos inherit the visibility of the uploader's
 ascent and are served through a permission-checked API route.
@@ -103,6 +105,10 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 - `POST /api/auth/login` creates a session cookie for an existing user.
 - `POST /api/auth/logout` revokes the browser session cookie.
 - `POST /api/auth/admin/reset-password` generates a replacement password and revokes the user's existing sessions. It requires an administrator account.
+- `GET /api/boulderers/{username}` returns a boulderer profile and visible activity.
+- `PUT /api/boulderers/{username}` changes the logged-in user's own display name.
+- `POST /api/boulderers/{username}/profile-picture` replaces the logged-in user's own profile picture.
+- `GET /api/boulderers/{username}/profile-picture` serves a public profile picture.
 - `GET /api/boulders` returns stored rows plus dashboard statistics.
 - `POST /api/boulders` appends a climbed boulder for the logged-in user.
 - `PUT /api/boulders` updates the logged-in user's own boulder ascent.
@@ -159,6 +165,31 @@ shown in the dashboard. For example, a user can log in as `alfredben`, choose
 `benzen` as their display name, and still keep every ascent assigned to the
 `alfredben` account. When no display name is entered, the username is shown instead.
 
+## Boulderer Profile Flow
+
+Profile URLs use the username because it is unique and permanent:
+
+```text
+#view=boulderer&username=daniel_emami
+  -> App.tsx reads the hash
+  -> bouldererApi.ts calls GET /api/boulderers/daniel_emami
+  -> BouldererService finds the user and checks who is viewing
+  -> SQLite returns public ascents/videos, plus private ones for the owner
+  -> BouldererProfile calculates favourite area, grades, ratings, and recency
+  -> BouldererProfilePage.tsx renders the result
+```
+
+The owner can change their display name and upload a JPEG, PNG, or WebP profile
+picture up to 10 MB. The backend verifies ownership and the actual image signature.
+Picture files are stored under `data/uploads/profile-pictures`; SQLite stores only
+their relative path and MIME type. Replacing a picture removes the previous file.
+Changing a display name does not change the username used by ascents, comments,
+sessions, or profile URLs.
+
+Profile privacy follows ascent privacy. Other people see only public ascents and
+their videos. When viewing their own profile, a user also sees private ascents and
+private videos.
+
 ## Data Files
 
 The app writes current data to:
@@ -183,6 +214,7 @@ Uploaded media files are stored outside SQLite:
 
 ```text
 data/uploads/videos
+data/uploads/profile-pictures
 ```
 
 Uploaded boulder videos always appear as video-upload events in the feed.

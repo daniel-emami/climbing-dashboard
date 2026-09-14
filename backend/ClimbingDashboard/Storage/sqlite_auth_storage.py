@@ -59,6 +59,8 @@ class SqliteAuthStorage(BaseAuthStorage):
                         username,
                         display_name,
                         password_hash,
+                        profile_picture_path,
+                        profile_picture_mime_type,
                         created_at,
                         updated_at
                     FROM users
@@ -71,6 +73,67 @@ class SqliteAuthStorage(BaseAuthStorage):
             raise StorageError(f"Failed to read user credentials: {exc}") from exc
 
         return self._credentials_from_row(row) if row else None
+
+    def read_user(self, username: str) -> UserAccount | None:
+        """Return one active user without exposing its password hash."""
+
+        try:
+            with self._connect() as connection:
+                row = connection.execute(
+                    """
+                    SELECT
+                        id,
+                        username,
+                        display_name,
+                        profile_picture_path,
+                        profile_picture_mime_type,
+                        created_at,
+                        updated_at
+                    FROM users
+                    WHERE lower(username) = lower(?)
+                        AND deleted_at IS NULL
+                    """,
+                    (username,),
+                ).fetchone()
+        except sqlite3.Error as exc:
+            raise StorageError(f"Failed to read user: {exc}") from exc
+        return self._user_from_row(row) if row else None
+
+    def update_profile(
+        self,
+        user_id: int,
+        display_name: str,
+        profile_picture_path: str | None,
+        profile_picture_mime_type: str | None,
+    ) -> UserAccount:
+        """Update and return the editable fields on one user profile."""
+
+        try:
+            with self._connect() as connection:
+                connection.execute(
+                    """
+                    UPDATE users
+                    SET
+                        display_name = ?,
+                        profile_picture_path = ?,
+                        profile_picture_mime_type = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                        AND deleted_at IS NULL
+                    """,
+                    (
+                        display_name,
+                        profile_picture_path,
+                        profile_picture_mime_type,
+                        user_id,
+                    ),
+                )
+                user = self._read_user_by_id(connection, user_id)
+                if user is None:
+                    raise StorageError(f"User does not exist: {user_id}")
+                return user
+        except sqlite3.Error as exc:
+            raise StorageError(f"Failed to update user profile: {exc}") from exc
 
     def read_user_by_session_hash(
         self,
@@ -87,6 +150,8 @@ class SqliteAuthStorage(BaseAuthStorage):
                         users.id,
                         users.username,
                         users.display_name,
+                        users.profile_picture_path,
+                        users.profile_picture_mime_type,
                         users.created_at,
                         users.updated_at
                     FROM auth_sessions
@@ -241,7 +306,14 @@ class SqliteAuthStorage(BaseAuthStorage):
     ) -> UserAccount | None:
         row = connection.execute(
             """
-            SELECT id, username, display_name, created_at, updated_at
+            SELECT
+                id,
+                username,
+                display_name,
+                profile_picture_path,
+                profile_picture_mime_type,
+                created_at,
+                updated_at
             FROM users
             WHERE id = ?
                 AND deleted_at IS NULL
@@ -257,6 +329,16 @@ class SqliteAuthStorage(BaseAuthStorage):
             display_name=str(row["display_name"]),
             created_at=str(row["created_at"]),
             updated_at=str(row["updated_at"]),
+            profile_picture_path=(
+                str(row["profile_picture_path"])
+                if row["profile_picture_path"] is not None
+                else None
+            ),
+            profile_picture_mime_type=(
+                str(row["profile_picture_mime_type"])
+                if row["profile_picture_mime_type"] is not None
+                else None
+            ),
         )
 
     def _credentials_from_row(self, row: sqlite3.Row) -> UserCredentials:
@@ -267,4 +349,14 @@ class SqliteAuthStorage(BaseAuthStorage):
             password_hash=str(row["password_hash"]),
             created_at=str(row["created_at"]),
             updated_at=str(row["updated_at"]),
+            profile_picture_path=(
+                str(row["profile_picture_path"])
+                if row["profile_picture_path"] is not None
+                else None
+            ),
+            profile_picture_mime_type=(
+                str(row["profile_picture_mime_type"])
+                if row["profile_picture_mime_type"] is not None
+                else None
+            ),
         )

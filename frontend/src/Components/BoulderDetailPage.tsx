@@ -28,6 +28,7 @@ type BoulderDetailPageProps = {
   onBack: () => void;
   onDeleteComment: (commentId: number) => Promise<void>;
   onDeleteMedia: (mediaId: number) => Promise<void>;
+  onOpenBoulderer: (username: string) => void;
   onUploadVideo: (
     request: Omit<BoulderMediaUploadRequest, "name" | "area" | "sector">
   ) => Promise<void>;
@@ -185,6 +186,7 @@ export default function BoulderDetailPage({
   onBack,
   onDeleteComment,
   onDeleteMedia,
+  onOpenBoulderer,
   onUploadVideo,
   onUpdateComment,
   onUpdate
@@ -490,7 +492,15 @@ export default function BoulderDetailPage({
                       `${record.climber}-${record.climbed_on}-${record.own_grade}`
                     }
                   >
-                    <th>{record.climber_display_name || "-"}</th>
+                    <th>
+                      <button
+                        className="table-link-button profile-link-button"
+                        type="button"
+                        onClick={() => onOpenBoulderer(record.climber)}
+                      >
+                        {record.climber_display_name || "-"}
+                      </button>
+                    </th>
                     <td>{record.own_grade}</td>
                     <td>{record.grade_27crags}</td>
                     <td>{record.guide_grade}</td>

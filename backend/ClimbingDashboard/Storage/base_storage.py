@@ -142,6 +142,15 @@ class BaseStorage(ABC):
         """Read recent public media plus a selected user's private media."""
 
     @abstractmethod
+    def read_profile_media(
+        self,
+        username: str,
+        user_id: int,
+        include_private: bool,
+    ) -> list[BoulderMedia]:
+        """Read uploaded media visible on one boulderer profile."""
+
+    @abstractmethod
     def read_boulder_media_by_id(
         self,
         media_id: int,

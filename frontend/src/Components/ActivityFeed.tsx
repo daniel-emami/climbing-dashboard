@@ -19,6 +19,7 @@ type ActivityFeedProps = {
   records: BoulderRecord[];
   onError: (message: string) => void;
   onOpenBoulder: (identity: BoulderPageIdentity) => void;
+  onOpenBoulderer: (username: string) => void;
 };
 
 type AscentFeedItem = {
@@ -154,7 +155,8 @@ export default function ActivityFeed({
   selectedClimber,
   records,
   onError,
-  onOpenBoulder
+  onOpenBoulder,
+  onOpenBoulderer
 }: ActivityFeedProps) {
   const [recentMedia, setRecentMedia] = useState<BoulderMedia[]>([]);
   const [commentsByAscentId, setCommentsByAscentId] = useState<Record<number, AscentComment[]>>(
@@ -375,7 +377,13 @@ export default function ActivityFeed({
         </div>
         <div className="activity-feed-body">
           <p className="activity-feed-copy">
-            <strong>{record.climber_display_name || "Unknown climber"}</strong>{" "}
+            <button
+              className="profile-link-button"
+              type="button"
+              onClick={() => onOpenBoulderer(record.climber)}
+            >
+              {record.climber_display_name || "Unknown climber"}
+            </button>{" "}
             {record.flash ? "flashed" : "logged"}{" "}
             <button
               className="activity-feed-link"
@@ -497,7 +505,14 @@ export default function ActivityFeed({
         </div>
         <div className="activity-feed-body">
           <p className="activity-feed-copy">
-            <strong>{media.climber_display_name || "Unknown climber"}</strong> uploaded a video to{" "}
+            <button
+              className="profile-link-button"
+              type="button"
+              onClick={() => onOpenBoulderer(media.climber)}
+            >
+              {media.climber_display_name || "Unknown climber"}
+            </button>{" "}
+            uploaded a video to{" "}
             <button
               className="activity-feed-link"
               type="button"

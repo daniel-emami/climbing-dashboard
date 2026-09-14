@@ -3,7 +3,10 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from ClimbingDashboard.Config.constants import DEFAULT_MAX_VIDEO_UPLOAD_BYTES
+from ClimbingDashboard.Config.constants import (
+    DEFAULT_MAX_PROFILE_PICTURE_BYTES,
+    DEFAULT_MAX_VIDEO_UPLOAD_BYTES,
+)
 
 
 class AppSettings:
@@ -40,6 +43,20 @@ class AppSettings:
             return int(raw_limit)
         except ValueError:
             return DEFAULT_MAX_VIDEO_UPLOAD_BYTES
+
+    @property
+    def max_profile_picture_bytes(self) -> int:
+        """Return the largest accepted profile-picture upload size in bytes."""
+
+        raw_limit = os.environ.get(
+            "CLIMBING_DASHBOARD_MAX_PROFILE_PICTURE_BYTES", ""
+        ).strip()
+        if not raw_limit:
+            return DEFAULT_MAX_PROFILE_PICTURE_BYTES
+        try:
+            return int(raw_limit)
+        except ValueError:
+            return DEFAULT_MAX_PROFILE_PICTURE_BYTES
 
     @property
     def allowed_cors_origins(self) -> list[str]:

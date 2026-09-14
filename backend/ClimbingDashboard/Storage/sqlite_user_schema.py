@@ -13,12 +13,22 @@ def ensure_users_schema(connection: sqlite3.Connection) -> None:
             username TEXT NOT NULL,
             display_name TEXT NOT NULL DEFAULT '',
             password_hash TEXT NOT NULL,
+            profile_picture_path TEXT,
+            profile_picture_mime_type TEXT,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             deleted_at TEXT
         )
         """
     )
+    columns = {
+        str(row["name"])
+        for row in connection.execute("PRAGMA table_info(users)").fetchall()
+    }
+    if "profile_picture_path" not in columns:
+        connection.execute("ALTER TABLE users ADD COLUMN profile_picture_path TEXT")
+    if "profile_picture_mime_type" not in columns:
+        connection.execute("ALTER TABLE users ADD COLUMN profile_picture_mime_type TEXT")
     connection.execute(
         """
         CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique_key

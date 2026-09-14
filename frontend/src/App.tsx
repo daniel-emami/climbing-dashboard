@@ -14,6 +14,11 @@ import {
   signup as signupUser
 } from "./Api/authApi";
 import {
+  fetchBouldererProfile,
+  updateBouldererProfile,
+  uploadProfilePicture
+} from "./Api/bouldererApi";
+import {
   addBoulderComment,
   deleteBoulderComment,
   fetchBoulderComments,
@@ -29,6 +34,7 @@ import AreaChart from "./Components/AreaChart";
 import AreaGradeMatrix from "./Components/AreaGradeMatrix";
 import AuthPanel from "./Components/AuthPanel";
 import BoulderDetailPage from "./Components/BoulderDetailPage";
+import BouldererProfilePage from "./Components/BouldererProfilePage";
 import BoulderForm from "./Components/BoulderForm";
 import BoulderTable from "./Components/BoulderTable";
 import ErrorState from "./Components/ErrorState";
@@ -49,6 +55,7 @@ import type {
   LoginRequest,
   SignupRequest
 } from "./Types/authTypes";
+import type { BouldererProfile } from "./Types/bouldererTypes";
 import type {
   AreaCount,
   BoulderComment,
@@ -96,6 +103,14 @@ function boulderIdentityFromHash(): BoulderPageIdentity | null {
   return { name, area, sector };
 }
 
+function bouldererUsernameFromHash(): string | null {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  if (params.get("view") !== "boulderer") {
+    return null;
+  }
+  return params.get("username")?.trim() || null;
+}
+
 function writeBoulderHash(identity: BoulderPageIdentity | null) {
   if (!identity) {
     window.history.pushState(null, "", `${window.location.pathname}${window.location.search}`);
@@ -107,6 +122,15 @@ function writeBoulderHash(identity: BoulderPageIdentity | null) {
     area: identity.area,
     sector: identity.sector
   });
+  window.history.pushState(null, "", `#${params.toString()}`);
+}
+
+function writeBouldererHash(username: string | null) {
+  if (!username) {
+    window.history.pushState(null, "", `${window.location.pathname}${window.location.search}`);
+    return;
+  }
+  const params = new URLSearchParams({ view: "boulderer", username });
   window.history.pushState(null, "", `#${params.toString()}`);
 }
 
@@ -240,6 +264,13 @@ export default function App() {
   const [selectedBoulder, setSelectedBoulder] = useState<BoulderPageIdentity | null>(
     boulderIdentityFromHash
   );
+  const [selectedBouldererUsername, setSelectedBouldererUsername] = useState<string | null>(
+    bouldererUsernameFromHash
+  );
+  const [selectedBouldererProfile, setSelectedBouldererProfile] =
+    useState<BouldererProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [selectedBoulderComments, setSelectedBoulderComments] = useState<BoulderComment[]>([]);
   const [selectedBoulderMedia, setSelectedBoulderMedia] = useState<BoulderMedia[]>([]);
   const [isCommentsLoading, setIsCommentsLoading] = useState(false);
@@ -284,7 +315,10 @@ export default function App() {
   }, [loadCurrentAuthUser]);
 
   useEffect(() => {
-    const syncRouteFromHash = () => setSelectedBoulder(boulderIdentityFromHash());
+    const syncRouteFromHash = () => {
+      setSelectedBoulder(boulderIdentityFromHash());
+      setSelectedBouldererUsername(bouldererUsernameFromHash());
+    };
     window.addEventListener("hashchange", syncRouteFromHash);
     window.addEventListener("popstate", syncRouteFromHash);
     return () => {
@@ -292,6 +326,36 @@ export default function App() {
       window.removeEventListener("popstate", syncRouteFromHash);
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedBouldererUsername) {
+      setSelectedBouldererProfile(null);
+      return;
+    }
+    let ignoreResult = false;
+    setIsProfileLoading(true);
+    fetchBouldererProfile(selectedBouldererUsername)
+      .then((profile) => {
+        if (!ignoreResult) {
+          setSelectedBouldererProfile(profile);
+          setError(null);
+        }
+      })
+      .catch((unknownError: unknown) => {
+        if (!ignoreResult) {
+          setSelectedBouldererProfile(null);
+          setError(unknownError instanceof Error ? unknownError.message : "Unknown profile error");
+        }
+      })
+      .finally(() => {
+        if (!ignoreResult) {
+          setIsProfileLoading(false);
+        }
+      });
+    return () => {
+      ignoreResult = true;
+    };
+  }, [currentUser?.id, selectedBouldererUsername]);
 
   useEffect(() => {
     if (!selectedBoulder) {
@@ -573,6 +637,7 @@ export default function App() {
   };
 
   const handleOpenBoulder = (identity: BoulderPageIdentity) => {
+    setSelectedBouldererUsername(null);
     setSelectedBoulder(identity);
     writeBoulderHash(identity);
   };
@@ -580,6 +645,55 @@ export default function App() {
   const handleCloseBoulder = () => {
     setSelectedBoulder(null);
     writeBoulderHash(null);
+  };
+
+  const handleOpenBoulderer = (username: string) => {
+    setSelectedBoulder(null);
+    setSelectedBouldererUsername(username);
+    writeBouldererHash(username);
+  };
+
+  const handleCloseBoulderer = () => {
+    setSelectedBouldererUsername(null);
+    writeBouldererHash(null);
+  };
+
+  const handleSaveBouldererProfile = async (
+    displayName: string,
+    profilePicture: File | null
+  ) => {
+    if (!selectedBouldererUsername || !selectedBouldererProfile || !currentUser) {
+      return;
+    }
+    setIsProfileSaving(true);
+    try {
+      let profile: BouldererProfile = selectedBouldererProfile;
+      if (profilePicture) {
+        profile = await uploadProfilePicture(selectedBouldererUsername, profilePicture);
+        setSelectedBouldererProfile(profile);
+        setCurrentUser((user) =>
+          user ? { ...user, profile_picture_url: profile.user.profile_picture_url } : null
+        );
+      }
+      profile = await updateBouldererProfile(selectedBouldererUsername, displayName);
+      setSelectedBouldererProfile(profile);
+      setCurrentUser((user) =>
+        user
+          ? {
+              ...user,
+              display_name: profile.user.display_name,
+              profile_picture_url: profile.user.profile_picture_url
+            }
+          : null
+      );
+      await loadStoredData();
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown profile error");
+      throw unknownError;
+    } finally {
+      setIsProfileSaving(false);
+    }
   };
 
   const handleAddBoulderComment = async (body: string) => {
@@ -730,7 +844,21 @@ export default function App() {
         </dl>
       </header>
 
-      {selectedBoulder && data && !isInitialLoading ? (
+      {selectedBouldererUsername ? (
+        <>
+          {error && <ErrorState message={error} />}
+          {isProfileLoading && <LoadingState />}
+          {selectedBouldererProfile && !isProfileLoading && (
+            <BouldererProfilePage
+              profile={selectedBouldererProfile}
+              isSaving={isProfileSaving}
+              onBack={handleCloseBoulderer}
+              onOpenBoulder={handleOpenBoulder}
+              onSave={handleSaveBouldererProfile}
+            />
+          )}
+        </>
+      ) : selectedBoulder && data && !isInitialLoading ? (
         <>
           {error && <ErrorState message={error} />}
           <BoulderDetailPage
@@ -750,6 +878,7 @@ export default function App() {
             onBack={handleCloseBoulder}
             onDeleteComment={handleDeleteBoulderComment}
             onDeleteMedia={handleDeleteBoulderMedia}
+            onOpenBoulderer={handleOpenBoulderer}
             onUploadVideo={handleUploadBoulderVideo}
             onUpdateComment={handleUpdateBoulderComment}
             onUpdate={handleUpdateBoulder}
@@ -764,6 +893,7 @@ export default function App() {
               isSaving={isAuthSaving}
               onLogin={handleLogin}
               onLogout={handleLogout}
+              onOpenProfile={handleOpenBoulderer}
               onResetPassword={handleResetPassword}
               onSignup={handleSignup}
             />
@@ -870,6 +1000,7 @@ export default function App() {
                     records={visibleData.records}
                     onError={setError}
                     onOpenBoulder={handleOpenBoulder}
+                    onOpenBoulderer={handleOpenBoulderer}
                   />
                   <div className="insight-grid">
                     <GradeChart
@@ -894,6 +1025,7 @@ export default function App() {
                   currentUsername={currentUser?.username ?? null}
                   onDelete={handleDeleteBoulder}
                   onOpenBoulder={handleOpenBoulder}
+                  onOpenBoulderer={handleOpenBoulderer}
                   onUpdate={handleUpdateBoulder}
                 />
               )}

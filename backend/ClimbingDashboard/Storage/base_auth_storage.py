@@ -23,6 +23,20 @@ class BaseAuthStorage(ABC):
         """Return user credentials for login, if the user exists."""
 
     @abstractmethod
+    def read_user(self, username: str) -> UserAccount | None:
+        """Return one active user without credential data."""
+
+    @abstractmethod
+    def update_profile(
+        self,
+        user_id: int,
+        display_name: str,
+        profile_picture_path: str | None,
+        profile_picture_mime_type: str | None,
+    ) -> UserAccount:
+        """Update the editable fields on one user profile."""
+
+    @abstractmethod
     def read_user_by_session_hash(
         self,
         session_token_hash: str,

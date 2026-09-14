@@ -13,6 +13,7 @@ type AuthPanelProps = {
   isSaving: boolean;
   onLogin: (request: LoginRequest) => Promise<void>;
   onLogout: () => Promise<void>;
+  onOpenProfile: (username: string) => void;
   onResetPassword: (request: AdminPasswordResetRequest) => Promise<AdminPasswordResetResponse>;
   onSignup: (request: SignupRequest) => Promise<void>;
 };
@@ -25,6 +26,7 @@ export default function AuthPanel({
   isSaving,
   onLogin,
   onLogout,
+  onOpenProfile,
   onResetPassword,
   onSignup
 }: AuthPanelProps) {
@@ -78,6 +80,9 @@ export default function AuthPanel({
           <strong>{user.display_name || user.username}</strong>
         </div>
         <p className="auth-help-text">@{user.username}</p>
+        <button type="button" onClick={() => onOpenProfile(user.username)}>
+          View Profile
+        </button>
         {user.is_admin && (
           <form className="auth-admin-reset" onSubmit={(event) => void submitPasswordReset(event)}>
             <label>

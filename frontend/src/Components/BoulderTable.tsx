@@ -14,6 +14,7 @@ type BoulderTableProps = {
   currentUsername: string | null;
   onDelete: (request: BoulderIdentity) => Promise<void>;
   onOpenBoulder: (identity: BoulderPageIdentity) => void;
+  onOpenBoulderer: (username: string) => void;
   onUpdate: (original: BoulderIdentity, boulder: BoulderCreateRequest) => Promise<void>;
 };
 
@@ -130,6 +131,7 @@ export default function BoulderTable({
   currentUsername,
   onDelete,
   onOpenBoulder,
+  onOpenBoulderer,
   onUpdate
 }: BoulderTableProps) {
   const [sort, setSort] = useState<SortState>({ key: "climbed_on", direction: "desc" });
@@ -378,7 +380,13 @@ export default function BoulderTable({
                         value={currentDisplayName ?? currentUsername ?? editableRecord.climber}
                       />
                     ) : (
-                      record.climber_display_name
+                      <button
+                        className="table-link-button profile-link-button"
+                        type="button"
+                        onClick={() => onOpenBoulderer(record.climber)}
+                      >
+                        {record.climber_display_name}
+                      </button>
                     )}
                   </td>
                   <td>
