@@ -1,5 +1,11 @@
 import { useState, type FormEvent } from "react";
-import type { AuthUser, LoginRequest, SignupRequest } from "../Types/authTypes";
+import type {
+  AdminPasswordResetRequest,
+  AdminPasswordResetResponse,
+  AuthUser,
+  LoginRequest,
+  SignupRequest
+} from "../Types/authTypes";
 
 type AuthPanelProps = {
   user: AuthUser | null;
@@ -7,6 +13,7 @@ type AuthPanelProps = {
   isSaving: boolean;
   onLogin: (request: LoginRequest) => Promise<void>;
   onLogout: () => Promise<void>;
+  onResetPassword: (request: AdminPasswordResetRequest) => Promise<AdminPasswordResetResponse>;
   onSignup: (request: SignupRequest) => Promise<void>;
 };
 
@@ -18,6 +25,7 @@ export default function AuthPanel({
   isSaving,
   onLogin,
   onLogout,
+  onResetPassword,
   onSignup
 }: AuthPanelProps) {
   const [mode, setMode] = useState<AuthMode>("login");
@@ -25,6 +33,9 @@ export default function AuthPanel({
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+  const [resetUsername, setResetUsername] = useState("");
+  const [passwordReset, setPasswordReset] = useState<AdminPasswordResetResponse | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
 
   const submitAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -42,6 +53,23 @@ export default function AuthPanel({
     setInviteCode("");
   };
 
+  const submitPasswordReset = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPasswordReset(null);
+    setIsCopied(false);
+    const result = await onResetPassword({ username: resetUsername });
+    setPasswordReset(result);
+    setResetUsername("");
+  };
+
+  const copyTemporaryPassword = async () => {
+    if (!passwordReset) {
+      return;
+    }
+    await navigator.clipboard.writeText(passwordReset.temporary_password);
+    setIsCopied(true);
+  };
+
   if (user) {
     return (
       <section className="control-panel auth-panel">
@@ -50,6 +78,38 @@ export default function AuthPanel({
           <strong>{user.display_name || user.username}</strong>
         </div>
         <p className="auth-help-text">@{user.username}</p>
+        {user.is_admin && (
+          <form className="auth-admin-reset" onSubmit={(event) => void submitPasswordReset(event)}>
+            <label>
+              Reset a user's password
+              <div className="auth-reset-row">
+                <input
+                  required
+                  autoComplete="off"
+                  placeholder="Username"
+                  value={resetUsername}
+                  onChange={(event) => setResetUsername(event.target.value)}
+                />
+                <button className="primary-button" disabled={isSaving} type="submit">
+                  {isSaving ? "Generating..." : "Generate"}
+                </button>
+              </div>
+            </label>
+            {passwordReset && (
+              <div className="auth-reset-result" role="status">
+                <span>
+                  New password for <strong>@{passwordReset.username}</strong>
+                </span>
+                <div className="auth-reset-row">
+                  <input readOnly aria-label="Generated password" value={passwordReset.temporary_password} />
+                  <button type="button" onClick={() => void copyTemporaryPassword()}>
+                    {isCopied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </form>
+        )}
         <button disabled={isSaving} type="button" onClick={() => void onLogout()}>
           {isSaving ? "Signing out..." : "Log Out"}
         </button>

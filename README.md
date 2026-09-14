@@ -34,6 +34,7 @@ Start the API:
 
 ```bash
 CLIMBING_DASHBOARD_INVITE_CODE=tick-tracker \
+  CLIMBING_DASHBOARD_ADMIN_USERNAMES=daniel_emami \
   uv run uvicorn ClimbingDashboard.Api.api_app:app --reload --app-dir backend
 ```
 
@@ -54,6 +55,7 @@ project root:
 
 ```bash
 CLIMBING_DASHBOARD_INVITE_CODE=tick-tracker \
+  CLIMBING_DASHBOARD_ADMIN_USERNAMES=daniel_emami \
   uv run uvicorn ClimbingDashboard.Api.api_app:app --reload --app-dir backend --host 0.0.0.0 --port 8000
 ```
 
@@ -79,7 +81,9 @@ public tunnel is needed.
 Install Docker Desktop, then run this from the project root:
 
 ```bash
-CLIMBING_DASHBOARD_INVITE_CODE=tick-tracker docker compose up --build
+CLIMBING_DASHBOARD_INVITE_CODE=tick-tracker \
+CLIMBING_DASHBOARD_ADMIN_USERNAMES=daniel_emami \
+docker compose up --build
 ```
 
 Open `http://localhost:5173`.
@@ -98,6 +102,7 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 - `POST /api/auth/signup` creates a user when the invite code is correct.
 - `POST /api/auth/login` creates a session cookie for an existing user.
 - `POST /api/auth/logout` revokes the browser session cookie.
+- `POST /api/auth/admin/reset-password` generates a replacement password and revokes the user's existing sessions. It requires an administrator account.
 - `GET /api/boulders` returns stored rows plus dashboard statistics.
 - `POST /api/boulders` appends a climbed boulder for the logged-in user.
 - `PUT /api/boulders` updates the logged-in user's own boulder ascent.
@@ -140,6 +145,13 @@ frontend login/signup form
 Signup is blocked unless `CLIMBING_DASHBOARD_INVITE_CODE` is set on the backend.
 Use a temporary code while testing with friends, and change it whenever you want
 to close the invite window.
+
+Administrator accounts are configured with a comma-separated username list. For
+example, `CLIMBING_DASHBOARD_ADMIN_USERNAMES=daniel_emami,another_admin`. An admin
+sees a password reset form in the Account panel. Entering a friend's username
+generates a replacement password, stores only its secure hash, and signs that user
+out everywhere. The generated password is returned and displayed once so the admin
+can send it to the user; the old password cannot be retrieved.
 
 The username is the account's permanent identity and is used for ascent ownership,
 comments, and database relationships. The optional display name is the public name

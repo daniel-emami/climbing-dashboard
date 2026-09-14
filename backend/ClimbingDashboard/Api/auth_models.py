@@ -80,4 +80,17 @@ class LoginRequest:
         )
 
 
+class AdminPasswordResetRequest:
+    """Validated request for an administrator resetting an account password."""
+
+    def __init__(self, username: object) -> None:
+        self.username = SignupRequest._username(username)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> AdminPasswordResetRequest:
+        """Build an admin password-reset request from a JSON-like dictionary."""
+
+        return cls(username=payload.get("username"))
+
+
 type AuthPayload = dict[str, object]

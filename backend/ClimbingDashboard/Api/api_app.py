@@ -30,6 +30,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         database_path=selected_database_path,
         invite_code=settings.signup_invite_code,
         session_lifetime_days=settings.session_lifetime_days,
+        admin_usernames=settings.admin_usernames,
     )
     app.state.api_service = ApiService(
         database_path=selected_database_path,
@@ -61,6 +62,7 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
                 "auth_signup": "/api/auth/signup",
                 "auth_login": "/api/auth/login",
                 "auth_logout": "/api/auth/logout",
+                "auth_admin_reset_password": "/api/auth/admin/reset-password",
                 "boulders": "/api/boulders",
                 "import_preview": "/api/imports/{source}/preview",
                 "import_confirm": "/api/imports/{source}/confirm",

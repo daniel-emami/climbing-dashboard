@@ -7,8 +7,13 @@ from fastapi import APIRouter, Body, HTTPException, Request, Response
 from ClimbingDashboard.Api.auth_dependencies import (
     current_user_from_request,
     get_auth_service,
+    require_current_user,
 )
-from ClimbingDashboard.Api.auth_models import LoginRequest, SignupRequest
+from ClimbingDashboard.Api.auth_models import (
+    AdminPasswordResetRequest,
+    LoginRequest,
+    SignupRequest,
+)
 from ClimbingDashboard.Exceptions.auth_error import AuthError
 from ClimbingDashboard.Models.auth_session import AuthSession
 
@@ -73,6 +78,26 @@ def logout(request: Request, response: Response) -> dict[str, object]:
         get_auth_service(request).logout(session_token)
         _clear_session_cookie(request, response)
         return {"user": None}
+    except AuthError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
+@router.post("/api/auth/admin/reset-password")
+def reset_user_password(
+    request: Request,
+    payload: dict[str, Any] = AUTH_BODY,
+) -> dict[str, str]:
+    """Generate a replacement password for a selected account."""
+
+    try:
+        current_user = require_current_user(request)
+        reset_request = AdminPasswordResetRequest.from_payload(payload)
+        return get_auth_service(request).reset_user_password(
+            reset_request,
+            current_user,
+        ).to_payload()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except AuthError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 

@@ -12,6 +12,7 @@ class UserAccount:
     display_name: str
     created_at: str
     updated_at: str
+    is_admin: bool = False
 
     def to_payload(self) -> dict[str, object]:
         """Return the user fields that are safe for the frontend."""
@@ -22,4 +23,5 @@ class UserAccount:
             "display_name": self.display_name,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+            "is_admin": self.is_admin,
         }

@@ -149,6 +149,50 @@ class SqliteAuthStorage(BaseAuthStorage):
         except sqlite3.Error as exc:
             raise StorageError(f"Failed to revoke auth session: {exc}") from exc
 
+    def reset_password_and_revoke_sessions(
+        self,
+        username: str,
+        password_hash: str,
+    ) -> UserAccount | None:
+        """Replace an account password and revoke all sessions atomically."""
+
+        try:
+            with self._connect() as connection:
+                row = connection.execute(
+                    """
+                    SELECT id
+                    FROM users
+                    WHERE lower(username) = lower(?)
+                        AND deleted_at IS NULL
+                    """,
+                    (username,),
+                ).fetchone()
+                if row is None:
+                    return None
+                user_id = int(row["id"])
+                connection.execute(
+                    """
+                    UPDATE users
+                    SET
+                        password_hash = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    """,
+                    (password_hash, user_id),
+                )
+                connection.execute(
+                    """
+                    UPDATE auth_sessions
+                    SET revoked_at = CURRENT_TIMESTAMP
+                    WHERE user_id = ?
+                        AND revoked_at IS NULL
+                    """,
+                    (user_id,),
+                )
+                return self._read_user_by_id(connection, user_id)
+        except sqlite3.Error as exc:
+            raise StorageError(f"Failed to reset user password: {exc}") from exc
+
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database_path)
         connection.row_factory = sqlite3.Row

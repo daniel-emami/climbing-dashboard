@@ -10,6 +10,7 @@ import {
   fetchCurrentUser,
   login as loginUser,
   logout as logoutUser,
+  resetUserPassword,
   signup as signupUser
 } from "./Api/authApi";
 import {
@@ -41,7 +42,13 @@ import {
   GRADE_SOURCE_LABELS,
   type GradeChartMode
 } from "./Config/gradeSources";
-import type { AuthUser, LoginRequest, SignupRequest } from "./Types/authTypes";
+import type {
+  AdminPasswordResetRequest,
+  AdminPasswordResetResponse,
+  AuthUser,
+  LoginRequest,
+  SignupRequest
+} from "./Types/authTypes";
 import type {
   AreaCount,
   BoulderComment,
@@ -543,6 +550,22 @@ export default function App() {
     }
   };
 
+  const handleResetPassword = async (
+    request: AdminPasswordResetRequest
+  ): Promise<AdminPasswordResetResponse> => {
+    setIsAuthSaving(true);
+    try {
+      const payload = await resetUserPassword(request);
+      setError(null);
+      return payload;
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown auth error");
+      throw unknownError;
+    } finally {
+      setIsAuthSaving(false);
+    }
+  };
+
   const handleImportedBoulders = (payload: BouldersResponse) => {
     setData(payload);
     setError(null);
@@ -741,6 +764,7 @@ export default function App() {
               isSaving={isAuthSaving}
               onLogin={handleLogin}
               onLogout={handleLogout}
+              onResetPassword={handleResetPassword}
               onSignup={handleSignup}
             />
             <TheTopoImportPanel

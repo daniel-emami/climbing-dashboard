@@ -59,6 +59,17 @@ class AppSettings:
         return os.environ.get("CLIMBING_DASHBOARD_INVITE_CODE", "").strip()
 
     @property
+    def admin_usernames(self) -> list[str]:
+        """Return the usernames allowed to perform administrative actions."""
+
+        raw_usernames = os.environ.get("CLIMBING_DASHBOARD_ADMIN_USERNAMES", "")
+        return [
+            username.strip().lower()
+            for username in raw_usernames.split(",")
+            if username.strip()
+        ]
+
+    @property
     def secure_auth_cookies(self) -> bool:
         """Return whether session cookies should be marked secure-only."""
 

@@ -42,3 +42,11 @@ class BaseAuthStorage(ABC):
     @abstractmethod
     def revoke_session(self, session_token_hash: str) -> None:
         """Mark one browser session as no longer usable."""
+
+    @abstractmethod
+    def reset_password_and_revoke_sessions(
+        self,
+        username: str,
+        password_hash: str,
+    ) -> UserAccount | None:
+        """Replace an account password and revoke all of its sessions."""
