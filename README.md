@@ -5,7 +5,8 @@ SQLite-backed FastAPI and React dashboard for outdoor boulders you have climbed.
 The SQLite database `data/climbing_dashboard.db` is the source of truth. The frontend lets you add climbs and explore grade, area, flash, climber, and area-by-grade summaries.
 Accounts are invite-gated. Logged-in users can add/edit their own ascents, write comments without typing their name, and mark ascents as public or private.
 Uploaded boulder videos are saved as local files under `data/uploads/videos`,
-with metadata stored in SQLite.
+with metadata stored in SQLite. Videos inherit the visibility of the uploader's
+ascent and are served through a permission-checked API route.
 
 Location names are normalized before new manual climbs and imported climbs are
 saved. The alias rules live in
@@ -70,8 +71,8 @@ ngrok http 5173
 ```
 
 Send the public ngrok frontend URL to your friend. The Vite dev server proxies
-`/api` and `/uploads` requests to the backend, so only one public tunnel is
-needed.
+`/api` requests, including protected video playback, to the backend, so only one
+public tunnel is needed.
 
 ## Run With Docker
 
@@ -105,10 +106,11 @@ To stop the app, press `Ctrl+C` in the terminal running Docker Compose.
 - `POST /api/boulders/comments` appends a comment using the logged-in username.
 - `PUT /api/boulders/comments/{comment_id}` updates the logged-in user's own comment.
 - `DELETE /api/boulders/comments/{comment_id}` soft-deletes the logged-in user's own comment.
-- `GET /api/boulders/media` returns uploaded media for one boulder problem.
-- `GET /api/boulders/media/recent` returns recent uploaded videos for the feed.
-- `POST /api/boulders/media` uploads one video for a boulder problem.
-- `DELETE /api/boulders/media/{media_id}` soft-deletes one uploaded media item.
+- `GET /api/boulders/media` returns public videos plus the current user's private videos.
+- `GET /api/boulders/media/recent` returns visibility-filtered videos for the feed.
+- `GET /api/boulders/media/{media_id}/content` securely serves one visible video file.
+- `POST /api/boulders/media` uploads a video to the logged-in user's ascent.
+- `DELETE /api/boulders/media/{media_id}` deletes the logged-in user's own video.
 - `GET /api/ascents/{ascent_id}/comments` returns public comments for one ascent.
 - `GET /api/ascents/comments?ascent_ids=1,2,3` returns public comments grouped by ascent id.
 - `POST /api/ascents/comments` appends a comment using the logged-in username.
@@ -172,6 +174,8 @@ data/uploads/videos
 ```
 
 Uploaded boulder videos always appear as video-upload events in the feed.
+Public-ascent videos are visible to everyone. Private-ascent videos appear only
+for their owner, and direct file playback applies the same rule.
 
 Excel exports use this workbook shape:
 

@@ -35,6 +35,7 @@ from ClimbingDashboard.Models.dashboard_stats import (
     DashboardStats,
     GradeCount,
 )
+from ClimbingDashboard.Models.readable_media_file import ReadableMediaFile
 from ClimbingDashboard.Models.stored_media_file import StoredMediaFile
 from ClimbingDashboard.Models.user_account import UserAccount
 from ClimbingDashboard.Storage.local_media_file_storage import LocalMediaFileStorage
@@ -312,20 +313,33 @@ class ApiService(BaseApiService):
         name: str,
         area: str,
         sector: str,
+        current_user: UserAccount | None = None,
     ) -> BoulderMediaPayload:
-        """Return uploaded media for one boulder problem."""
+        """Return media visible to the current user for one boulder problem."""
 
         try:
-            media = self._read_media_from_first_existing_location(name, area, sector)
+            media = self._read_media_from_first_existing_location(
+                name,
+                area,
+                sector,
+                current_user.id if current_user is not None else None,
+            )
         except StorageError as exc:
             raise ApiDataError(f"Could not read boulder media: {exc}") from exc
         return self._media_payload(media)
 
-    def get_recent_boulder_media(self, limit: int = 30) -> BoulderMediaPayload:
-        """Return recent uploaded boulder media across the whole dashboard."""
+    def get_recent_boulder_media(
+        self,
+        limit: int = 30,
+        current_user: UserAccount | None = None,
+    ) -> BoulderMediaPayload:
+        """Return recent media visible to the current user."""
 
         try:
-            media = self.storage.read_recent_boulder_media(limit)
+            media = self.storage.read_recent_boulder_media(
+                limit,
+                current_user.id if current_user is not None else None,
+            )
         except StorageError as exc:
             raise ApiDataError(f"Could not read recent boulder media: {exc}") from exc
         return self._media_payload(media)
@@ -336,8 +350,9 @@ class ApiService(BaseApiService):
         source: BinaryIO,
         original_filename: str,
         mime_type: str | None,
+        current_user: UserAccount,
     ) -> BoulderMediaPayload:
-        """Save one video file and attach it to a boulder problem."""
+        """Save one video and attach it to the current user's ascent."""
 
         try:
             stored_file = self.media_file_storage.save_video(
@@ -349,31 +364,70 @@ class ApiService(BaseApiService):
             raise ApiDataError(f"Could not save video file: {exc}") from exc
 
         try:
-            media = self._append_media_to_first_existing_location(request, stored_file)
+            media = self._append_media_to_first_existing_location(
+                request,
+                stored_file,
+                current_user,
+            )
             refreshed_media = self.storage.read_boulder_media(
                 media.boulder_name,
                 media.area,
                 media.sector,
+                current_user.id,
             )
-        except StorageError as exc:
+        except (PermissionError, StorageError) as exc:
             self.media_file_storage.delete(stored_file.relative_path)
+            if isinstance(exc, PermissionError):
+                raise
             raise ApiDataError(f"Could not save boulder media: {exc}") from exc
         return self._media_payload(refreshed_media)
 
-    def delete_boulder_media(self, media_id: int) -> BoulderMediaPayload:
-        """Soft-delete one media item, remove its file, and return refreshed boulder media."""
+    def delete_boulder_media(
+        self,
+        media_id: int,
+        current_user: UserAccount,
+    ) -> BoulderMediaPayload:
+        """Delete one owned media item and return the visible media for its boulder."""
 
         try:
-            media = self.storage.delete_boulder_media(media_id)
+            media = self.storage.delete_boulder_media(
+                media_id,
+                current_user.username,
+                current_user.id,
+            )
             self.media_file_storage.delete(media.file_path)
             refreshed_media = self.storage.read_boulder_media(
                 media.boulder_name,
                 media.area,
                 media.sector,
+                current_user.id,
             )
+        except PermissionError:
+            raise
         except StorageError as exc:
             raise ApiDataError(f"Could not delete boulder media: {exc}") from exc
         return self._media_payload(refreshed_media)
+
+    def get_boulder_video_file(
+        self,
+        media_id: int,
+        current_user: UserAccount | None = None,
+    ) -> ReadableMediaFile:
+        """Return a video file after checking its inherited ascent visibility."""
+
+        try:
+            media = self.storage.read_boulder_media_by_id(
+                media_id,
+                current_user.id if current_user is not None else None,
+            )
+            return ReadableMediaFile(
+                path=self.media_file_storage.readable_path(media.file_path),
+                mime_type=media.mime_type,
+            )
+        except PermissionError:
+            raise
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read video file: {exc}") from exc
 
     def _read_records(self, current_user: UserAccount | None = None) -> list[BoulderRecord]:
         try:
@@ -459,11 +513,17 @@ class ApiService(BaseApiService):
         name: str,
         area: str,
         sector: str,
+        private_user_id: int | None,
     ) -> list[BoulderMedia]:
         last_error: StorageError | None = None
         for location in self._location_candidates(area, sector):
             try:
-                return self.storage.read_boulder_media(name, location.area, location.sector)
+                return self.storage.read_boulder_media(
+                    name,
+                    location.area,
+                    location.sector,
+                    private_user_id,
+                )
             except StorageError as exc:
                 last_error = exc
         raise last_error if last_error is not None else StorageError("Boulder problem not found")
@@ -472,6 +532,7 @@ class ApiService(BaseApiService):
         self,
         request: BoulderMediaUploadRequest,
         stored_file: StoredMediaFile,
+        current_user: UserAccount,
     ) -> BoulderMedia:
         last_error: StorageError | None = None
         for location in self._location_candidates(request.area, request.sector):
@@ -480,8 +541,8 @@ class ApiService(BaseApiService):
                     request.name,
                     location.area,
                     location.sector,
-                    request.ascent_id,
-                    request.climber,
+                    current_user.username,
+                    current_user.id,
                     request.caption,
                     stored_file,
                 )

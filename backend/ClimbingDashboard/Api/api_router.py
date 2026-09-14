@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Body, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 from ClimbingDashboard.Api.api_models import (
     AscentCommentCreateRequest,
@@ -29,7 +29,6 @@ JSON_BODY = Body(...)
 MEDIA_NAME_FORM = Form(...)
 MEDIA_AREA_FORM = Form(...)
 MEDIA_SECTOR_FORM = Form("")
-MEDIA_CLIMBER_FORM = Form(...)
 MEDIA_CAPTION_FORM = Form("")
 MEDIA_FILE = File(...)
 IMPORT_BODY = Body(...)
@@ -244,6 +243,7 @@ def get_boulder_media(
             clean_name,
             clean_area,
             clean_sector,
+            current_user_from_request(request),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -258,7 +258,10 @@ def get_recent_boulder_media(request: Request, limit: int = 30) -> dict[str, obj
     try:
         if limit < 1:
             raise ValueError("limit must be a positive integer")
-        return get_api_service(request).get_recent_boulder_media(limit)
+        return get_api_service(request).get_recent_boulder_media(
+            limit,
+            current_user_from_request(request),
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ApiDataError as exc:
@@ -271,19 +274,17 @@ def add_boulder_media(
     name: str = MEDIA_NAME_FORM,
     area: str = MEDIA_AREA_FORM,
     sector: str = MEDIA_SECTOR_FORM,
-    climber: str = MEDIA_CLIMBER_FORM,
     caption: str = MEDIA_CAPTION_FORM,
     file: UploadFile = MEDIA_FILE,
 ) -> dict[str, object]:
     """Upload one video and attach it to a boulder problem."""
 
     try:
+        current_user = require_current_user(request)
         media_request = BoulderMediaUploadRequest(
             name=name,
             area=area,
             sector=sector,
-            ascent_id="",
-            climber=climber,
             caption=caption,
         )
         file.file.seek(0)
@@ -292,9 +293,12 @@ def add_boulder_media(
             file.file,
             file.filename or "",
             file.content_type,
+            current_user,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -304,9 +308,28 @@ def delete_boulder_media(media_id: int, request: Request) -> dict[str, object]:
     """Soft-delete one uploaded media item."""
 
     try:
-        return get_api_service(request).delete_boulder_media(media_id)
+        current_user = require_current_user(request)
+        return get_api_service(request).delete_boulder_media(media_id, current_user)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ApiDataError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/api/boulders/media/{media_id}/content", response_class=FileResponse)
+def get_boulder_video_content(media_id: int, request: Request) -> FileResponse:
+    """Serve one video after checking its inherited ascent visibility."""
+
+    try:
+        readable_file = get_api_service(request).get_boulder_video_file(
+            media_id,
+            current_user_from_request(request),
+        )
+        return FileResponse(readable_file.path, media_type=readable_file.mime_type)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ApiDataError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/api/ascents/{ascent_id}/comments")

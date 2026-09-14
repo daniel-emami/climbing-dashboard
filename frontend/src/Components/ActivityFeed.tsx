@@ -182,7 +182,7 @@ export default function ActivityFeed({
     return () => {
       ignoreResult = true;
     };
-  }, [onError]);
+  }, [currentUsername, onError]);
 
   const visibleBoulderKeys = useMemo(
     () =>
@@ -507,10 +507,19 @@ export default function ActivityFeed({
             </button>
           </p>
           <p className="activity-feed-meta">{formatMediaLocation(media)}</p>
-          <p className="activity-feed-time">Uploaded {formatDateTime(media.created_at)}</p>
+          <p className="activity-feed-time">
+            Uploaded {formatDateTime(media.created_at)}
+            {media.visibility === "private" ? " · Private" : ""}
+          </p>
           <ol className="activity-media-list">
             <li className="activity-media-item">
-              <video controls playsInline preload="metadata" src={mediaUrl(media.url)} />
+              <video
+                controls
+                crossOrigin="use-credentials"
+                playsInline
+                preload="metadata"
+                src={mediaUrl(media.url)}
+              />
               {media.caption && <p>{media.caption}</p>}
             </li>
           </ol>

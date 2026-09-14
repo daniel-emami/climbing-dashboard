@@ -29,7 +29,9 @@ export async function fetchBoulderMedia(
     area: identity.area,
     sector: identity.sector
   });
-  const response = await fetch(`${API_BASE_URL}/api/boulders/media?${params.toString()}`);
+  const response = await fetch(`${API_BASE_URL}/api/boulders/media?${params.toString()}`, {
+    credentials: "include"
+  });
   return parseMediaResponse(response);
 }
 
@@ -37,7 +39,9 @@ export async function fetchRecentBoulderMedia(limit = 30): Promise<BoulderMediaR
   const params = new URLSearchParams({
     limit: String(limit)
   });
-  const response = await fetch(`${API_BASE_URL}/api/boulders/media/recent?${params.toString()}`);
+  const response = await fetch(`${API_BASE_URL}/api/boulders/media/recent?${params.toString()}`, {
+    credentials: "include"
+  });
   return parseMediaResponse(response);
 }
 
@@ -48,12 +52,12 @@ export async function uploadBoulderVideo(
   formData.append("name", request.name);
   formData.append("area", request.area);
   formData.append("sector", request.sector);
-  formData.append("climber", request.climber);
   formData.append("caption", request.caption);
   formData.append("file", request.file);
 
   const response = await fetch(`${API_BASE_URL}/api/boulders/media`, {
     method: "POST",
+    credentials: "include",
     body: formData
   });
   return parseMediaResponse(response);
@@ -61,7 +65,8 @@ export async function uploadBoulderVideo(
 
 export async function deleteBoulderMedia(mediaId: number): Promise<BoulderMediaResponse> {
   const response = await fetch(`${API_BASE_URL}/api/boulders/media/${mediaId}`, {
-    method: "DELETE"
+    method: "DELETE",
+    credentials: "include"
   });
   return parseMediaResponse(response);
 }

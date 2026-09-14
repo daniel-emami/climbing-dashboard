@@ -5,7 +5,6 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from ClimbingDashboard.Api.api_router import router
 from ClimbingDashboard.Api.api_service import ApiService
@@ -48,7 +47,6 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     )
     app.include_router(auth_router)
     app.include_router(router)
-    app.mount("/uploads", StaticFiles(directory=settings.uploads_path), name="uploads")
     logger.info("API application created with SQLite path %s", selected_database_path)
 
     @app.get("/")
@@ -67,7 +65,6 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
                 "import_preview": "/api/imports/{source}/preview",
                 "import_confirm": "/api/imports/{source}/confirm",
                 "export_boulders": "/api/exports/boulders",
-                "uploads": "/uploads",
                 "docs": "/docs",
             },
         }

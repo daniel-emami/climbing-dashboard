@@ -76,9 +76,21 @@ class LocalMediaFileStorage:
     def delete(self, relative_path: str) -> None:
         """Remove one saved upload if it still exists."""
 
+        target_path = self._safe_path(relative_path)
+        target_path.unlink(missing_ok=True)
+
+    def readable_path(self, relative_path: str) -> Path:
+        """Return a safe existing upload path."""
+
+        target_path = self._safe_path(relative_path)
+        if not target_path.is_file():
+            raise StorageError("Stored media file does not exist")
+        return target_path
+
+    def _safe_path(self, relative_path: str) -> Path:
         target_path = (self.uploads_root / relative_path).resolve()
         try:
             target_path.relative_to(self.uploads_root.resolve())
         except ValueError as exc:
             raise StorageError("Stored media path is outside the uploads directory") from exc
-        target_path.unlink(missing_ok=True)
+        return target_path

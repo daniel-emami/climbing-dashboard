@@ -318,7 +318,7 @@ export default function App() {
     return () => {
       ignoreResult = true;
     };
-  }, [selectedBoulder]);
+  }, [currentUser?.id, selectedBoulder]);
 
   useEffect(() => {
     if (!selectedBoulder) {
@@ -717,6 +717,7 @@ export default function App() {
             isSaving={isSaving}
             isCommentsLoading={isCommentsLoading}
             isCommentSaving={isCommentSaving}
+            currentUserId={currentUser?.id ?? null}
             currentUsername={currentUser?.username ?? null}
             isMediaLoading={isMediaLoading}
             isMediaSaving={isMediaSaving}

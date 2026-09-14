@@ -124,12 +124,30 @@ class BaseStorage(ABC):
         """Soft-delete one persisted ascent comment."""
 
     @abstractmethod
-    def read_boulder_media(self, name: str, area: str, sector: str) -> list[BoulderMedia]:
-        """Read all public media for one boulder problem."""
+    def read_boulder_media(
+        self,
+        name: str,
+        area: str,
+        sector: str,
+        private_user_id: int | None = None,
+    ) -> list[BoulderMedia]:
+        """Read public media plus a selected user's private media."""
 
     @abstractmethod
-    def read_recent_boulder_media(self, limit: int) -> list[BoulderMedia]:
-        """Read recent public boulder media across all boulder problems."""
+    def read_recent_boulder_media(
+        self,
+        limit: int,
+        private_user_id: int | None = None,
+    ) -> list[BoulderMedia]:
+        """Read recent public media plus a selected user's private media."""
+
+    @abstractmethod
+    def read_boulder_media_by_id(
+        self,
+        media_id: int,
+        private_user_id: int | None = None,
+    ) -> BoulderMedia:
+        """Read one media item when it is visible to the selected user."""
 
     @abstractmethod
     def append_boulder_media(
@@ -137,13 +155,18 @@ class BaseStorage(ABC):
         name: str,
         area: str,
         sector: str,
-        ascent_id: int | None,
         climber: str,
+        user_id: int,
         caption: str,
         stored_file: StoredMediaFile,
     ) -> BoulderMedia:
         """Append and persist one uploaded boulder media record."""
 
     @abstractmethod
-    def delete_boulder_media(self, media_id: int) -> BoulderMedia:
-        """Soft-delete one persisted media record."""
+    def delete_boulder_media(
+        self,
+        media_id: int,
+        climber: str,
+        user_id: int,
+    ) -> BoulderMedia:
+        """Soft-delete one media record owned by the selected user."""

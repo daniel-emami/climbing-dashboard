@@ -49,8 +49,8 @@ def test_display_name_is_public_while_username_remains_identity(tmp_path: Path) 
         "Test Boulder",
         "Test Area",
         "",
-        int(ascent["ascent_id"]),
         "alfredben",
+        session.user.id,
         "Beta",
         StoredMediaFile("videos/test.mp4", "test.mp4", "video/mp4", 10),
     )

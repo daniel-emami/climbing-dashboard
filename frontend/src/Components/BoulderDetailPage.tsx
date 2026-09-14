@@ -18,6 +18,7 @@ type BoulderDetailPageProps = {
   isSaving: boolean;
   isCommentsLoading: boolean;
   isCommentSaving: boolean;
+  currentUserId: number | null;
   currentUsername: string | null;
   isMediaLoading: boolean;
   isMediaSaving: boolean;
@@ -174,6 +175,7 @@ export default function BoulderDetailPage({
   isSaving,
   isCommentsLoading,
   isCommentSaving,
+  currentUserId,
   currentUsername,
   isMediaLoading,
   isMediaSaving,
@@ -190,7 +192,6 @@ export default function BoulderDetailPage({
   const [commentBody, setCommentBody] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingBody, setEditingBody] = useState("");
-  const [mediaClimber, setMediaClimber] = useState("");
   const [mediaCaption, setMediaCaption] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const sortedRecords = records
@@ -204,12 +205,16 @@ export default function BoulderDetailPage({
   const locationLabel = identity.sector
     ? `${identity.area} / ${identity.sector}`
     : identity.area;
+  const hasCurrentUserAscent = records.some(
+    (record) =>
+      currentUsername !== null &&
+      record.climber.toLocaleLowerCase() === currentUsername.toLocaleLowerCase()
+  );
 
   useEffect(() => {
     setCommentBody("");
     setEditingCommentId(null);
     setEditingBody("");
-    setMediaClimber(currentUsername ?? "");
     setMediaCaption("");
     setMediaFile(null);
   }, [currentUsername, identity.area, identity.name, identity.sector]);
@@ -280,12 +285,10 @@ export default function BoulderDetailPage({
 
   const submitVideo = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const climber = mediaClimber.trim();
-    if (!climber || !mediaFile) {
+    if (!currentUsername || !hasCurrentUserAscent || !mediaFile) {
       return;
     }
     await onUploadVideo({
-      climber,
       caption: mediaCaption.trim(),
       file: mediaFile
     });
@@ -386,45 +389,55 @@ export default function BoulderDetailPage({
             <div className="empty-detail-slot">-</div>
           ) : (
             <ol className="media-list">
-              {media.map((mediaItem) => (
-                <li className="media-item" key={mediaItem.id}>
-                  <video controls playsInline preload="metadata" src={mediaUrl(mediaItem.url)} />
-                  <div className="media-meta">
-                    <strong>{mediaItem.climber_display_name}</strong>
-                    <span>
-                      {formatCommentTime(mediaItem.created_at)} ·{" "}
-                      {formatMediaSize(mediaItem.file_size)}
-                    </span>
-                  </div>
-                  {mediaItem.caption && <p>{mediaItem.caption}</p>}
-                  <div className="comment-actions">
-                    <button
-                      className="danger-button"
-                      disabled={isMediaSaving}
-                      type="button"
-                      onClick={() => void deleteMedia(mediaItem)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
+              {media.map((mediaItem) => {
+                const canDeleteMedia =
+                  currentUserId !== null &&
+                  (mediaItem.user_id === currentUserId ||
+                    (mediaItem.user_id === null &&
+                      currentUsername !== null &&
+                      mediaItem.climber.toLocaleLowerCase() ===
+                        currentUsername.toLocaleLowerCase()));
+                return (
+                  <li className="media-item" key={mediaItem.id}>
+                    <video
+                      controls
+                      crossOrigin="use-credentials"
+                      playsInline
+                      preload="metadata"
+                      src={mediaUrl(mediaItem.url)}
+                    />
+                    <div className="media-meta">
+                      <strong>{mediaItem.climber_display_name}</strong>
+                      <span>
+                        {formatCommentTime(mediaItem.created_at)} ·{" "}
+                        {formatMediaSize(mediaItem.file_size)}
+                        {mediaItem.visibility === "private" ? " · Private" : ""}
+                      </span>
+                    </div>
+                    {mediaItem.caption && <p>{mediaItem.caption}</p>}
+                    {canDeleteMedia && (
+                      <div className="comment-actions">
+                        <button
+                          className="danger-button"
+                          disabled={isMediaSaving}
+                          type="button"
+                          onClick={() => void deleteMedia(mediaItem)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           )}
 
           <form className="media-upload-form" onSubmit={(event) => void submitVideo(event)}>
             <label>
-              Climber
-              <input
-                required
-                list="comment-climbers"
-                value={mediaClimber}
-                onChange={(event) => setMediaClimber(event.target.value)}
-              />
-            </label>
-            <label>
               Caption
               <input
+                disabled={!hasCurrentUserAscent}
                 value={mediaCaption}
                 onChange={(event) => setMediaCaption(event.target.value)}
               />
@@ -434,12 +447,20 @@ export default function BoulderDetailPage({
               <input
                 required
                 accept="video/*"
+                disabled={!hasCurrentUserAscent}
                 type="file"
                 onChange={(event) => setMediaFile(event.target.files?.[0] ?? null)}
               />
             </label>
-            <button disabled={isMediaSaving || !mediaFile} type="submit">
-              Upload
+            <button
+              disabled={isMediaSaving || !hasCurrentUserAscent || !mediaFile}
+              type="submit"
+            >
+              {!currentUsername
+                ? "Login To Upload"
+                : hasCurrentUserAscent
+                  ? "Upload"
+                  : "Log Ascent To Upload"}
             </button>
           </form>
         </section>

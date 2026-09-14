@@ -565,8 +565,14 @@ class SqliteStorage(BaseStorage):
 
         return comment
 
-    def read_boulder_media(self, name: str, area: str, sector: str) -> list[BoulderMedia]:
-        """Read all public media for one boulder problem."""
+    def read_boulder_media(
+        self,
+        name: str,
+        area: str,
+        sector: str,
+        private_user_id: int | None = None,
+    ) -> list[BoulderMedia]:
+        """Read public media plus the selected user's private media."""
 
         try:
             with self._connect() as connection:
@@ -583,6 +589,7 @@ class SqliteStorage(BaseStorage):
                         problems.area,
                         problems.sector,
                         media.ascent_id,
+                        media.user_id,
                         media.climber,
                         media.media_type,
                         media.file_path,
@@ -592,27 +599,44 @@ class SqliteStorage(BaseStorage):
                         media.caption,
                         media.created_at,
                         media.updated_at,
+                        COALESCE(ascents.visibility, 'private') AS visibility,
                         COALESCE(NULLIF(users.display_name, ''), media.climber)
                             AS climber_display_name
                     FROM boulder_media AS media
                     INNER JOIN boulder_problems AS problems
                         ON problems.id = media.boulder_id
+                    LEFT JOIN ascents
+                        ON ascents.id = media.ascent_id
                     LEFT JOIN users
                         ON users.deleted_at IS NULL
-                        AND lower(users.username) = lower(media.climber)
+                        AND (
+                            users.id = media.user_id
+                            OR (
+                                media.user_id IS NULL
+                                AND lower(users.username) = lower(media.climber)
+                            )
+                        )
                     WHERE media.boulder_id = ?
                         AND media.deleted_at IS NULL
+                        AND (
+                            ascents.visibility = 'public'
+                            OR (? IS NOT NULL AND media.user_id = ?)
+                        )
                     ORDER BY media.created_at DESC, media.id DESC
                     """,
-                    (problem_id,),
+                    (problem_id, private_user_id, private_user_id),
                 ).fetchall()
         except sqlite3.Error as exc:
             raise StorageError(f"Failed to read boulder media: {exc}") from exc
 
         return [self._media_from_row(row) for row in rows]
 
-    def read_recent_boulder_media(self, limit: int) -> list[BoulderMedia]:
-        """Read recent public media across all boulder problems."""
+    def read_recent_boulder_media(
+        self,
+        limit: int,
+        private_user_id: int | None = None,
+    ) -> list[BoulderMedia]:
+        """Read recent public media plus the selected user's private media."""
 
         clean_limit = max(1, min(limit, 100))
         try:
@@ -625,6 +649,7 @@ class SqliteStorage(BaseStorage):
                         problems.area,
                         problems.sector,
                         media.ascent_id,
+                        media.user_id,
                         media.climber,
                         media.media_type,
                         media.file_path,
@@ -634,36 +659,67 @@ class SqliteStorage(BaseStorage):
                         media.caption,
                         media.created_at,
                         media.updated_at,
+                        COALESCE(ascents.visibility, 'private') AS visibility,
                         COALESCE(NULLIF(users.display_name, ''), media.climber)
                             AS climber_display_name
                     FROM boulder_media AS media
                     INNER JOIN boulder_problems AS problems
                         ON problems.id = media.boulder_id
+                    LEFT JOIN ascents
+                        ON ascents.id = media.ascent_id
                     LEFT JOIN users
                         ON users.deleted_at IS NULL
-                        AND lower(users.username) = lower(media.climber)
+                        AND (
+                            users.id = media.user_id
+                            OR (
+                                media.user_id IS NULL
+                                AND lower(users.username) = lower(media.climber)
+                            )
+                        )
                     WHERE media.deleted_at IS NULL
+                        AND (
+                            ascents.visibility = 'public'
+                            OR (? IS NOT NULL AND media.user_id = ?)
+                        )
                     ORDER BY media.created_at DESC, media.id DESC
                     LIMIT ?
                     """,
-                    (clean_limit,),
+                    (private_user_id, private_user_id, clean_limit),
                 ).fetchall()
         except sqlite3.Error as exc:
             raise StorageError(f"Failed to read recent boulder media: {exc}") from exc
 
         return [self._media_from_row(row) for row in rows]
 
+    def read_boulder_media_by_id(
+        self,
+        media_id: int,
+        private_user_id: int | None = None,
+    ) -> BoulderMedia:
+        """Read one media item when it is public or owned by the selected user."""
+
+        try:
+            with self._connect() as connection:
+                media = self._find_media(connection, media_id)
+        except sqlite3.Error as exc:
+            raise StorageError(f"Failed to read boulder media: {exc}") from exc
+        if media is None:
+            raise StorageError(f"Boulder media does not exist: {media_id}")
+        if media.visibility != ASCENT_VISIBILITY_PUBLIC and media.user_id != private_user_id:
+            raise PermissionError("You do not have access to this video")
+        return media
+
     def append_boulder_media(
         self,
         name: str,
         area: str,
         sector: str,
-        ascent_id: int | None,
         climber: str,
+        user_id: int,
         caption: str,
         stored_file: StoredMediaFile,
     ) -> BoulderMedia:
-        """Append one uploaded media record to an existing boulder problem."""
+        """Append media linked to the selected user's ascent."""
 
         try:
             with self._connect() as connection:
@@ -672,18 +728,20 @@ class SqliteStorage(BaseStorage):
                     raise StorageError(
                         f"Boulder problem does not exist: {name} in {area} / {sector}"
                     )
-                if ascent_id is not None:
-                    ascent_boulder_id = self._ascent_boulder_id(connection, ascent_id)
-                    if ascent_boulder_id is None:
-                        raise StorageError(f"Ascent does not exist: {ascent_id}")
-                    if ascent_boulder_id != problem_id:
-                        raise StorageError("Ascent does not belong to this boulder problem")
+                ascent = self._find_ascent(connection, name, area, sector, climber)
+                if ascent is None:
+                    raise StorageError("Log this boulder before uploading a video")
+                ascent_user_id = ascent["user_id"]
+                if ascent_user_id is not None and int(ascent_user_id) != user_id:
+                    raise PermissionError("You can only upload videos to your own ascent")
+                ascent_id = int(ascent["id"])
 
                 cursor = connection.execute(
                     """
                     INSERT INTO boulder_media (
                         boulder_id,
                         ascent_id,
+                        user_id,
                         climber,
                         media_type,
                         file_path,
@@ -692,11 +750,12 @@ class SqliteStorage(BaseStorage):
                         file_size,
                         caption
                     )
-                    VALUES (?, ?, ?, 'video', ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, 'video', ?, ?, ?, ?, ?)
                     """,
                     (
                         problem_id,
                         ascent_id,
+                        user_id,
                         climber,
                         stored_file.relative_path,
                         stored_file.original_filename,
@@ -713,14 +772,20 @@ class SqliteStorage(BaseStorage):
 
         return media
 
-    def delete_boulder_media(self, media_id: int) -> BoulderMedia:
-        """Soft-delete one public media item."""
+    def delete_boulder_media(
+        self,
+        media_id: int,
+        climber: str,
+        user_id: int,
+    ) -> BoulderMedia:
+        """Soft-delete one media item owned by the selected user."""
 
         try:
             with self._connect() as connection:
                 media = self._find_media(connection, media_id)
                 if media is None:
                     raise StorageError(f"Boulder media does not exist: {media_id}")
+                self._ensure_media_owner(media, climber, user_id)
                 connection.execute(
                     """
                     UPDATE boulder_media
@@ -848,6 +913,7 @@ class SqliteStorage(BaseStorage):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 boulder_id INTEGER NOT NULL,
                 ascent_id INTEGER,
+                user_id INTEGER,
                 climber TEXT NOT NULL,
                 media_type TEXT NOT NULL,
                 file_path TEXT NOT NULL,
@@ -896,6 +962,61 @@ class SqliteStorage(BaseStorage):
         ascent_comment_columns = self._column_names(connection, "ascent_comments")
         if "user_id" not in ascent_comment_columns:
             connection.execute("ALTER TABLE ascent_comments ADD COLUMN user_id INTEGER")
+
+        media_columns = self._column_names(connection, "boulder_media")
+        if "user_id" not in media_columns:
+            connection.execute("ALTER TABLE boulder_media ADD COLUMN user_id INTEGER")
+        self._link_legacy_media_to_users_and_ascents(connection)
+
+    def _link_legacy_media_to_users_and_ascents(
+        self,
+        connection: sqlite3.Connection,
+    ) -> None:
+        connection.execute(
+            """
+            UPDATE boulder_media
+            SET user_id = COALESCE(
+                (
+                    SELECT ascents.user_id
+                    FROM ascents
+                    WHERE ascents.id = boulder_media.ascent_id
+                ),
+                (
+                    SELECT users.id
+                    FROM users
+                    WHERE users.deleted_at IS NULL
+                        AND lower(users.username) = lower(boulder_media.climber)
+                    LIMIT 1
+                )
+            )
+            WHERE user_id IS NULL
+            """
+        )
+        connection.execute(
+            """
+            UPDATE boulder_media
+            SET ascent_id = (
+                SELECT ascents.id
+                FROM ascents
+                WHERE ascents.boulder_id = boulder_media.boulder_id
+                    AND (
+                        ascents.user_id = boulder_media.user_id
+                        OR (
+                            ascents.user_id IS NULL
+                            AND lower(ascents.climber) = lower(boulder_media.climber)
+                        )
+                    )
+                ORDER BY
+                    CASE
+                        WHEN ascents.user_id = boulder_media.user_id THEN 0
+                        ELSE 1
+                    END,
+                    ascents.id
+                LIMIT 1
+            )
+            WHERE ascent_id IS NULL
+            """
+        )
 
     def _migrate_legacy_boulders_table(self, connection: sqlite3.Connection) -> None:
         if not self._table_exists(connection, "boulders"):
@@ -1114,17 +1235,6 @@ class SqliteStorage(BaseStorage):
         ).fetchone()
         return row is not None
 
-    def _ascent_boulder_id(self, connection: sqlite3.Connection, ascent_id: int) -> int | None:
-        row = connection.execute(
-            """
-            SELECT boulder_id
-            FROM ascents
-            WHERE id = ?
-            """,
-            (ascent_id,),
-        ).fetchone()
-        return int(row["boulder_id"]) if row else None
-
     def _delete_unused_problem(
         self,
         connection: sqlite3.Connection,
@@ -1306,6 +1416,7 @@ class SqliteStorage(BaseStorage):
                 problems.area,
                 problems.sector,
                 media.ascent_id,
+                media.user_id,
                 media.climber,
                 media.media_type,
                 media.file_path,
@@ -1315,14 +1426,23 @@ class SqliteStorage(BaseStorage):
                 media.caption,
                 media.created_at,
                 media.updated_at,
+                COALESCE(ascents.visibility, 'private') AS visibility,
                 COALESCE(NULLIF(users.display_name, ''), media.climber)
                     AS climber_display_name
             FROM boulder_media AS media
             INNER JOIN boulder_problems AS problems
                 ON problems.id = media.boulder_id
+            LEFT JOIN ascents
+                ON ascents.id = media.ascent_id
             LEFT JOIN users
                 ON users.deleted_at IS NULL
-                AND lower(users.username) = lower(media.climber)
+                AND (
+                    users.id = media.user_id
+                    OR (
+                        media.user_id IS NULL
+                        AND lower(users.username) = lower(media.climber)
+                    )
+                )
             WHERE media.id = ?
                 AND media.deleted_at IS NULL
             """,
@@ -1347,8 +1467,21 @@ class SqliteStorage(BaseStorage):
             caption=str(row["caption"]),
             created_at=str(row["created_at"]),
             updated_at=str(row["updated_at"]),
+            user_id=None if row["user_id"] is None else int(row["user_id"]),
+            visibility=str(row["visibility"]),
             climber_display_name=str(row["climber_display_name"]),
         )
+
+    def _ensure_media_owner(
+        self,
+        media: BoulderMedia,
+        climber: str,
+        user_id: int,
+    ) -> None:
+        if media.user_id is not None and media.user_id != user_id:
+            raise PermissionError("You can only delete your own videos")
+        if media.user_id is None and media.climber.lower() != climber.lower():
+            raise PermissionError("You can only delete your own videos")
 
     def _ascent_values(
         self,

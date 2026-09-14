@@ -144,8 +144,10 @@ export type BoulderMedia = {
   area: string;
   sector: string;
   ascent_id: number | null;
+  user_id: number | null;
   climber: string;
   climber_display_name: string;
+  visibility: AscentVisibility;
   media_type: "video";
   url: string;
   original_filename: string;
@@ -164,7 +166,6 @@ export type BoulderMediaUploadRequest = {
   name: string;
   area: string;
   sector: string;
-  climber: string;
   caption: string;
   file: File;
 };
