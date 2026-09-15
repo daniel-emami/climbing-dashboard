@@ -44,8 +44,7 @@ import TheTopoImportPanel from "./Components/TheTopoImportPanel";
 import {
   GRADE_SOURCE_COLORS,
   GRADE_SOURCE_FIELDS,
-  GRADE_SOURCE_LABELS,
-  type GradeChartMode
+  GRADE_SOURCE_LABELS
 } from "./Config/gradeSources";
 import type {
   AdminPasswordResetRequest,
@@ -253,7 +252,6 @@ export default function App() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("own_grade");
-  const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("own_grade");
   const [activePage, setActivePage] = useState<DashboardPage>("feed");
   const [selectedClimber, setSelectedClimber] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -490,20 +488,14 @@ export default function App() {
     if (!visibleData) {
       return [];
     }
-    const fields = activePage === "feed" || gradeChartMode === "all"
-      ? GRADE_SOURCE_FIELDS
-      : [gradeChartMode];
-    return fields.map((field) => ({
+    return GRADE_SOURCE_FIELDS.map((field) => ({
       key: field,
       label: GRADE_SOURCE_LABELS[field],
       color: GRADE_SOURCE_COLORS[field],
       data: visibleData.stats.grade_counts[field]
     }));
-  }, [activePage, gradeChartMode, visibleData]);
-  const gradeChartTitle =
-    activePage === "feed" || gradeChartMode === "all"
-      ? "Boulders by all grade sources"
-      : `Boulders by ${GRADE_SOURCE_LABELS[gradeChartMode].toLowerCase()}`;
+  }, [visibleData]);
+  const gradeChartTitle = "Boulders by all grade sources";
 
   const handleAddBoulder = async (request: BoulderCreateRequest) => {
     if (!currentUser) {
@@ -885,7 +877,11 @@ export default function App() {
               </nav>
 
               {activePage !== "feed" && (
-                <div className={styles.filterRow}>
+                <div
+                  className={`${styles.filterRow} ${
+                    activePage === "logbook" ? styles.logbookFilterRow : ""
+                  }`}
+                >
                   <label className={`${styles.filterGroup} ${styles.searchControl}`}>
                     <span className={sharedStyles.sectionKicker}>Search</span>
                     <div className={styles.searchFields}>
@@ -911,35 +907,29 @@ export default function App() {
                     </div>
                   </label>
 
-                  <div className={styles.filterGroup}>
-                    <span className={sharedStyles.sectionKicker}>Grade Source</span>
-                    <div
-                      className={`${sharedStyles.segmentedControl} ${styles.gradeSourceOptions}`}
-                      role="group"
-                      aria-label="Grade source"
-                    >
-                      {DASHBOARD_GRADE_SOURCE_FIELDS.map((field) => (
-                        <button
-                          className={field === gradeChartMode ? sharedStyles.active : ""}
-                          key={field}
-                          type="button"
-                          onClick={() => {
-                            setActiveAreaMapGradeField(field);
-                            setGradeChartMode(field);
-                          }}
-                        >
-                          {GRADE_SOURCE_LABELS[field]}
-                        </button>
-                      ))}
-                      <button
-                        className={gradeChartMode === "all" ? sharedStyles.active : ""}
-                        type="button"
-                        onClick={() => setGradeChartMode("all")}
+                  {activePage === "map" && (
+                    <div className={styles.filterGroup}>
+                      <span className={sharedStyles.sectionKicker}>Grade Source</span>
+                      <div
+                        className={`${sharedStyles.segmentedControl} ${styles.gradeSourceOptions}`}
+                        role="group"
+                        aria-label="Grade source"
                       >
-                        Combined
-                      </button>
+                        {DASHBOARD_GRADE_SOURCE_FIELDS.map((field) => (
+                          <button
+                            className={
+                              field === activeAreaMapGradeField ? sharedStyles.active : ""
+                            }
+                            key={field}
+                            type="button"
+                            onClick={() => setActiveAreaMapGradeField(field)}
+                          >
+                            {GRADE_SOURCE_LABELS[field]}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className={styles.exportControl}>
                     <button
