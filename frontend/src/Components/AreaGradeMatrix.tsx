@@ -1,3 +1,6 @@
+import sharedStyles from "../Styles/Shared.module.css";
+import styles from "./AreaGradeMatrix.module.css";
+
 type AreaGradeMatrixProps = {
   rows: Array<Record<string, number | string>>;
   grades: string[];
@@ -14,13 +17,13 @@ export default function AreaGradeMatrix({
   );
 
   return (
-    <section className="panel matrix-panel">
-      <div className="panel-heading">
-        <span className="section-kicker">Map</span>
+    <section className={sharedStyles.panel}>
+      <div className={sharedStyles.panelHeading}>
+        <span className={sharedStyles.sectionKicker}>Map</span>
         <h2>Areas by {gradeSourceLabel.toLowerCase()}</h2>
       </div>
-      <div className="table-wrap">
-        <table>
+      <div className={sharedStyles.tableWrap}>
+        <table className={styles.table}>
           <thead>
             <tr>
               <th>Area</th>

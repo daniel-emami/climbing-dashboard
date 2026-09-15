@@ -1,0 +1,179 @@
+.panel,
+.controlPanel,
+.stateCard {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.panel {
+  min-width: 0;
+  margin-bottom: 16px;
+  padding: 14px;
+}
+
+.controlPanel {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.controlPanel label {
+  display: grid;
+  gap: 5px;
+  color: var(--color-muted-strong);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.controlPanel input,
+.controlPanel select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-subtle);
+  color: var(--color-control-text);
+  padding: 0 10px;
+}
+
+.controlPanel button,
+.segmentedControl button {
+  min-height: 38px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-body);
+  padding: 0 11px;
+  font-weight: 850;
+}
+
+.controlPanel button:hover:not(:disabled),
+.segmentedControl button:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.controlPanel .primaryButton {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.controlPanel .primaryButton:hover:not(:disabled) {
+  border-color: var(--color-primary-hover);
+  background: #114c47;
+  color: var(--color-surface);
+}
+
+.controlHeading,
+.panelHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.controlHeading span {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.controlHeading strong {
+  color: var(--color-heading);
+  font-size: 0.88rem;
+}
+
+.panelHeading {
+  margin-bottom: 12px;
+}
+
+.sectionKicker {
+  color: var(--color-primary);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.segmentedControl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.segmentedControl button.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.backButton {
+  min-height: 34px;
+  margin-bottom: 12px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-body);
+  padding: 0 11px;
+  font-weight: 850;
+}
+
+.backButton:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.profileLinkButton {
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  padding: 0;
+  font: inherit;
+  font-weight: 900;
+}
+
+.profileLinkButton:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.emptyDetailSlot {
+  display: grid;
+  min-height: 70px;
+  place-items: center;
+  border: 1px dashed var(--color-control-border);
+  border-radius: var(--radius-control);
+  color: var(--color-muted);
+  font-weight: 900;
+}
+
+.stateCard {
+  margin-bottom: 16px;
+  padding: 18px;
+  color: #4b5563;
+}
+
+.errorCard {
+  display: grid;
+  gap: 8px;
+  border-color: #f3b4b4;
+  background: #fff1f1;
+  color: var(--color-danger);
+}
+
+.chartPanel {
+  min-height: 340px;
+}
+
+.tableWrap {
+  width: 100%;
+  overflow: auto;
+}

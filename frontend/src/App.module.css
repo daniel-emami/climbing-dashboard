@@ -1,0 +1,203 @@
+.shell {
+  width: min(1640px, 100%);
+  margin: 0 auto;
+  padding: 22px;
+}
+
+.workspaceHeader {
+  margin-bottom: 16px;
+}
+
+.eyebrow {
+  margin-bottom: 6px;
+  color: var(--color-primary);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.toolbar {
+  min-width: 0;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.pageTabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  border-bottom: 1px solid var(--color-border);
+  background: #e8eef2;
+}
+
+.pageTabs button {
+  min-height: 46px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-muted-strong);
+  padding: 0 16px;
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.pageTabs button:hover {
+  border-color: #c3d1d8;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-primary-dark);
+}
+
+.pageTabs button.activePage {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  box-shadow: 0 3px 8px rgba(15, 118, 110, 0.2);
+}
+
+.pageTabs button:focus-visible,
+.filterRow button:focus-visible,
+.filterRow select:focus-visible,
+.filterRow input:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.2);
+  outline-offset: 1px;
+}
+
+.filterRow {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(430px, 1.1fr) minmax(150px, auto);
+  gap: 18px;
+  align-items: end;
+  padding: 14px;
+}
+
+.filterGroup {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.searchFields {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(170px, 1.2fr);
+  gap: 8px;
+}
+
+.searchControl select,
+.searchControl input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-control-text);
+  padding: 0 10px;
+  font-weight: 850;
+}
+
+.searchControl select {
+  appearance: auto;
+}
+
+.searchControl select:focus,
+.searchControl input:focus {
+  border-color: var(--color-primary);
+}
+
+.gradeSourceOptions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.gradeSourceOptions button {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.exportControl button {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: #0f5f58;
+  padding: 0 14px;
+  font-weight: 900;
+}
+
+.exportControl button:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.dashboardLayout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.controlRail {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.dashboardMain {
+  min-width: 0;
+}
+
+.insightGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1050px) {
+  .dashboardLayout,
+  .insightGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .controlRail {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding: 14px;
+  }
+
+  .pageTabs button {
+    min-height: 42px;
+    padding: 0 8px;
+  }
+
+  .filterRow {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 12px;
+  }
+
+  .gradeSourceOptions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .exportControl button {
+    min-height: 42px;
+  }
+}
+
+@media (max-width: 420px) {
+  .searchFields {
+    grid-template-columns: 1fr;
+  }
+}

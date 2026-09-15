@@ -12,6 +12,7 @@ import type {
   BoulderPageIdentity,
   BoulderRecord
 } from "../Types/boulderTypes";
+import sharedStyles from "../Styles/Shared.module.css";
 import styles from "./ActivityFeed.module.css";
 
 type ActivityFeedProps = {
@@ -379,7 +380,7 @@ export default function ActivityFeed({
         <div className={styles.body}>
           <p className={styles.copy}>
             <button
-              className="profile-link-button"
+              className={sharedStyles.profileLinkButton}
               type="button"
               onClick={() => onOpenBoulderer(record.climber)}
             >
@@ -507,7 +508,7 @@ export default function ActivityFeed({
         <div className={styles.body}>
           <p className={styles.copy}>
             <button
-              className="profile-link-button"
+              className={sharedStyles.profileLinkButton}
               type="button"
               onClick={() => onOpenBoulderer(media.climber)}
             >
@@ -545,13 +546,13 @@ export default function ActivityFeed({
   };
 
   return (
-    <section className={`panel ${styles.panel}`}>
-      <div className="panel-heading">
-        <span className="section-kicker">Feed</span>
+    <section className={`${sharedStyles.panel} ${styles.panel}`}>
+      <div className={sharedStyles.panelHeading}>
+        <span className={sharedStyles.sectionKicker}>Feed</span>
         <h2>Latest activity</h2>
       </div>
       {feedItems.length === 0 ? (
-        <div className="empty-detail-slot">-</div>
+        <div className={sharedStyles.emptyDetailSlot}>-</div>
       ) : (
         <ol className={styles.list}>
           {feedItems.map((item) =>

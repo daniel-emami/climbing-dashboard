@@ -6,6 +6,8 @@ import type {
   LoginRequest,
   SignupRequest
 } from "../Types/authTypes";
+import sharedStyles from "../Styles/Shared.module.css";
+import styles from "./AuthPanel.module.css";
 
 type AuthPanelProps = {
   user: AuthUser | null;
@@ -74,20 +76,20 @@ export default function AuthPanel({
 
   if (user) {
     return (
-      <section className="control-panel auth-panel">
-        <div className="control-heading">
+      <section className={sharedStyles.controlPanel}>
+        <div className={sharedStyles.controlHeading}>
           <span>Account</span>
           <strong>{user.display_name || user.username}</strong>
         </div>
-        <p className="auth-help-text">@{user.username}</p>
+        <p className={styles.helpText}>@{user.username}</p>
         <button type="button" onClick={() => onOpenProfile(user.username)}>
           View Profile
         </button>
         {user.is_admin && (
-          <form className="auth-admin-reset" onSubmit={(event) => void submitPasswordReset(event)}>
+          <form className={styles.adminReset} onSubmit={(event) => void submitPasswordReset(event)}>
             <label>
               Reset a user's password
-              <div className="auth-reset-row">
+              <div className={styles.resetRow}>
                 <input
                   required
                   autoComplete="off"
@@ -95,17 +97,17 @@ export default function AuthPanel({
                   value={resetUsername}
                   onChange={(event) => setResetUsername(event.target.value)}
                 />
-                <button className="primary-button" disabled={isSaving} type="submit">
+                <button className={sharedStyles.primaryButton} disabled={isSaving} type="submit">
                   {isSaving ? "Generating..." : "Generate"}
                 </button>
               </div>
             </label>
             {passwordReset && (
-              <div className="auth-reset-result" role="status">
+              <div className={styles.resetResult} role="status">
                 <span>
                   New password for <strong>@{passwordReset.username}</strong>
                 </span>
-                <div className="auth-reset-row">
+                <div className={styles.resetRow}>
                   <input readOnly aria-label="Generated password" value={passwordReset.temporary_password} />
                   <button type="button" onClick={() => void copyTemporaryPassword()}>
                     {isCopied ? "Copied" : "Copy"}
@@ -123,15 +125,19 @@ export default function AuthPanel({
   }
 
   return (
-    <section className="control-panel auth-panel">
-      <div className="control-heading">
+    <section className={sharedStyles.controlPanel}>
+      <div className={sharedStyles.controlHeading}>
         <span>Account</span>
         <strong>{isLoading ? "Checking..." : "Sign in"}</strong>
       </div>
 
-      <div className="segmented-control auth-mode-control" role="group" aria-label="Auth mode">
+      <div
+        className={`${sharedStyles.segmentedControl} ${styles.modeControl}`}
+        role="group"
+        aria-label="Auth mode"
+      >
         <button
-          className={mode === "login" ? "active" : ""}
+          className={mode === "login" ? sharedStyles.active : ""}
           disabled={isSaving}
           type="button"
           onClick={() => setMode("login")}
@@ -139,7 +145,7 @@ export default function AuthPanel({
           Login
         </button>
         <button
-          className={mode === "signup" ? "active" : ""}
+          className={mode === "signup" ? sharedStyles.active : ""}
           disabled={isSaving}
           type="button"
           onClick={() => setMode("signup")}
@@ -148,7 +154,7 @@ export default function AuthPanel({
         </button>
       </div>
 
-      <form className="auth-form" onSubmit={(event) => void submitAuth(event)}>
+      <form className={styles.form} onSubmit={(event) => void submitAuth(event)}>
         <label>
           Username
           <input
@@ -193,7 +199,7 @@ export default function AuthPanel({
           </label>
         )}
 
-        <button className="primary-button" disabled={isSaving || isLoading} type="submit">
+        <button className={sharedStyles.primaryButton} disabled={isSaving || isLoading} type="submit">
           {isSaving ? "Working..." : mode === "login" ? "Login" : "Create Account"}
         </button>
       </form>

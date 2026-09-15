@@ -4,6 +4,8 @@ import { mediaUrl } from "../Api/mediaApi";
 import { GRADE_SOURCE_LABELS } from "../Config/gradeSources";
 import type { BoulderPageIdentity, BoulderRecord, GradeField } from "../Types/boulderTypes";
 import type { BouldererProfile } from "../Types/bouldererTypes";
+import sharedStyles from "../Styles/Shared.module.css";
+import styles from "./BouldererProfilePage.module.css";
 
 type BouldererProfilePageProps = {
   profile: BouldererProfile;
@@ -72,14 +74,14 @@ export default function BouldererProfilePage({
   };
 
   return (
-    <section className="boulderer-page" aria-label={`${profile.user.display_name} profile`}>
-      <button className="back-button" type="button" onClick={onBack}>
+    <section className={styles.page} aria-label={`${profile.user.display_name} profile`}>
+      <button className={sharedStyles.backButton} type="button" onClick={onBack}>
         Back
       </button>
 
-      <section className="panel boulderer-hero">
-        <div className="boulderer-identity">
-          <div className="boulderer-avatar">
+      <section className={`${sharedStyles.panel} ${styles.hero}`}>
+        <div className={styles.identity}>
+          <div className={styles.avatar}>
             {profile.user.profile_picture_url ? (
               <img
                 alt={`${profile.user.display_name} profile`}
@@ -90,24 +92,28 @@ export default function BouldererProfilePage({
             )}
           </div>
           <div>
-            <span className="section-kicker">Boulderer</span>
+            <span className={sharedStyles.sectionKicker}>Boulderer</span>
             <h2>{profile.user.display_name}</h2>
             <p>@{profile.user.username}</p>
           </div>
         </div>
         {profile.is_owner && (
-          <button type="button" onClick={() => setIsEditing((current) => !current)}>
+          <button
+            className={styles.primaryAction}
+            type="button"
+            onClick={() => setIsEditing((current) => !current)}
+          >
             {isEditing ? "Cancel" : "Edit Profile"}
           </button>
         )}
       </section>
 
       {isEditing && (
-        <section className="panel boulderer-edit-panel">
-          <div className="panel-heading">
-            <span className="section-kicker">Edit profile</span>
+        <section className={sharedStyles.panel}>
+          <div className={sharedStyles.panelHeading}>
+            <span className={sharedStyles.sectionKicker}>Edit profile</span>
           </div>
-          <form className="boulderer-edit-form" onSubmit={(event) => void submitProfile(event)}>
+          <form className={styles.editForm} onSubmit={(event) => void submitProfile(event)}>
             <label>
               Display name
               <input
@@ -125,14 +131,14 @@ export default function BouldererProfilePage({
                 onChange={(event) => setProfilePicture(event.target.files?.[0] ?? null)}
               />
             </label>
-            <button className="primary-button" disabled={isSaving} type="submit">
+            <button className={styles.primaryAction} disabled={isSaving} type="submit">
               {isSaving ? "Saving..." : "Save Profile"}
             </button>
           </form>
         </section>
       )}
 
-      <dl className="boulderer-summary" aria-label="Boulderer highlights">
+      <dl className={styles.summary} aria-label="Boulderer highlights">
         <div>
           <dt>Ascents</dt>
           <dd>{profile.stats.total_ascents}</dd>
@@ -155,16 +161,16 @@ export default function BouldererProfilePage({
         </div>
       </dl>
 
-      <div className="boulderer-grid">
-        <section className="panel boulderer-recent-panel">
-          <div className="panel-heading">
-            <span className="section-kicker">Recent ascents</span>
+      <div className={styles.grid}>
+        <section className={`${sharedStyles.panel} ${styles.gridPanel}`}>
+          <div className={sharedStyles.panelHeading}>
+            <span className={sharedStyles.sectionKicker}>Recent ascents</span>
             <strong>{profile.stats.flash_count} flashes</strong>
           </div>
           {profile.recent_ascents.length === 0 ? (
-            <div className="empty-detail-slot">No visible ascents</div>
+            <div className={sharedStyles.emptyDetailSlot}>No visible ascents</div>
           ) : (
-            <ol className="boulderer-ascent-list">
+            <ol className={styles.ascentList}>
               {profile.recent_ascents.map((record) => (
                 <li key={record.ascent_id ?? `${record.name}-${record.climbed_on}`}>
                   <button type="button" onClick={() => onOpenBoulder(boulderIdentity(record))}>
@@ -179,16 +185,16 @@ export default function BouldererProfilePage({
           )}
         </section>
 
-        <section className="panel boulderer-grades-panel">
-          <div className="panel-heading">
-            <span className="section-kicker">
+        <section className={`${sharedStyles.panel} ${styles.gridPanel}`}>
+          <div className={sharedStyles.panelHeading}>
+            <span className={sharedStyles.sectionKicker}>
               {GRADE_SOURCE_LABELS[gradeSource]} grade distribution
             </span>
           </div>
           {gradeCounts.length === 0 ? (
-            <div className="empty-detail-slot">No graded ascents</div>
+            <div className={sharedStyles.emptyDetailSlot}>No graded ascents</div>
           ) : (
-            <ol className="boulderer-grade-bars">
+            <ol className={styles.gradeBars}>
               {gradeCounts.map((entry) => (
                 <li key={entry.grade}>
                   <span>{entry.grade}</span>
@@ -201,13 +207,13 @@ export default function BouldererProfilePage({
             </ol>
           )}
           <div
-            className="segmented-control boulderer-grade-source-control"
+            className={`${sharedStyles.segmentedControl} ${styles.gradeSourceControl}`}
             role="group"
             aria-label="Profile grade source"
           >
             {(["grade_27crags", "guide_grade", "own_grade"] as GradeField[]).map((source) => (
               <button
-                className={gradeSource === source ? "active" : ""}
+                className={gradeSource === source ? sharedStyles.active : ""}
                 key={source}
                 type="button"
                 onClick={() => setGradeSource(source)}
@@ -218,15 +224,17 @@ export default function BouldererProfilePage({
           </div>
         </section>
 
-        <section className="panel boulderer-ratings-panel">
-          <div className="panel-heading">
-            <span className="section-kicker">Ratings</span>
+        <section
+          className={`${sharedStyles.panel} ${styles.gridPanel} ${styles.fullWidthPanel}`}
+        >
+          <div className={sharedStyles.panelHeading}>
+            <span className={sharedStyles.sectionKicker}>Ratings</span>
             <strong>{profile.stats.rated_ascents} rated</strong>
           </div>
           {profile.ratings.length === 0 ? (
-            <div className="empty-detail-slot">No ratings yet</div>
+            <div className={sharedStyles.emptyDetailSlot}>No ratings yet</div>
           ) : (
-            <ol className="boulderer-rating-list">
+            <ol className={styles.ratingList}>
               {profile.ratings.map((record) => (
                 <li key={record.ascent_id ?? `${record.name}-${record.rating}`}>
                   <button type="button" onClick={() => onOpenBoulder(boulderIdentity(record))}>
@@ -240,15 +248,17 @@ export default function BouldererProfilePage({
           )}
         </section>
 
-        <section className="panel boulderer-videos-panel">
-          <div className="panel-heading">
-            <span className="section-kicker">Uploaded videos</span>
+        <section
+          className={`${sharedStyles.panel} ${styles.gridPanel} ${styles.fullWidthPanel}`}
+        >
+          <div className={sharedStyles.panelHeading}>
+            <span className={sharedStyles.sectionKicker}>Uploaded videos</span>
             <strong>{profile.media.length}</strong>
           </div>
           {profile.media.length === 0 ? (
-            <div className="empty-detail-slot">No visible videos</div>
+            <div className={sharedStyles.emptyDetailSlot}>No visible videos</div>
           ) : (
-            <ol className="boulderer-video-list">
+            <ol className={styles.videoList}>
               {profile.media.map((item) => (
                 <li key={item.id}>
                   <video

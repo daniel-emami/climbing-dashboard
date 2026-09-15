@@ -1,0 +1,72 @@
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.preview {
+  display: grid;
+  gap: 12px;
+}
+
+.previewSummary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--color-muted-strong);
+  font-size: 0.78rem;
+}
+
+.previewSummary strong {
+  color: var(--color-heading);
+}
+
+.previewList {
+  display: grid;
+  max-height: 210px;
+  overflow: auto;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-control);
+}
+
+.previewRow.previewRow {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--color-divider);
+  color: var(--color-control-text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.previewRow:last-child {
+  border-bottom: 0;
+}
+
+.previewRow.previewRow input {
+  width: 18px;
+  min-height: 18px;
+  margin-top: 2px;
+}
+
+.previewRow span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.previewRow strong,
+.previewRow small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewRow small {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  font-weight: 750;
+}

@@ -1,5 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { BoulderCreateRequest } from "../Types/boulderTypes";
+import sharedStyles from "../Styles/Shared.module.css";
+import styles from "./BoulderForm.module.css";
 
 const EMPTY_FORM: BoulderCreateRequest = {
   name: "",
@@ -68,8 +70,8 @@ export default function BoulderForm({
   };
 
   return (
-    <form className="control-panel" onSubmit={(event) => void handleSubmit(event)}>
-      <div className="control-heading">
+    <form className={sharedStyles.controlPanel} onSubmit={(event) => void handleSubmit(event)}>
+      <div className={sharedStyles.controlHeading}>
         <span>Log climb</span>
         <strong>New Boulder</strong>
       </div>
@@ -92,7 +94,7 @@ export default function BoulderForm({
         />
       </label>
 
-      <div className="three-column-fields">
+      <div className={styles.gradeFields}>
         <label>
           27Crags
           <input
@@ -175,7 +177,7 @@ export default function BoulderForm({
         </select>
       </label>
 
-      <label className="checkbox-row">
+      <label className={styles.checkboxRow}>
         <input
           type="checkbox"
           checked={form.flash}
@@ -200,7 +202,11 @@ export default function BoulderForm({
         ))}
       </datalist>
 
-      <button className="primary-button" disabled={isSaving || !currentUsername} type="submit">
+      <button
+        className={sharedStyles.primaryButton}
+        disabled={isSaving || !currentUsername}
+        type="submit"
+      >
         {isSaving ? "Saving..." : currentUsername ? "Save Boulder" : "Login To Save"}
       </button>
     </form>

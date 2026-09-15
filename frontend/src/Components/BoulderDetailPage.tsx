@@ -10,6 +10,8 @@ import type {
   BoulderPageIdentity,
   BoulderRecord
 } from "../Types/boulderTypes";
+import sharedStyles from "../Styles/Shared.module.css";
+import styles from "./BoulderDetailPage.module.css";
 
 type BoulderDetailPageProps = {
   identity: BoulderPageIdentity;
@@ -145,10 +147,10 @@ function RatingButtons({
   onChange: (rating: number | null) => void;
 }) {
   return (
-    <div className="rating-control" aria-label="Rating">
+    <div className={styles.ratingControl} aria-label="Rating">
       {RATING_OPTIONS.map((option) => (
         <button
-          className={rating === option ? "active" : ""}
+          className={rating === option ? styles.activeRating : ""}
           disabled={disabled}
           key={option}
           type="button"
@@ -158,7 +160,7 @@ function RatingButtons({
         </button>
       ))}
       <button
-        className="rating-clear-button"
+        className={styles.clearRating}
         disabled={disabled || rating === null}
         type="button"
         onClick={() => onChange(null)}
@@ -310,18 +312,18 @@ export default function BoulderDetailPage({
   };
 
   return (
-    <section className="boulder-detail-page" aria-label="Boulder details">
-      <button className="back-button" type="button" onClick={onBack}>
+    <section className={styles.page} aria-label="Boulder details">
+      <button className={sharedStyles.backButton} type="button" onClick={onBack}>
         Back
       </button>
 
-      <section className="panel boulder-detail-hero">
+      <section className={`${sharedStyles.panel} ${styles.hero}`}>
         <div>
-          <span className="section-kicker">Boulder</span>
+          <span className={sharedStyles.sectionKicker}>Boulder</span>
           <h2>{identity.name}</h2>
           <p>{locationLabel}</p>
         </div>
-        <dl className="boulder-detail-stats" aria-label="Boulder summary">
+        <dl className={styles.stats} aria-label="Boulder summary">
           <div>
             <dt>Climbers</dt>
             <dd>{climberCount}</dd>
@@ -341,12 +343,12 @@ export default function BoulderDetailPage({
         </dl>
       </section>
 
-      <div className="boulder-detail-grid">
-        <section className="panel">
-          <div className="panel-heading">
-            <span className="section-kicker">Grades</span>
+      <div className={styles.grid}>
+        <section className={sharedStyles.panel}>
+          <div className={sharedStyles.panelHeading}>
+            <span className={sharedStyles.sectionKicker}>Grades</span>
           </div>
-          <dl className="boulder-grade-list">
+          <dl className={styles.gradeList}>
             <div>
               <dt>27Crags</dt>
               <dd>{formatGradeSummary(gradeSummary(records, "grade_27crags", gradeOrder))}</dd>
@@ -362,11 +364,11 @@ export default function BoulderDetailPage({
           </dl>
         </section>
 
-        <section className="panel">
-          <div className="panel-heading">
-            <span className="section-kicker">Ratings</span>
+        <section className={sharedStyles.panel}>
+          <div className={sharedStyles.panelHeading}>
+            <span className={sharedStyles.sectionKicker}>Ratings</span>
           </div>
-          <dl className="rating-summary-list">
+          <dl className={styles.ratingSummary}>
             <div>
               <dt>Average</dt>
               <dd>{average === null ? "-" : `${average.toFixed(1)}/5`}</dd>
@@ -380,17 +382,17 @@ export default function BoulderDetailPage({
           </dl>
         </section>
 
-        <section className="panel boulder-media-panel">
-          <div className="panel-heading">
-            <span className="section-kicker">Videos</span>
-            <span className="comment-count">{media.length}</span>
+        <section className={`${sharedStyles.panel} ${styles.fullWidthPanel}`}>
+          <div className={sharedStyles.panelHeading}>
+            <span className={sharedStyles.sectionKicker}>Videos</span>
+            <span className={styles.count}>{media.length}</span>
           </div>
           {isMediaLoading ? (
-            <div className="empty-detail-slot">Loading</div>
+            <div className={sharedStyles.emptyDetailSlot}>Loading</div>
           ) : media.length === 0 ? (
-            <div className="empty-detail-slot">-</div>
+            <div className={sharedStyles.emptyDetailSlot}>-</div>
           ) : (
-            <ol className="media-list">
+            <ol className={styles.mediaList}>
               {media.map((mediaItem) => {
                 const canDeleteMedia =
                   currentUserId !== null &&
@@ -400,7 +402,7 @@ export default function BoulderDetailPage({
                       mediaItem.climber.toLocaleLowerCase() ===
                         currentUsername.toLocaleLowerCase()));
                 return (
-                  <li className="media-item" key={mediaItem.id}>
+                  <li className={styles.mediaItem} key={mediaItem.id}>
                     <video
                       controls
                       crossOrigin="use-credentials"
@@ -408,7 +410,7 @@ export default function BoulderDetailPage({
                       preload="metadata"
                       src={mediaUrl(mediaItem.url)}
                     />
-                    <div className="media-meta">
+                    <div className={styles.mediaMeta}>
                       <strong>{mediaItem.climber_display_name}</strong>
                       <span>
                         {formatCommentTime(mediaItem.created_at)} ·{" "}
@@ -418,9 +420,9 @@ export default function BoulderDetailPage({
                     </div>
                     {mediaItem.caption && <p>{mediaItem.caption}</p>}
                     {canDeleteMedia && (
-                      <div className="comment-actions">
+                      <div className={styles.commentActions}>
                         <button
-                          className="danger-button"
+                          className={styles.dangerButton}
                           disabled={isMediaSaving}
                           type="button"
                           onClick={() => void deleteMedia(mediaItem)}
@@ -435,7 +437,7 @@ export default function BoulderDetailPage({
             </ol>
           )}
 
-          <form className="media-upload-form" onSubmit={(event) => void submitVideo(event)}>
+          <form className={styles.mediaUploadForm} onSubmit={(event) => void submitVideo(event)}>
             <label>
               Caption
               <input
@@ -467,12 +469,12 @@ export default function BoulderDetailPage({
           </form>
         </section>
 
-        <section className="panel boulder-climbers-panel">
-          <div className="panel-heading">
-            <span className="section-kicker">Climbers</span>
+        <section className={`${sharedStyles.panel} ${styles.fullWidthPanel}`}>
+          <div className={sharedStyles.panelHeading}>
+            <span className={sharedStyles.sectionKicker}>Climbers</span>
           </div>
-          <div className="table-wrap">
-            <table>
+          <div className={sharedStyles.tableWrap}>
+            <table className={styles.climberTable}>
               <thead>
                 <tr>
                   <th>Climber</th>
@@ -494,7 +496,7 @@ export default function BoulderDetailPage({
                   >
                     <th>
                       <button
-                        className="table-link-button profile-link-button"
+                        className={styles.tableLink}
                         type="button"
                         onClick={() => onOpenBoulderer(record.climber)}
                       >
@@ -525,26 +527,26 @@ export default function BoulderDetailPage({
           </div>
         </section>
 
-        <section className="panel boulder-comments-panel">
-          <div className="panel-heading">
-            <span className="section-kicker">Comments</span>
-            <span className="comment-count">{comments.length}</span>
+        <section className={`${sharedStyles.panel} ${styles.fullWidthPanel}`}>
+          <div className={sharedStyles.panelHeading}>
+            <span className={sharedStyles.sectionKicker}>Comments</span>
+            <span className={styles.count}>{comments.length}</span>
           </div>
           {isCommentsLoading ? (
-            <div className="empty-detail-slot">Loading</div>
+            <div className={sharedStyles.emptyDetailSlot}>Loading</div>
           ) : comments.length === 0 ? (
-            <div className="empty-detail-slot">-</div>
+            <div className={sharedStyles.emptyDetailSlot}>-</div>
           ) : (
-            <ol className="comment-list">
+            <ol className={styles.commentList}>
               {comments.map((comment) => {
                 const isEditing = editingCommentId === comment.id;
                 const canEditComment =
                   currentUsername !== null &&
                   comment.climber.toLocaleLowerCase() === currentUsername.toLocaleLowerCase();
                 return (
-                  <li className="comment-item" key={comment.id}>
+                  <li className={styles.commentItem} key={comment.id}>
                     {isEditing ? (
-                      <div className="comment-edit-form">
+                      <div className={styles.commentEditForm}>
                         <label>
                           Comment
                           <textarea
@@ -554,7 +556,7 @@ export default function BoulderDetailPage({
                             onChange={(event) => setEditingBody(event.target.value)}
                           />
                         </label>
-                        <div className="comment-actions">
+                        <div className={styles.commentActions}>
                           <button
                             disabled={isCommentSaving || !canEditComment}
                             type="button"
@@ -573,13 +575,13 @@ export default function BoulderDetailPage({
                       </div>
                     ) : (
                       <>
-                        <div className="comment-meta">
+                        <div className={styles.commentMeta}>
                           <strong>{comment.climber_display_name}</strong>
                           <span>{formatCommentTime(comment.created_at)}</span>
                         </div>
                         <p>{comment.body}</p>
                         {canEditComment && (
-                          <div className="comment-actions">
+                          <div className={styles.commentActions}>
                             <button
                               disabled={isCommentSaving}
                               type="button"
@@ -588,7 +590,7 @@ export default function BoulderDetailPage({
                               Edit
                             </button>
                             <button
-                              className="danger-button"
+                              className={styles.dangerButton}
                               disabled={isCommentSaving}
                               type="button"
                               onClick={() => void deleteComment(comment)}
@@ -605,7 +607,7 @@ export default function BoulderDetailPage({
             </ol>
           )}
 
-          <form className="comment-form" onSubmit={(event) => void submitComment(event)}>
+          <form className={styles.commentForm} onSubmit={(event) => void submitComment(event)}>
             <label>
               Comment
               <textarea

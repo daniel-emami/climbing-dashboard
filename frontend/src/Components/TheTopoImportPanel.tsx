@@ -2,6 +2,8 @@ import { useMemo, useState, type FormEvent } from "react";
 import { confirmTheTopoImport, previewTheTopoImport } from "../Api/importApi";
 import type { BoulderRecord, BouldersResponse } from "../Types/boulderTypes";
 import type { ImportPreviewResponse } from "../Types/importTypes";
+import sharedStyles from "../Styles/Shared.module.css";
+import styles from "./TheTopoImportPanel.module.css";
 
 type TheTopoImportPanelProps = {
   currentUsername: string | null;
@@ -81,9 +83,9 @@ export default function TheTopoImportPanel({
   };
 
   return (
-    <section className="control-panel import-panel">
-      <form className="import-form" onSubmit={(event) => void handlePreview(event)}>
-        <div className="control-heading">
+    <section className={sharedStyles.controlPanel}>
+      <form className={styles.form} onSubmit={(event) => void handlePreview(event)}>
+        <div className={sharedStyles.controlHeading}>
           <span>Import</span>
           <strong>TheTopo</strong>
         </div>
@@ -95,19 +97,19 @@ export default function TheTopoImportPanel({
             onChange={(event) => setUsername(event.target.value)}
           />
         </label>
-        <button className="primary-button" disabled={isPreviewing} type="submit">
+        <button className={sharedStyles.primaryButton} disabled={isPreviewing} type="submit">
           {isPreviewing ? "Previewing..." : "Preview Boulders"}
         </button>
       </form>
 
       {preview && (
-        <div className="import-preview">
-          <div className="import-preview-summary">
+        <div className={styles.preview}>
+          <div className={styles.previewSummary}>
             <strong>{preview.imported_count} boulders found</strong>
             <span>{selectedBoulders.length} selected</span>
           </div>
           <button
-            className="primary-button"
+            className={sharedStyles.primaryButton}
             disabled={isConfirming || selectedBoulders.length === 0 || !currentUsername}
             type="button"
             onClick={() => void handleConfirm()}
@@ -118,9 +120,9 @@ export default function TheTopoImportPanel({
                 ? "Import Selected"
                 : "Login To Import"}
           </button>
-          <div className="import-preview-list">
+          <div className={styles.previewList}>
             {preview.boulders.map((boulder) => (
-              <label className="import-preview-row" key={boulderKey(boulder)}>
+              <label className={styles.previewRow} key={boulderKey(boulder)}>
                 <input
                   type="checkbox"
                   checked={selectedKeys.has(boulderKey(boulder))}

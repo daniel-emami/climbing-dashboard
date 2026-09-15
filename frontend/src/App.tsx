@@ -69,6 +69,8 @@ import type {
   DashboardStats,
   GradeField
 } from "./Types/boulderTypes";
+import styles from "./App.module.css";
+import sharedStyles from "./Styles/Shared.module.css";
 
 const DASHBOARD_GRADE_SOURCE_FIELDS: GradeField[] = [
   "grade_27crags",
@@ -816,10 +818,10 @@ export default function App() {
   };
 
   return (
-    <main className="app-shell">
-      <header className="workspace-header">
+    <main className={styles.shell}>
+      <header className={styles.workspaceHeader}>
         <div>
-          <p className="eyebrow">Outdoor boulders</p>
+          <p className={styles.eyebrow}>Outdoor boulders</p>
           <h1>Climbing Dashboard</h1>
         </div>
       </header>
@@ -867,12 +869,12 @@ export default function App() {
       ) : (
         <>
           {visibleData && !isInitialLoading && (
-            <section className="dashboard-toolbar" aria-label="Dashboard navigation and filters">
-              <nav className="dashboard-page-tabs" aria-label="Dashboard pages">
+            <section className={styles.toolbar} aria-label="Dashboard navigation and filters">
+              <nav className={styles.pageTabs} aria-label="Dashboard pages">
                 {DASHBOARD_PAGES.map((page) => (
                   <button
                     aria-current={activePage === page.key ? "page" : undefined}
-                    className={activePage === page.key ? "active" : ""}
+                    className={activePage === page.key ? styles.activePage : ""}
                     key={page.key}
                     type="button"
                     onClick={() => setActivePage(page.key)}
@@ -883,10 +885,10 @@ export default function App() {
               </nav>
 
               {activePage !== "feed" && (
-                <div className="dashboard-filter-row">
-                  <label className="dashboard-filter-group search-control">
-                    <span className="section-kicker">Search</span>
-                    <div className="search-fields">
+                <div className={styles.filterRow}>
+                  <label className={`${styles.filterGroup} ${styles.searchControl}`}>
+                    <span className={sharedStyles.sectionKicker}>Search</span>
+                    <div className={styles.searchFields}>
                       <select
                         aria-label="Filter by climber"
                         value={selectedClimber}
@@ -909,12 +911,16 @@ export default function App() {
                     </div>
                   </label>
 
-                  <div className="dashboard-filter-group grade-source-control">
-                    <span className="section-kicker">Grade Source</span>
-                    <div className="segmented-control" role="group" aria-label="Grade source">
+                  <div className={styles.filterGroup}>
+                    <span className={sharedStyles.sectionKicker}>Grade Source</span>
+                    <div
+                      className={`${sharedStyles.segmentedControl} ${styles.gradeSourceOptions}`}
+                      role="group"
+                      aria-label="Grade source"
+                    >
                       {DASHBOARD_GRADE_SOURCE_FIELDS.map((field) => (
                         <button
-                          className={field === gradeChartMode ? "active" : ""}
+                          className={field === gradeChartMode ? sharedStyles.active : ""}
                           key={field}
                           type="button"
                           onClick={() => {
@@ -926,7 +932,7 @@ export default function App() {
                         </button>
                       ))}
                       <button
-                        className={gradeChartMode === "all" ? "active" : ""}
+                        className={gradeChartMode === "all" ? sharedStyles.active : ""}
                         type="button"
                         onClick={() => setGradeChartMode("all")}
                       >
@@ -935,7 +941,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="dashboard-export-control">
+                  <div className={styles.exportControl}>
                     <button
                       disabled={visibleData.records.length === 0}
                       type="button"
@@ -949,8 +955,8 @@ export default function App() {
             </section>
           )}
 
-          <div className="dashboard-layout">
-            <aside className="control-rail">
+          <div className={styles.dashboardLayout}>
+            <aside className={styles.controlRail}>
               <AuthPanel
                 user={currentUser}
                 isLoading={isAuthLoading}
@@ -977,7 +983,7 @@ export default function App() {
               />
             </aside>
 
-            <section className="dashboard-main" aria-label="Climbing Dashboard">
+            <section className={styles.dashboardMain} aria-label="Climbing Dashboard">
               {isInitialLoading && <LoadingState />}
               {error && <ErrorState message={error} />}
               {visibleData && !isInitialLoading && (
@@ -992,7 +998,7 @@ export default function App() {
                         onOpenBoulder={handleOpenBoulder}
                         onOpenBoulderer={handleOpenBoulderer}
                       />
-                      <div className="insight-grid">
+                      <div className={styles.insightGrid}>
                         <GradeChart
                           title={gradeChartTitle}
                           gradeOrder={visibleData.grade_order}

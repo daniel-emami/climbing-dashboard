@@ -9,6 +9,7 @@ import {
   YAxis
 } from "recharts";
 import type { GradeCount } from "../Types/boulderTypes";
+import sharedStyles from "../Styles/Shared.module.css";
 
 export type GradeChartSeries = {
   key: string;
@@ -43,9 +44,9 @@ export default function GradeChart({ title, gradeOrder, series }: GradeChartProp
     .filter((row) => seriesMaps.some((entry) => Number(row[entry.key]) > 0));
 
   return (
-    <section className="panel chart-panel">
-      <div className="panel-heading">
-        <span className="section-kicker">Grades</span>
+    <section className={`${sharedStyles.panel} ${sharedStyles.chartPanel}`}>
+      <div className={sharedStyles.panelHeading}>
+        <span className={sharedStyles.sectionKicker}>Grades</span>
         <h2>{title}</h2>
       </div>
       <ResponsiveContainer width="100%" height={260}>
