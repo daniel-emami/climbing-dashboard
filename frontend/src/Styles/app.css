@@ -1277,13 +1277,16 @@ h2 {
 .activity-comment-form,
 .activity-comment-edit-form {
   display: grid;
-  grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) auto;
   gap: 7px;
   align-items: center;
 }
 
+.activity-comment-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .activity-comment-edit-form {
-  grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .activity-comment-form input,
@@ -1626,11 +1629,6 @@ tbody tr:hover td {
   }
 
   .media-upload-form {
-    grid-template-columns: 1fr;
-  }
-
-  .activity-comment-form,
-  .activity-comment-edit-form {
     grid-template-columns: 1fr;
   }
 
