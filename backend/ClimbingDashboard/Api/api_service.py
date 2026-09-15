@@ -2,87 +2,151 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from pathlib import Path
+from typing import BinaryIO
 
 from ClimbingDashboard.Api.api_models import (
+    AscentCommentCreateRequest,
+    AscentCommentsByAscentPayload,
+    AscentCommentsPayload,
+    AscentCommentUpdateRequest,
     BoulderCommentCreateRequest,
     BoulderCommentsPayload,
     BoulderCommentUpdateRequest,
     BoulderCreateRequest,
+    BoulderMediaPayload,
+    BoulderMediaUploadRequest,
     BouldersPayload,
 )
 from ClimbingDashboard.Api.base_api_service import BaseApiService
-from ClimbingDashboard.Config.constants import GRADE_ORDER, GRADE_SOURCE_FIELDS
+from ClimbingDashboard.Config.constants import (
+    DEFAULT_MAX_VIDEO_UPLOAD_BYTES,
+    GRADE_ORDER,
+    GRADE_SOURCE_FIELDS,
+)
 from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
 from ClimbingDashboard.Exceptions.storage_error import StorageError
 from ClimbingDashboard.Models.area_grade_matrix_row import AreaGradeMatrixRow
+from ClimbingDashboard.Models.ascent_comment import AscentComment
 from ClimbingDashboard.Models.boulder_comment import BoulderComment
+from ClimbingDashboard.Models.boulder_media import BoulderMedia
 from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Models.dashboard_stats import (
     AreaCount,
     DashboardStats,
     GradeCount,
 )
+from ClimbingDashboard.Models.readable_media_file import ReadableMediaFile
+from ClimbingDashboard.Models.stored_media_file import StoredMediaFile
+from ClimbingDashboard.Models.user_account import UserAccount
+from ClimbingDashboard.Storage.local_media_file_storage import LocalMediaFileStorage
 from ClimbingDashboard.Storage.sqlite_storage import SqliteStorage
+from ClimbingDashboard.Utilities.location_normalizer import (
+    LocationNormalizer,
+    NormalizedLocation,
+)
 
 
 class ApiService(BaseApiService):
     """Reads and writes the SQLite source, returning frontend-ready payloads."""
 
-    def __init__(self, database_path: str | Path) -> None:
+    def __init__(
+        self,
+        database_path: str | Path,
+        location_normalizer: LocationNormalizer | None = None,
+        uploads_path: str | Path | None = None,
+        max_video_upload_bytes: int = DEFAULT_MAX_VIDEO_UPLOAD_BYTES,
+    ) -> None:
         """Create the API service for a selected database path."""
 
-        self.storage = SqliteStorage(database_path)
+        selected_database_path = Path(database_path)
+        self.storage = SqliteStorage(selected_database_path)
+        self.media_file_storage = LocalMediaFileStorage(
+            uploads_path
+            if uploads_path is not None
+            else selected_database_path.parent / "uploads",
+            max_video_upload_bytes,
+        )
+        self.location_normalizer = (
+            location_normalizer if location_normalizer is not None else LocationNormalizer()
+        )
 
-    def get_boulders(self) -> BouldersPayload:
+    def get_boulders(self, current_user: UserAccount | None = None) -> BouldersPayload:
         """Return boulders with calculated stats."""
 
-        records = self._read_records()
+        records = self._read_records(current_user)
         return {
             "records": [record.to_payload() for record in records],
             "stats": self._build_stats(records).to_payload(),
             "grade_order": list(GRADE_ORDER),
         }
 
-    def save_boulder(self, request: BoulderCreateRequest) -> BouldersPayload:
+    def save_boulder(
+        self,
+        request: BoulderCreateRequest,
+        current_user: UserAccount,
+    ) -> BouldersPayload:
         """Append one boulder, then return the refreshed dashboard payload."""
 
-        record = self._record_from_request(request)
+        record = self._record_from_request(request, current_user)
         try:
-            self.storage.append_boulder(record)
+            self.storage.append_boulder(record, current_user.id)
         except StorageError as exc:
             raise ApiDataError(f"Could not save boulder: {exc}") from exc
-        return self.get_boulders()
+        return self.get_boulders(current_user)
 
     def update_boulder(
         self,
         original_name: str,
         original_area: str,
+        original_sector: str,
         original_climber: str,
         request: BoulderCreateRequest,
+        current_user: UserAccount,
     ) -> BouldersPayload:
         """Update one boulder, then return the refreshed dashboard payload."""
 
-        record = self._record_from_request(request)
+        self._ensure_can_change_ascent(original_climber, current_user)
+        record = self._record_from_request(request, current_user)
         try:
-            self.storage.update_boulder(original_name, original_area, original_climber, record)
+            self.storage.update_boulder(
+                original_name,
+                original_area,
+                original_sector,
+                original_climber,
+                record,
+                current_user.id,
+            )
         except StorageError as exc:
             raise ApiDataError(f"Could not update boulder: {exc}") from exc
-        return self.get_boulders()
+        return self.get_boulders(current_user)
 
-    def delete_boulder(self, name: str, area: str, climber: str) -> BouldersPayload:
+    def delete_boulder(
+        self,
+        name: str,
+        area: str,
+        sector: str,
+        climber: str,
+        current_user: UserAccount,
+    ) -> BouldersPayload:
         """Delete one boulder, then return the refreshed dashboard payload."""
 
+        self._ensure_can_change_ascent(climber, current_user)
         try:
-            self.storage.delete_boulder(name, area, climber)
+            self.storage.delete_boulder(name, area, sector, climber)
         except StorageError as exc:
             raise ApiDataError(f"Could not delete boulder: {exc}") from exc
-        return self.get_boulders()
+        return self.get_boulders(current_user)
 
-    def get_boulder_comments(self, name: str, area: str) -> BoulderCommentsPayload:
+    def get_boulder_comments(
+        self,
+        name: str,
+        area: str,
+        sector: str,
+    ) -> BoulderCommentsPayload:
         """Return public comments for one boulder problem."""
 
         try:
-            comments = self.storage.read_boulder_comments(name, area)
+            comments = self._read_comments_from_first_existing_location(name, area, sector)
         except StorageError as exc:
             raise ApiDataError(f"Could not read boulder comments: {exc}") from exc
         return self._comments_payload(comments)
@@ -90,17 +154,19 @@ class ApiService(BaseApiService):
     def save_boulder_comment(
         self,
         request: BoulderCommentCreateRequest,
+        current_user: UserAccount,
     ) -> BoulderCommentsPayload:
         """Append one boulder comment, then return the refreshed comment thread."""
 
         try:
-            self.storage.append_boulder_comment(
+            comments = self._append_comment_to_first_existing_location(
                 request.name,
                 request.area,
-                request.climber,
+                request.sector,
+                current_user.username,
                 request.body,
+                current_user.id,
             )
-            comments = self.storage.read_boulder_comments(request.name, request.area)
         except StorageError as exc:
             raise ApiDataError(f"Could not save boulder comment: {exc}") from exc
         return self._comments_payload(comments)
@@ -109,51 +175,391 @@ class ApiService(BaseApiService):
         self,
         comment_id: int,
         request: BoulderCommentUpdateRequest,
+        current_user: UserAccount,
     ) -> BoulderCommentsPayload:
         """Update one boulder comment, then return the refreshed comment thread."""
 
         try:
             comment = self.storage.update_boulder_comment(
                 comment_id,
-                request.climber,
+                current_user.username,
                 request.body,
+                current_user.id,
             )
-            comments = self.storage.read_boulder_comments(comment.boulder_name, comment.area)
+            comments = self.storage.read_boulder_comments(
+                comment.boulder_name,
+                comment.area,
+                comment.sector,
+            )
+        except PermissionError:
+            raise
         except StorageError as exc:
             raise ApiDataError(f"Could not update boulder comment: {exc}") from exc
         return self._comments_payload(comments)
 
-    def delete_boulder_comment(self, comment_id: int) -> BoulderCommentsPayload:
+    def delete_boulder_comment(
+        self,
+        comment_id: int,
+        current_user: UserAccount,
+    ) -> BoulderCommentsPayload:
         """Soft-delete one boulder comment, then return the refreshed comment thread."""
 
         try:
-            comment = self.storage.delete_boulder_comment(comment_id)
-            comments = self.storage.read_boulder_comments(comment.boulder_name, comment.area)
+            comment = self.storage.delete_boulder_comment(
+                comment_id,
+                current_user.username,
+                current_user.id,
+            )
+            comments = self.storage.read_boulder_comments(
+                comment.boulder_name,
+                comment.area,
+                comment.sector,
+            )
+        except PermissionError:
+            raise
         except StorageError as exc:
             raise ApiDataError(f"Could not delete boulder comment: {exc}") from exc
         return self._comments_payload(comments)
 
-    def _read_records(self) -> list[BoulderRecord]:
+    def get_ascent_comments(self, ascent_id: int) -> AscentCommentsPayload:
+        """Return public comments for one ascent."""
+
         try:
-            return self.storage.read_boulders()
+            comments = self.storage.read_ascent_comments(ascent_id)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read ascent comments: {exc}") from exc
+        return self._ascent_comments_payload(comments)
+
+    def get_ascent_comments_for_ascent_ids(
+        self,
+        ascent_ids: list[int],
+    ) -> AscentCommentsByAscentPayload:
+        """Return public comments grouped by ascent id."""
+
+        try:
+            comments_by_ascent_id = self.storage.read_ascent_comments_for_ascent_ids(ascent_ids)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read ascent comments: {exc}") from exc
+        return {
+            "comments_by_ascent_id": {
+                str(ascent_id): [comment.to_payload() for comment in comments]
+                for ascent_id, comments in comments_by_ascent_id.items()
+            }
+        }
+
+    def save_ascent_comment(
+        self,
+        request: AscentCommentCreateRequest,
+        current_user: UserAccount,
+    ) -> AscentCommentsPayload:
+        """Append one ascent comment, then return the refreshed comment thread."""
+
+        try:
+            self.storage.append_ascent_comment(
+                request.ascent_id,
+                current_user.username,
+                request.body,
+                current_user.id,
+            )
+            comments = self.storage.read_ascent_comments(request.ascent_id)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not save ascent comment: {exc}") from exc
+        return self._ascent_comments_payload(comments)
+
+    def update_ascent_comment(
+        self,
+        comment_id: int,
+        request: AscentCommentUpdateRequest,
+        current_user: UserAccount,
+    ) -> AscentCommentsPayload:
+        """Update one ascent comment, then return the refreshed comment thread."""
+
+        try:
+            comment = self.storage.update_ascent_comment(
+                comment_id,
+                current_user.username,
+                request.body,
+                current_user.id,
+            )
+            comments = self.storage.read_ascent_comments(comment.ascent_id)
+        except PermissionError:
+            raise
+        except StorageError as exc:
+            raise ApiDataError(f"Could not update ascent comment: {exc}") from exc
+        return self._ascent_comments_payload(comments)
+
+    def delete_ascent_comment(
+        self,
+        comment_id: int,
+        current_user: UserAccount,
+    ) -> AscentCommentsPayload:
+        """Soft-delete one ascent comment, then return the refreshed comment thread."""
+
+        try:
+            comment = self.storage.delete_ascent_comment(
+                comment_id,
+                current_user.username,
+                current_user.id,
+            )
+            comments = self.storage.read_ascent_comments(comment.ascent_id)
+        except PermissionError:
+            raise
+        except StorageError as exc:
+            raise ApiDataError(f"Could not delete ascent comment: {exc}") from exc
+        return self._ascent_comments_payload(comments)
+
+    def get_boulder_media(
+        self,
+        name: str,
+        area: str,
+        sector: str,
+        current_user: UserAccount | None = None,
+    ) -> BoulderMediaPayload:
+        """Return media visible to the current user for one boulder problem."""
+
+        try:
+            media = self._read_media_from_first_existing_location(
+                name,
+                area,
+                sector,
+                current_user.id if current_user is not None else None,
+            )
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read boulder media: {exc}") from exc
+        return self._media_payload(media)
+
+    def get_recent_boulder_media(
+        self,
+        limit: int = 30,
+        current_user: UserAccount | None = None,
+    ) -> BoulderMediaPayload:
+        """Return recent media visible to the current user."""
+
+        try:
+            media = self.storage.read_recent_boulder_media(
+                limit,
+                current_user.id if current_user is not None else None,
+            )
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read recent boulder media: {exc}") from exc
+        return self._media_payload(media)
+
+    def save_boulder_video(
+        self,
+        request: BoulderMediaUploadRequest,
+        source: BinaryIO,
+        original_filename: str,
+        mime_type: str | None,
+        current_user: UserAccount,
+    ) -> BoulderMediaPayload:
+        """Save one video and attach it to the current user's ascent."""
+
+        try:
+            stored_file = self.media_file_storage.save_video(
+                source,
+                original_filename,
+                mime_type,
+            )
+        except StorageError as exc:
+            raise ApiDataError(f"Could not save video file: {exc}") from exc
+
+        try:
+            media = self._append_media_to_first_existing_location(
+                request,
+                stored_file,
+                current_user,
+            )
+            refreshed_media = self.storage.read_boulder_media(
+                media.boulder_name,
+                media.area,
+                media.sector,
+                current_user.id,
+            )
+        except (PermissionError, StorageError) as exc:
+            self.media_file_storage.delete(stored_file.relative_path)
+            if isinstance(exc, PermissionError):
+                raise
+            raise ApiDataError(f"Could not save boulder media: {exc}") from exc
+        return self._media_payload(refreshed_media)
+
+    def delete_boulder_media(
+        self,
+        media_id: int,
+        current_user: UserAccount,
+    ) -> BoulderMediaPayload:
+        """Delete one owned media item and return the visible media for its boulder."""
+
+        try:
+            media = self.storage.delete_boulder_media(
+                media_id,
+                current_user.username,
+                current_user.id,
+            )
+            self.media_file_storage.delete(media.file_path)
+            refreshed_media = self.storage.read_boulder_media(
+                media.boulder_name,
+                media.area,
+                media.sector,
+                current_user.id,
+            )
+        except PermissionError:
+            raise
+        except StorageError as exc:
+            raise ApiDataError(f"Could not delete boulder media: {exc}") from exc
+        return self._media_payload(refreshed_media)
+
+    def get_boulder_video_file(
+        self,
+        media_id: int,
+        current_user: UserAccount | None = None,
+    ) -> ReadableMediaFile:
+        """Return a video file after checking its inherited ascent visibility."""
+
+        try:
+            media = self.storage.read_boulder_media_by_id(
+                media_id,
+                current_user.id if current_user is not None else None,
+            )
+            return ReadableMediaFile(
+                path=self.media_file_storage.readable_path(media.file_path),
+                mime_type=media.mime_type,
+            )
+        except PermissionError:
+            raise
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read video file: {exc}") from exc
+
+    def _read_records(self, current_user: UserAccount | None = None) -> list[BoulderRecord]:
+        try:
+            return self.storage.read_boulders(
+                private_user_id=current_user.id if current_user is not None else None
+            )
         except StorageError as exc:
             raise ApiDataError(f"Could not read boulders: {exc}") from exc
 
     def _comments_payload(self, comments: list[BoulderComment]) -> BoulderCommentsPayload:
         return {"comments": [comment.to_payload() for comment in comments]}
 
-    def _record_from_request(self, request: BoulderCreateRequest) -> BoulderRecord:
-        return BoulderRecord(
+    def _ascent_comments_payload(
+        self,
+        comments: list[AscentComment],
+    ) -> AscentCommentsPayload:
+        return {"comments": [comment.to_payload() for comment in comments]}
+
+    def _media_payload(self, media: list[BoulderMedia]) -> BoulderMediaPayload:
+        return {"media": [media_item.to_payload() for media_item in media]}
+
+    def _record_from_request(
+        self,
+        request: BoulderCreateRequest,
+        current_user: UserAccount,
+    ) -> BoulderRecord:
+        record = BoulderRecord(
             name=request.name,
             grade_27crags=request.grade_27crags,
             guide_grade=request.guide_grade,
             own_grade=request.own_grade,
             area=request.area,
-            climber=request.climber,
+            sector=request.sector,
+            climber=current_user.username,
             flash=request.flash,
             climbed_on=request.climbed_on,
             rating=request.rating,
+            visibility=request.visibility,
         )
+        return self.location_normalizer.normalize_record(record)
+
+    def _read_comments_from_first_existing_location(
+        self,
+        name: str,
+        area: str,
+        sector: str,
+    ) -> list[BoulderComment]:
+        last_error: StorageError | None = None
+        for location in self._location_candidates(area, sector):
+            try:
+                return self.storage.read_boulder_comments(name, location.area, location.sector)
+            except StorageError as exc:
+                last_error = exc
+        raise last_error if last_error is not None else StorageError("Boulder problem not found")
+
+    def _append_comment_to_first_existing_location(
+        self,
+        name: str,
+        area: str,
+        sector: str,
+        climber: str,
+        body: str,
+        user_id: int | None,
+    ) -> list[BoulderComment]:
+        last_error: StorageError | None = None
+        for location in self._location_candidates(area, sector):
+            try:
+                self.storage.append_boulder_comment(
+                    name,
+                    location.area,
+                    location.sector,
+                    climber,
+                    body,
+                    user_id,
+                )
+                return self.storage.read_boulder_comments(name, location.area, location.sector)
+            except StorageError as exc:
+                last_error = exc
+        raise last_error if last_error is not None else StorageError("Boulder problem not found")
+
+    def _read_media_from_first_existing_location(
+        self,
+        name: str,
+        area: str,
+        sector: str,
+        private_user_id: int | None,
+    ) -> list[BoulderMedia]:
+        last_error: StorageError | None = None
+        for location in self._location_candidates(area, sector):
+            try:
+                return self.storage.read_boulder_media(
+                    name,
+                    location.area,
+                    location.sector,
+                    private_user_id,
+                )
+            except StorageError as exc:
+                last_error = exc
+        raise last_error if last_error is not None else StorageError("Boulder problem not found")
+
+    def _append_media_to_first_existing_location(
+        self,
+        request: BoulderMediaUploadRequest,
+        stored_file: StoredMediaFile,
+        current_user: UserAccount,
+    ) -> BoulderMedia:
+        last_error: StorageError | None = None
+        for location in self._location_candidates(request.area, request.sector):
+            try:
+                return self.storage.append_boulder_media(
+                    request.name,
+                    location.area,
+                    location.sector,
+                    current_user.username,
+                    current_user.id,
+                    request.caption,
+                    stored_file,
+                )
+            except StorageError as exc:
+                last_error = exc
+        raise last_error if last_error is not None else StorageError("Boulder problem not found")
+
+    def _location_candidates(self, area: str, sector: str) -> list[NormalizedLocation]:
+        exact_location = NormalizedLocation(area=area, sector=sector)
+        normalized_location = self.location_normalizer.normalize(area, sector)
+        if normalized_location == exact_location:
+            return [exact_location]
+        return [exact_location, normalized_location]
+
+    def _ensure_can_change_ascent(self, climber: str, current_user: UserAccount) -> None:
+        if climber.lower() != current_user.username.lower():
+            raise PermissionError("You can only change your own ascents")
 
     def _build_stats(self, records: list[BoulderRecord]) -> DashboardStats:
         by_area = Counter(record.area for record in records if record.area)

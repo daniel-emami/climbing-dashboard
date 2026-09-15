@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { BoulderCreateRequest } from "../Types/boulderTypes";
 
 const EMPTY_FORM: BoulderCreateRequest = {
@@ -7,10 +7,12 @@ const EMPTY_FORM: BoulderCreateRequest = {
   guide_grade: "",
   own_grade: "",
   area: "",
+  sector: "",
   climber: "",
   flash: false,
   climbed_on: new Date().toISOString().slice(0, 10),
-  rating: null
+  rating: null,
+  visibility: "public"
 };
 
 const RATING_OPTIONS = [1, 2, 3, 4, 5];
@@ -18,19 +20,31 @@ const RATING_OPTIONS = [1, 2, 3, 4, 5];
 type BoulderFormProps = {
   isSaving: boolean;
   knownAreas: string[];
-  knownClimbers: string[];
   knownGrades: string[];
+  currentDisplayName: string | null;
+  currentUsername: string | null;
+  knownSectors: string[];
   onSubmit: (request: BoulderCreateRequest) => Promise<void>;
 };
 
 export default function BoulderForm({
   isSaving,
   knownAreas,
-  knownClimbers,
   knownGrades,
+  currentDisplayName,
+  currentUsername,
+  knownSectors,
   onSubmit
 }: BoulderFormProps) {
   const [form, setForm] = useState<BoulderCreateRequest>(EMPTY_FORM);
+
+  useEffect(() => {
+    if (currentUsername) {
+      setForm((current) => ({ ...current, climber: currentUsername }));
+    } else {
+      setForm((current) => ({ ...current, climber: "" }));
+    }
+  }, [currentUsername]);
 
   const updateForm = <K extends keyof BoulderCreateRequest>(
     key: K,
@@ -43,9 +57,10 @@ export default function BoulderForm({
     event.preventDefault();
     await onSubmit({
       ...form,
+      climber: currentUsername ?? form.climber,
       climbed_on: form.climbed_on || null
     });
-    setForm({ ...EMPTY_FORM, climber: form.climber });
+    setForm({ ...EMPTY_FORM, climber: currentUsername ?? form.climber });
   };
 
   const updateRating = (value: string) => {
@@ -63,9 +78,8 @@ export default function BoulderForm({
         Climber
         <input
           required
-          list="known-climbers"
-          value={form.climber}
-          onChange={(event) => updateForm("climber", event.target.value)}
+          disabled
+          value={currentDisplayName ?? currentUsername ?? ""}
         />
       </label>
 
@@ -116,6 +130,15 @@ export default function BoulderForm({
       </label>
 
       <label>
+        Sector
+        <input
+          list="known-sectors"
+          value={form.sector}
+          onChange={(event) => updateForm("sector", event.target.value)}
+        />
+      </label>
+
+      <label>
         Date
         <input
           type="date"
@@ -139,6 +162,19 @@ export default function BoulderForm({
         </select>
       </label>
 
+      <label>
+        Visibility
+        <select
+          value={form.visibility}
+          onChange={(event) =>
+            updateForm("visibility", event.target.value as BoulderCreateRequest["visibility"])
+          }
+        >
+          <option value="public">Public</option>
+          <option value="private">Private</option>
+        </select>
+      </label>
+
       <label className="checkbox-row">
         <input
           type="checkbox"
@@ -158,14 +194,14 @@ export default function BoulderForm({
           <option value={grade} key={grade} />
         ))}
       </datalist>
-      <datalist id="known-climbers">
-        {knownClimbers.map((climber) => (
-          <option value={climber} key={climber} />
+      <datalist id="known-sectors">
+        {knownSectors.map((sector) => (
+          <option value={sector} key={sector} />
         ))}
       </datalist>
 
-      <button className="primary-button" disabled={isSaving} type="submit">
-        {isSaving ? "Saving..." : "Save Boulder"}
+      <button className="primary-button" disabled={isSaving || !currentUsername} type="submit">
+        {isSaving ? "Saving..." : currentUsername ? "Save Boulder" : "Login To Save"}
       </button>
     </form>
   );

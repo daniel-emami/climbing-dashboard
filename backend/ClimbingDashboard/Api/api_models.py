@@ -3,6 +3,10 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from ClimbingDashboard.Config.constants import (
+    ASCENT_VISIBILITY_OPTIONS,
+    ASCENT_VISIBILITY_PUBLIC,
+)
 from ClimbingDashboard.Utilities.date_utils import parse_climbed_date
 
 
@@ -16,10 +20,12 @@ class BoulderCreateRequest:
         guide_grade: str | None,
         own_grade: str | None,
         area: str,
+        sector: str | None,
         climber: str,
         flash: bool = False,
         climbed_on: date | None = None,
         rating: int | str | None = None,
+        visibility: object = ASCENT_VISIBILITY_PUBLIC,
     ) -> None:
         """Create a request object after primitive payload conversion."""
 
@@ -28,10 +34,12 @@ class BoulderCreateRequest:
         self.guide_grade = self._optional_text(guide_grade)
         self.own_grade = self._optional_text(own_grade)
         self.area = self._required_text(area, "area")
-        self.climber = self._required_text(climber, "climber")
+        self.sector = self._optional_text(sector)
+        self.climber = self._optional_text(climber)
         self.flash = self._bool(flash)
         self.climbed_on = climbed_on
         self.rating = self._rating(rating)
+        self.visibility = self._visibility(visibility)
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> BoulderCreateRequest:
@@ -43,10 +51,12 @@ class BoulderCreateRequest:
             guide_grade=payload.get("guide_grade", ""),
             own_grade=payload.get("own_grade", ""),
             area=payload.get("area", ""),
+            sector=payload.get("sector", ""),
             climber=payload.get("climber", ""),
             flash=payload.get("flash", False),
             climbed_on=parse_climbed_date(payload.get("climbed_on")),
             rating=payload.get("rating"),
+            visibility=payload.get("visibility", ASCENT_VISIBILITY_PUBLIC),
         )
 
     def to_error_payload(self) -> dict[str, object]:
@@ -58,10 +68,12 @@ class BoulderCreateRequest:
             "guide_grade": self.guide_grade,
             "own_grade": self.own_grade,
             "area": self.area,
+            "sector": self.sector,
             "climber": self.climber,
             "flash": self.flash,
             "climbed_on": self.climbed_on.isoformat() if self.climbed_on else None,
             "rating": self.rating,
+            "visibility": self.visibility,
         }
 
     @staticmethod
@@ -111,6 +123,17 @@ class BoulderCreateRequest:
             raise ValueError("rating must be empty or a number from 1 to 5")
         return rating
 
+    @staticmethod
+    def _visibility(value: object) -> str:
+        visibility = (
+            ASCENT_VISIBILITY_PUBLIC
+            if value is None
+            else str(value).strip().lower()
+        )
+        if visibility not in ASCENT_VISIBILITY_OPTIONS:
+            raise ValueError("visibility must be public or private")
+        return visibility
+
 
 type BoulderPayload = dict[str, object]
 type BouldersPayload = dict[str, object]
@@ -123,14 +146,14 @@ class BoulderCommentCreateRequest:
         self,
         name: object,
         area: object,
-        climber: object,
+        sector: object,
         body: object,
     ) -> None:
         """Create a request object after primitive payload conversion."""
 
         self.name = BoulderCreateRequest._required_text(name, "name")
         self.area = BoulderCreateRequest._required_text(area, "area")
-        self.climber = BoulderCreateRequest._required_text(climber, "climber")
+        self.sector = BoulderCreateRequest._optional_text(sector)
         self.body = BoulderCreateRequest._required_text(body, "comment")
 
     @classmethod
@@ -140,7 +163,7 @@ class BoulderCommentCreateRequest:
         return cls(
             name=payload.get("name"),
             area=payload.get("area"),
-            climber=payload.get("climber"),
+            sector=payload.get("sector", ""),
             body=payload.get("body"),
         )
 
@@ -148,10 +171,9 @@ class BoulderCommentCreateRequest:
 class BoulderCommentUpdateRequest:
     """Validated request object for editing a boulder comment."""
 
-    def __init__(self, climber: object, body: object) -> None:
+    def __init__(self, body: object) -> None:
         """Create a request object after primitive payload conversion."""
 
-        self.climber = BoulderCreateRequest._required_text(climber, "climber")
         self.body = BoulderCreateRequest._required_text(body, "comment")
 
     @classmethod
@@ -159,9 +181,81 @@ class BoulderCommentUpdateRequest:
         """Build a request object from a JSON-like dictionary."""
 
         return cls(
-            climber=payload.get("climber"),
             body=payload.get("body"),
         )
 
 
 type BoulderCommentsPayload = dict[str, object]
+
+
+class AscentCommentCreateRequest:
+    """Validated request object for adding an ascent comment."""
+
+    def __init__(self, ascent_id: object, body: object) -> None:
+        """Create a request object after primitive payload conversion."""
+
+        self.ascent_id = self._required_ascent_id(ascent_id)
+        self.body = BoulderCreateRequest._required_text(body, "comment")
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> AscentCommentCreateRequest:
+        """Build a request object from a JSON-like dictionary."""
+
+        return cls(
+            ascent_id=payload.get("ascent_id"),
+            body=payload.get("body"),
+        )
+
+    @staticmethod
+    def _required_ascent_id(value: object) -> int:
+        if isinstance(value, bool):
+            raise ValueError("ascent_id is required")
+        try:
+            ascent_id = int(str(value).strip())
+        except (TypeError, ValueError) as exc:
+            raise ValueError("ascent_id is required") from exc
+        if ascent_id <= 0:
+            raise ValueError("ascent_id is required")
+        return ascent_id
+
+
+class AscentCommentUpdateRequest:
+    """Validated request object for editing an ascent comment."""
+
+    def __init__(self, body: object) -> None:
+        """Create a request object after primitive payload conversion."""
+
+        self.body = BoulderCreateRequest._required_text(body, "comment")
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> AscentCommentUpdateRequest:
+        """Build a request object from a JSON-like dictionary."""
+
+        return cls(
+            body=payload.get("body"),
+        )
+
+
+type AscentCommentsPayload = dict[str, object]
+type AscentCommentsByAscentPayload = dict[str, object]
+
+
+class BoulderMediaUploadRequest:
+    """Validated request object for adding boulder media."""
+
+    def __init__(
+        self,
+        name: object,
+        area: object,
+        sector: object,
+        caption: object,
+    ) -> None:
+        """Create a request object after primitive form conversion."""
+
+        self.name = BoulderCreateRequest._required_text(name, "name")
+        self.area = BoulderCreateRequest._required_text(area, "area")
+        self.sector = BoulderCreateRequest._optional_text(sector)
+        self.caption = BoulderCreateRequest._optional_text(caption)
+
+
+type BoulderMediaPayload = dict[str, object]

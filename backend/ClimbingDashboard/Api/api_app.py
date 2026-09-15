@@ -8,6 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ClimbingDashboard.Api.api_router import router
 from ClimbingDashboard.Api.api_service import ApiService
+from ClimbingDashboard.Api.auth_router import router as auth_router
+from ClimbingDashboard.Api.auth_service import AuthService
+from ClimbingDashboard.Api.boulderer_router import router as boulderer_router
+from ClimbingDashboard.Api.boulderer_service import BouldererService
 from ClimbingDashboard.Api.import_service import ImportService
 from ClimbingDashboard.Config.app_settings import AppSettings
 
@@ -21,8 +25,25 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
     selected_database_path = (
         Path(database_path) if database_path is not None else settings.default_database_path
     )
+    settings.uploads_path.mkdir(parents=True, exist_ok=True)
     app = FastAPI(title=settings.app_name)
-    app.state.api_service = ApiService(database_path=selected_database_path)
+    app.state.settings = settings
+    app.state.auth_service = AuthService(
+        database_path=selected_database_path,
+        invite_code=settings.signup_invite_code,
+        session_lifetime_days=settings.session_lifetime_days,
+        admin_usernames=settings.admin_usernames,
+    )
+    app.state.api_service = ApiService(
+        database_path=selected_database_path,
+        uploads_path=settings.uploads_path,
+        max_video_upload_bytes=settings.max_video_upload_bytes,
+    )
+    app.state.boulderer_service = BouldererService(
+        database_path=selected_database_path,
+        uploads_path=settings.uploads_path,
+        max_profile_picture_bytes=settings.max_profile_picture_bytes,
+    )
     app.state.import_service = ImportService(database_path=selected_database_path)
     app.add_middleware(
         CORSMiddleware,
@@ -32,6 +53,8 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.include_router(auth_router)
+    app.include_router(boulderer_router)
     app.include_router(router)
     logger.info("API application created with SQLite path %s", selected_database_path)
 
@@ -43,6 +66,12 @@ def create_app(database_path: str | Path | None = None) -> FastAPI:
             "app": settings.app_name,
             "routes": {
                 "health": "/health",
+                "auth_me": "/api/auth/me",
+                "auth_signup": "/api/auth/signup",
+                "auth_login": "/api/auth/login",
+                "auth_logout": "/api/auth/logout",
+                "auth_admin_reset_password": "/api/auth/admin/reset-password",
+                "boulderer_profile": "/api/boulderers/{username}",
                 "boulders": "/api/boulders",
                 "import_preview": "/api/imports/{source}/preview",
                 "import_confirm": "/api/imports/{source}/confirm",

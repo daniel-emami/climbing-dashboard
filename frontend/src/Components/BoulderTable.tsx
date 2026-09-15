@@ -10,21 +10,26 @@ type BoulderTableProps = {
   records: BoulderRecord[];
   gradeOrder: string[];
   isSaving: boolean;
+  currentDisplayName: string | null;
+  currentUsername: string | null;
   onDelete: (request: BoulderIdentity) => Promise<void>;
   onOpenBoulder: (identity: BoulderPageIdentity) => void;
+  onOpenBoulderer: (username: string) => void;
   onUpdate: (original: BoulderIdentity, boulder: BoulderCreateRequest) => Promise<void>;
 };
 
 type SortKey =
   | "name"
   | "area"
+  | "sector"
   | "climber"
   | "grade_27crags"
   | "guide_grade"
   | "own_grade"
   | "flash"
   | "climbed_on"
-  | "rating";
+  | "rating"
+  | "visibility";
 
 type SortDirection = "asc" | "desc";
 
@@ -36,7 +41,9 @@ type SortState = {
 const HEADERS: Array<{ key: SortKey; label: string }> = [
   { key: "name", label: "Name" },
   { key: "area", label: "Area" },
+  { key: "sector", label: "Sector" },
   { key: "climber", label: "Climber" },
+  { key: "visibility", label: "Visible" },
   { key: "grade_27crags", label: "27Crags" },
   { key: "guide_grade", label: "Guide" },
   { key: "own_grade", label: "Own" },
@@ -49,7 +56,7 @@ const PAGE_SIZE = 15;
 const RATING_OPTIONS = [1, 2, 3, 4, 5];
 
 function recordKey(record: BoulderRecord): string {
-  return `${record.name}::${record.area}::${record.climber}`;
+  return `${record.name}::${record.area}::${record.sector}::${record.climber}`;
 }
 
 function recordToDraft(record: BoulderRecord): BoulderCreateRequest {
@@ -59,10 +66,12 @@ function recordToDraft(record: BoulderRecord): BoulderCreateRequest {
     guide_grade: record.guide_grade,
     own_grade: record.own_grade,
     area: record.area,
+    sector: record.sector,
     climber: record.climber,
     flash: record.flash,
     climbed_on: record.climbed_on,
-    rating: record.rating
+    rating: record.rating,
+    visibility: record.visibility
   };
 }
 
@@ -110,12 +119,19 @@ function formatRating(rating: number | null): string {
   return rating ? `${rating}/5` : "";
 }
 
+function formatLocation(record: BoulderRecord): string {
+  return [record.area, record.sector].filter(Boolean).join(" / ");
+}
+
 export default function BoulderTable({
   records,
   gradeOrder,
   isSaving,
+  currentDisplayName,
+  currentUsername,
   onDelete,
   onOpenBoulder,
+  onOpenBoulderer,
   onUpdate
 }: BoulderTableProps) {
   const [sort, setSort] = useState<SortState>({ key: "climbed_on", direction: "desc" });
@@ -184,15 +200,20 @@ export default function BoulderTable({
     if (!draft) {
       return;
     }
-    if (!draft.name.trim() || !draft.area.trim() || !draft.climber.trim()) {
-      window.alert("Name, area, and climber are required.");
+    if (!currentUsername) {
+      window.alert("Log in before editing ascents.");
+      return;
+    }
+    if (!draft.name.trim() || !draft.area.trim()) {
+      window.alert("Name and area are required.");
       return;
     }
     try {
       await onUpdate(
-        { name: record.name, area: record.area, climber: record.climber },
+        { name: record.name, area: record.area, sector: record.sector, climber: record.climber },
         {
           ...draft,
+          climber: currentUsername,
           climbed_on: draft.climbed_on || null
         }
       );
@@ -203,14 +224,23 @@ export default function BoulderTable({
   };
 
   const deleteRecord = async (record: BoulderRecord) => {
+    if (!currentUsername) {
+      window.alert("Log in before deleting ascents.");
+      return;
+    }
     const shouldDelete = window.confirm(
-      `Remove ${record.name} from ${record.area} for ${record.climber}?`
+      `Remove ${record.name} from ${formatLocation(record)} for ${record.climber_display_name}?`
     );
     if (!shouldDelete) {
       return;
     }
     try {
-      await onDelete({ name: record.name, area: record.area, climber: record.climber });
+      await onDelete({
+        name: record.name,
+        area: record.area,
+        sector: record.sector,
+        climber: record.climber
+      });
       if (editingKey === recordKey(record)) {
         cancelEditing();
       }
@@ -248,7 +278,9 @@ export default function BoulderTable({
           <colgroup>
             <col className="logbook-name-column" />
             <col className="logbook-area-column" />
+            <col className="logbook-sector-column" />
             <col className="logbook-climber-column" />
+            <col className="logbook-visibility-column" />
             <col className="logbook-grade-column" />
             <col className="logbook-grade-column" />
             <col className="logbook-grade-column" />
@@ -280,9 +312,14 @@ export default function BoulderTable({
             {pagedRecords.map((record) => {
               const isEditing = editingKey === recordKey(record);
               const editableRecord = isEditing && draft ? draft : record;
+              const canChange =
+                currentUsername !== null &&
+                record.climber.toLocaleLowerCase() === currentUsername.toLocaleLowerCase();
 
               return (
-                <tr key={`${record.name}-${record.area}-${record.climber}-${record.climbed_on}`}>
+                <tr
+                  key={`${record.name}-${record.area}-${record.sector}-${record.climber}-${record.climbed_on}`}
+                >
                   <th>
                     {isEditing ? (
                       <input
@@ -296,7 +333,13 @@ export default function BoulderTable({
                       <button
                         className="table-link-button"
                         type="button"
-                        onClick={() => onOpenBoulder({ name: record.name, area: record.area })}
+                        onClick={() =>
+                          onOpenBoulder({
+                            name: record.name,
+                            area: record.area,
+                            sector: record.sector
+                          })
+                        }
                       >
                         {record.name}
                       </button>
@@ -318,14 +361,52 @@ export default function BoulderTable({
                   <td>
                     {isEditing ? (
                       <input
-                        aria-label="Climber"
+                        aria-label="Sector"
                         className="table-inline-input"
-                        required
-                        value={editableRecord.climber}
-                        onChange={(event) => updateDraft("climber", event.target.value)}
+                        value={editableRecord.sector}
+                        onChange={(event) => updateDraft("sector", event.target.value)}
                       />
                     ) : (
-                      record.climber
+                      record.sector
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <input
+                        aria-label="Climber"
+                        className="table-inline-input"
+                        disabled
+                        required
+                        value={currentDisplayName ?? currentUsername ?? editableRecord.climber}
+                      />
+                    ) : (
+                      <button
+                        className="table-link-button profile-link-button"
+                        type="button"
+                        onClick={() => onOpenBoulderer(record.climber)}
+                      >
+                        {record.climber_display_name}
+                      </button>
+                    )}
+                  </td>
+                  <td>
+                    {isEditing ? (
+                      <select
+                        aria-label="Visibility"
+                        className="table-inline-input"
+                        value={editableRecord.visibility}
+                        onChange={(event) =>
+                          updateDraft(
+                            "visibility",
+                            event.target.value as BoulderCreateRequest["visibility"]
+                          )
+                        }
+                      >
+                        <option value="public">Public</option>
+                        <option value="private">Private</option>
+                      </select>
+                    ) : (
+                      record.visibility
                     )}
                   </td>
                   <td>
@@ -421,7 +502,7 @@ export default function BoulderTable({
                       {isEditing ? (
                         <>
                           <button
-                            disabled={isSaving}
+                            disabled={isSaving || !canChange}
                             type="button"
                             onClick={() => void saveEditing(record)}
                           >
@@ -434,7 +515,7 @@ export default function BoulderTable({
                       ) : (
                         <>
                           <button
-                            disabled={isSaving}
+                            disabled={isSaving || !canChange}
                             type="button"
                             onClick={() => startEditing(record)}
                           >
@@ -442,7 +523,7 @@ export default function BoulderTable({
                           </button>
                           <button
                             className="danger-button"
-                            disabled={isSaving}
+                            disabled={isSaving || !canChange}
                             type="button"
                             onClick={() => void deleteRecord(record)}
                           >

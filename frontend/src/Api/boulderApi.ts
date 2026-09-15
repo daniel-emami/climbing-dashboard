@@ -17,13 +17,16 @@ async function parseResponse(response: Response): Promise<BouldersResponse> {
 }
 
 export async function fetchBoulders(): Promise<BouldersResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/boulders`);
+  const response = await fetch(`${API_BASE_URL}/api/boulders`, {
+    credentials: "include"
+  });
   return parseResponse(response);
 }
 
 export async function addBoulder(request: BoulderCreateRequest): Promise<BouldersResponse> {
   const response = await fetch(`${API_BASE_URL}/api/boulders`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
@@ -35,6 +38,7 @@ export async function addBoulder(request: BoulderCreateRequest): Promise<Boulder
 export async function updateBoulder(request: BoulderUpdateRequest): Promise<BouldersResponse> {
   const response = await fetch(`${API_BASE_URL}/api/boulders`, {
     method: "PUT",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
@@ -46,6 +50,7 @@ export async function updateBoulder(request: BoulderUpdateRequest): Promise<Boul
 export async function deleteBoulder(request: BoulderIdentity): Promise<BouldersResponse> {
   const response = await fetch(`${API_BASE_URL}/api/boulders`, {
     method: "DELETE",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
@@ -57,6 +62,7 @@ export async function deleteBoulder(request: BoulderIdentity): Promise<BouldersR
 export async function exportBoulders(records: BoulderRecord[]): Promise<Blob> {
   const response = await fetch(`${API_BASE_URL}/api/exports/boulders`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },

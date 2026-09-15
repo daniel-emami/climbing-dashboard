@@ -7,14 +7,34 @@ import {
   updateBoulder
 } from "./Api/boulderApi";
 import {
+  fetchCurrentUser,
+  login as loginUser,
+  logout as logoutUser,
+  resetUserPassword,
+  signup as signupUser
+} from "./Api/authApi";
+import {
+  fetchBouldererProfile,
+  updateBouldererProfile,
+  uploadProfilePicture
+} from "./Api/bouldererApi";
+import {
   addBoulderComment,
   deleteBoulderComment,
   fetchBoulderComments,
   updateBoulderComment
 } from "./Api/commentApi";
+import {
+  deleteBoulderMedia,
+  fetchBoulderMedia,
+  uploadBoulderVideo
+} from "./Api/mediaApi";
+import ActivityFeed from "./Components/ActivityFeed";
 import AreaChart from "./Components/AreaChart";
 import AreaGradeMatrix from "./Components/AreaGradeMatrix";
+import AuthPanel from "./Components/AuthPanel";
 import BoulderDetailPage from "./Components/BoulderDetailPage";
+import BouldererProfilePage from "./Components/BouldererProfilePage";
 import BoulderForm from "./Components/BoulderForm";
 import BoulderTable from "./Components/BoulderTable";
 import ErrorState from "./Components/ErrorState";
@@ -29,11 +49,21 @@ import {
   type GradeChartMode
 } from "./Config/gradeSources";
 import type {
+  AdminPasswordResetRequest,
+  AdminPasswordResetResponse,
+  AuthUser,
+  LoginRequest,
+  SignupRequest
+} from "./Types/authTypes";
+import type { BouldererProfile } from "./Types/bouldererTypes";
+import type {
   AreaCount,
   BoulderComment,
   BoulderCommentUpdateRequest,
   BoulderCreateRequest,
   BoulderIdentity,
+  BoulderMedia,
+  BoulderMediaUploadRequest,
   BoulderPageIdentity,
   BoulderRecord,
   BouldersResponse,
@@ -47,6 +77,14 @@ const DASHBOARD_GRADE_SOURCE_FIELDS: GradeField[] = [
   "guide_grade"
 ];
 
+type DashboardPage = "feed" | "logbook" | "map";
+
+const DASHBOARD_PAGES: Array<{ key: DashboardPage; label: string }> = [
+  { key: "feed", label: "Feed" },
+  { key: "logbook", label: "Logbook" },
+  { key: "map", label: "Map" }
+];
+
 function formatRefreshTime(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -58,10 +96,19 @@ function boulderIdentityFromHash(): BoulderPageIdentity | null {
   }
   const name = params.get("name")?.trim();
   const area = params.get("area")?.trim();
+  const sector = params.get("sector")?.trim() ?? "";
   if (!name || !area) {
     return null;
   }
-  return { name, area };
+  return { name, area, sector };
+}
+
+function bouldererUsernameFromHash(): string | null {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  if (params.get("view") !== "boulderer") {
+    return null;
+  }
+  return params.get("username")?.trim() || null;
 }
 
 function writeBoulderHash(identity: BoulderPageIdentity | null) {
@@ -72,15 +119,26 @@ function writeBoulderHash(identity: BoulderPageIdentity | null) {
   const params = new URLSearchParams({
     view: "boulder",
     name: identity.name,
-    area: identity.area
+    area: identity.area,
+    sector: identity.sector
   });
+  window.history.pushState(null, "", `#${params.toString()}`);
+}
+
+function writeBouldererHash(username: string | null) {
+  if (!username) {
+    window.history.pushState(null, "", `${window.location.pathname}${window.location.search}`);
+    return;
+  }
+  const params = new URLSearchParams({ view: "boulderer", username });
   window.history.pushState(null, "", `#${params.toString()}`);
 }
 
 function isSameBoulder(record: BoulderRecord, identity: BoulderPageIdentity): boolean {
   return (
     record.name.trim().toLocaleLowerCase() === identity.name.trim().toLocaleLowerCase() &&
-    record.area.trim().toLocaleLowerCase() === identity.area.trim().toLocaleLowerCase()
+    record.area.trim().toLocaleLowerCase() === identity.area.trim().toLocaleLowerCase() &&
+    record.sector.trim().toLocaleLowerCase() === identity.sector.trim().toLocaleLowerCase()
   );
 }
 
@@ -176,12 +234,15 @@ function recordMatchesSearch(record: BoulderRecord, searchQuery: string): boolea
   return [
     record.name,
     record.area,
+    record.sector,
     record.climber,
+    record.climber_display_name,
     record.grade_27crags,
     record.guide_grade,
     record.own_grade,
     record.climbed_on ?? "",
     record.flash ? "flash" : "",
+    record.visibility,
     record.rating === null ? "" : `${record.rating}/5`
   ]
     .join(" ")
@@ -197,14 +258,28 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("own_grade");
   const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("own_grade");
+  const [activePage, setActivePage] = useState<DashboardPage>("feed");
   const [selectedClimber, setSelectedClimber] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBoulder, setSelectedBoulder] = useState<BoulderPageIdentity | null>(
     boulderIdentityFromHash
   );
+  const [selectedBouldererUsername, setSelectedBouldererUsername] = useState<string | null>(
+    bouldererUsernameFromHash
+  );
+  const [selectedBouldererProfile, setSelectedBouldererProfile] =
+    useState<BouldererProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [selectedBoulderComments, setSelectedBoulderComments] = useState<BoulderComment[]>([]);
+  const [selectedBoulderMedia, setSelectedBoulderMedia] = useState<BoulderMedia[]>([]);
   const [isCommentsLoading, setIsCommentsLoading] = useState(false);
   const [isCommentSaving, setIsCommentSaving] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAuthSaving, setIsAuthSaving] = useState(false);
+  const [isMediaLoading, setIsMediaLoading] = useState(false);
+  const [isMediaSaving, setIsMediaSaving] = useState(false);
 
   const loadStoredData = useCallback(async () => {
     try {
@@ -223,8 +298,27 @@ export default function App() {
     void loadStoredData();
   }, [loadStoredData]);
 
+  const loadCurrentAuthUser = useCallback(async () => {
+    setIsAuthLoading(true);
+    try {
+      const payload = await fetchCurrentUser();
+      setCurrentUser(payload.user);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown auth error");
+    } finally {
+      setIsAuthLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const syncRouteFromHash = () => setSelectedBoulder(boulderIdentityFromHash());
+    void loadCurrentAuthUser();
+  }, [loadCurrentAuthUser]);
+
+  useEffect(() => {
+    const syncRouteFromHash = () => {
+      setSelectedBoulder(boulderIdentityFromHash());
+      setSelectedBouldererUsername(bouldererUsernameFromHash());
+    };
     window.addEventListener("hashchange", syncRouteFromHash);
     window.addEventListener("popstate", syncRouteFromHash);
     return () => {
@@ -232,6 +326,36 @@ export default function App() {
       window.removeEventListener("popstate", syncRouteFromHash);
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedBouldererUsername) {
+      setSelectedBouldererProfile(null);
+      return;
+    }
+    let ignoreResult = false;
+    setIsProfileLoading(true);
+    fetchBouldererProfile(selectedBouldererUsername)
+      .then((profile) => {
+        if (!ignoreResult) {
+          setSelectedBouldererProfile(profile);
+          setError(null);
+        }
+      })
+      .catch((unknownError: unknown) => {
+        if (!ignoreResult) {
+          setSelectedBouldererProfile(null);
+          setError(unknownError instanceof Error ? unknownError.message : "Unknown profile error");
+        }
+      })
+      .finally(() => {
+        if (!ignoreResult) {
+          setIsProfileLoading(false);
+        }
+      });
+    return () => {
+      ignoreResult = true;
+    };
+  }, [currentUser?.id, selectedBouldererUsername]);
 
   useEffect(() => {
     if (!selectedBoulder) {
@@ -265,6 +389,38 @@ export default function App() {
     return () => {
       ignoreResult = true;
     };
+  }, [currentUser?.id, selectedBoulder]);
+
+  useEffect(() => {
+    if (!selectedBoulder) {
+      setSelectedBoulderMedia([]);
+      return;
+    }
+
+    let ignoreResult = false;
+    setSelectedBoulderMedia([]);
+    setIsMediaLoading(true);
+    fetchBoulderMedia(selectedBoulder)
+      .then((payload) => {
+        if (!ignoreResult) {
+          setSelectedBoulderMedia(payload.media);
+          setError(null);
+        }
+      })
+      .catch((unknownError: unknown) => {
+        if (!ignoreResult) {
+          setError(unknownError instanceof Error ? unknownError.message : "Unknown media error");
+        }
+      })
+      .finally(() => {
+        if (!ignoreResult) {
+          setIsMediaLoading(false);
+        }
+      });
+
+    return () => {
+      ignoreResult = true;
+    };
   }, [selectedBoulder]);
 
   const knownAreas = useMemo(
@@ -275,6 +431,21 @@ export default function App() {
   const knownClimbers = useMemo(
     () =>
       Array.from(new Set(data?.records.map((record) => record.climber).filter(Boolean) ?? []))
+        .sort((left, right) => left.localeCompare(right)),
+    [data]
+  );
+
+  const climberDisplayNames = useMemo(
+    () =>
+      new Map(
+        data?.records.map((record) => [record.climber, record.climber_display_name] as const) ?? []
+      ),
+    [data]
+  );
+
+  const knownSectors = useMemo(
+    () =>
+      Array.from(new Set(data?.records.map((record) => record.sector).filter(Boolean) ?? []))
         .sort((left, right) => left.localeCompare(right)),
     [data]
   );
@@ -335,9 +506,13 @@ export default function App() {
       : `Boulders by ${GRADE_SOURCE_LABELS[gradeChartMode].toLowerCase()}`;
 
   const handleAddBoulder = async (request: BoulderCreateRequest) => {
+    if (!currentUser) {
+      setError("You must be logged in to save boulders.");
+      return;
+    }
     setIsSaving(true);
     try {
-      const payload = await addBoulder(request);
+      const payload = await addBoulder({ ...request, climber: currentUser.username });
       setData(payload);
       setError(null);
       setLastUpdated(formatRefreshTime());
@@ -353,9 +528,16 @@ export default function App() {
     original: BoulderIdentity,
     boulder: BoulderCreateRequest
   ) => {
+    if (!currentUser) {
+      setError("You must be logged in to edit boulders.");
+      return;
+    }
     setIsSaving(true);
     try {
-      const payload = await updateBoulder({ original, boulder });
+      const payload = await updateBoulder({
+        original,
+        boulder: { ...boulder, climber: currentUser.username }
+      });
       setData(payload);
       setError(null);
       setLastUpdated(formatRefreshTime());
@@ -368,6 +550,10 @@ export default function App() {
   };
 
   const handleDeleteBoulder = async (request: BoulderIdentity) => {
+    if (!currentUser) {
+      setError("You must be logged in to delete boulders.");
+      return;
+    }
     setIsSaving(true);
     try {
       const payload = await deleteBoulder(request);
@@ -382,6 +568,68 @@ export default function App() {
     }
   };
 
+  const handleLogin = async (request: LoginRequest) => {
+    setIsAuthSaving(true);
+    try {
+      const payload = await loginUser(request);
+      setCurrentUser(payload.user);
+      setError(null);
+      await loadStoredData();
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown auth error");
+      throw unknownError;
+    } finally {
+      setIsAuthSaving(false);
+    }
+  };
+
+  const handleSignup = async (request: SignupRequest) => {
+    setIsAuthSaving(true);
+    try {
+      const payload = await signupUser(request);
+      setCurrentUser(payload.user);
+      setError(null);
+      await loadStoredData();
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown auth error");
+      throw unknownError;
+    } finally {
+      setIsAuthSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    setIsAuthSaving(true);
+    try {
+      await logoutUser();
+      setCurrentUser(null);
+      setSelectedClimber("");
+      setError(null);
+      await loadStoredData();
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown auth error");
+      throw unknownError;
+    } finally {
+      setIsAuthSaving(false);
+    }
+  };
+
+  const handleResetPassword = async (
+    request: AdminPasswordResetRequest
+  ): Promise<AdminPasswordResetResponse> => {
+    setIsAuthSaving(true);
+    try {
+      const payload = await resetUserPassword(request);
+      setError(null);
+      return payload;
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown auth error");
+      throw unknownError;
+    } finally {
+      setIsAuthSaving(false);
+    }
+  };
+
   const handleImportedBoulders = (payload: BouldersResponse) => {
     setData(payload);
     setError(null);
@@ -389,6 +637,7 @@ export default function App() {
   };
 
   const handleOpenBoulder = (identity: BoulderPageIdentity) => {
+    setSelectedBouldererUsername(null);
     setSelectedBoulder(identity);
     writeBoulderHash(identity);
   };
@@ -398,8 +647,61 @@ export default function App() {
     writeBoulderHash(null);
   };
 
-  const handleAddBoulderComment = async (climber: string, body: string) => {
+  const handleOpenBoulderer = (username: string) => {
+    setSelectedBoulder(null);
+    setSelectedBouldererUsername(username);
+    writeBouldererHash(username);
+  };
+
+  const handleCloseBoulderer = () => {
+    setSelectedBouldererUsername(null);
+    writeBouldererHash(null);
+  };
+
+  const handleSaveBouldererProfile = async (
+    displayName: string,
+    profilePicture: File | null
+  ) => {
+    if (!selectedBouldererUsername || !selectedBouldererProfile || !currentUser) {
+      return;
+    }
+    setIsProfileSaving(true);
+    try {
+      let profile: BouldererProfile = selectedBouldererProfile;
+      if (profilePicture) {
+        profile = await uploadProfilePicture(selectedBouldererUsername, profilePicture);
+        setSelectedBouldererProfile(profile);
+        setCurrentUser((user) =>
+          user ? { ...user, profile_picture_url: profile.user.profile_picture_url } : null
+        );
+      }
+      profile = await updateBouldererProfile(selectedBouldererUsername, displayName);
+      setSelectedBouldererProfile(profile);
+      setCurrentUser((user) =>
+        user
+          ? {
+              ...user,
+              display_name: profile.user.display_name,
+              profile_picture_url: profile.user.profile_picture_url
+            }
+          : null
+      );
+      await loadStoredData();
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown profile error");
+      throw unknownError;
+    } finally {
+      setIsProfileSaving(false);
+    }
+  };
+
+  const handleAddBoulderComment = async (body: string) => {
     if (!selectedBoulder) {
+      return;
+    }
+    if (!currentUser) {
+      setError("You must be logged in to comment.");
       return;
     }
     setIsCommentSaving(true);
@@ -407,7 +709,7 @@ export default function App() {
       const payload = await addBoulderComment({
         name: selectedBoulder.name,
         area: selectedBoulder.area,
-        climber,
+        sector: selectedBoulder.sector,
         body
       });
       setSelectedBoulderComments(payload.comments);
@@ -424,6 +726,10 @@ export default function App() {
     commentId: number,
     request: BoulderCommentUpdateRequest
   ) => {
+    if (!currentUser) {
+      setError("You must be logged in to edit comments.");
+      return;
+    }
     setIsCommentSaving(true);
     try {
       const payload = await updateBoulderComment(commentId, request);
@@ -438,6 +744,10 @@ export default function App() {
   };
 
   const handleDeleteBoulderComment = async (commentId: number) => {
+    if (!currentUser) {
+      setError("You must be logged in to delete comments.");
+      return;
+    }
     setIsCommentSaving(true);
     try {
       const payload = await deleteBoulderComment(commentId);
@@ -448,6 +758,44 @@ export default function App() {
       throw unknownError;
     } finally {
       setIsCommentSaving(false);
+    }
+  };
+
+  const handleUploadBoulderVideo = async (
+    request: Omit<BoulderMediaUploadRequest, "name" | "area" | "sector">
+  ) => {
+    if (!selectedBoulder) {
+      return;
+    }
+    setIsMediaSaving(true);
+    try {
+      const payload = await uploadBoulderVideo({
+        ...request,
+        name: selectedBoulder.name,
+        area: selectedBoulder.area,
+        sector: selectedBoulder.sector
+      });
+      setSelectedBoulderMedia(payload.media);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown media error");
+      throw unknownError;
+    } finally {
+      setIsMediaSaving(false);
+    }
+  };
+
+  const handleDeleteBoulderMedia = async (mediaId: number) => {
+    setIsMediaSaving(true);
+    try {
+      const payload = await deleteBoulderMedia(mediaId);
+      setSelectedBoulderMedia(payload.media);
+      setError(null);
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown media error");
+      throw unknownError;
+    } finally {
+      setIsMediaSaving(false);
     }
   };
 
@@ -496,7 +844,21 @@ export default function App() {
         </dl>
       </header>
 
-      {selectedBoulder && data && !isInitialLoading ? (
+      {selectedBouldererUsername ? (
+        <>
+          {error && <ErrorState message={error} />}
+          {isProfileLoading && <LoadingState />}
+          {selectedBouldererProfile && !isProfileLoading && (
+            <BouldererProfilePage
+              profile={selectedBouldererProfile}
+              isSaving={isProfileSaving}
+              onBack={handleCloseBoulderer}
+              onOpenBoulder={handleOpenBoulder}
+              onSave={handleSaveBouldererProfile}
+            />
+          )}
+        </>
+      ) : selectedBoulder && data && !isInitialLoading ? (
         <>
           {error && <ErrorState message={error} />}
           <BoulderDetailPage
@@ -506,37 +868,70 @@ export default function App() {
             isSaving={isSaving}
             isCommentsLoading={isCommentsLoading}
             isCommentSaving={isCommentSaving}
+            currentUserId={currentUser?.id ?? null}
+            currentUsername={currentUser?.username ?? null}
+            isMediaLoading={isMediaLoading}
+            isMediaSaving={isMediaSaving}
+            media={selectedBoulderMedia}
             records={selectedBoulderRecords}
             onAddComment={handleAddBoulderComment}
             onBack={handleCloseBoulder}
             onDeleteComment={handleDeleteBoulderComment}
+            onDeleteMedia={handleDeleteBoulderMedia}
+            onOpenBoulderer={handleOpenBoulderer}
+            onUploadVideo={handleUploadBoulderVideo}
             onUpdateComment={handleUpdateBoulderComment}
             onUpdate={handleUpdateBoulder}
           />
         </>
       ) : (
-      <div className="dashboard-layout">
-        <aside className="control-rail">
-          <TheTopoImportPanel
-            onImported={handleImportedBoulders}
-            onError={setError}
-          />
-          <BoulderForm
-            isSaving={isSaving}
-            knownAreas={knownAreas}
-            knownClimbers={knownClimbers}
-            knownGrades={knownGrades}
-            onSubmit={handleAddBoulder}
-          />
+        <div className="dashboard-layout">
+          <aside className="control-rail">
+            <AuthPanel
+              user={currentUser}
+              isLoading={isAuthLoading}
+              isSaving={isAuthSaving}
+              onLogin={handleLogin}
+              onLogout={handleLogout}
+              onOpenProfile={handleOpenBoulderer}
+              onResetPassword={handleResetPassword}
+              onSignup={handleSignup}
+            />
+            <TheTopoImportPanel
+              currentUsername={currentUser?.username ?? null}
+              onImported={handleImportedBoulders}
+              onError={setError}
+            />
+            <BoulderForm
+              isSaving={isSaving}
+              knownAreas={knownAreas}
+              knownGrades={knownGrades}
+              knownSectors={knownSectors}
+              currentDisplayName={currentUser?.display_name ?? null}
+              currentUsername={currentUser?.username ?? null}
+              onSubmit={handleAddBoulder}
+            />
+          </aside>
 
-        </aside>
+          <section className="dashboard-main" aria-label="Climbing Dashboard">
+            {isInitialLoading && <LoadingState />}
+            {error && <ErrorState message={error} />}
+            {visibleData && !isInitialLoading && (
+              <>
+                <SummaryStrip data={visibleData} />
 
-        <section className="dashboard-main" aria-label="Climbing Dashboard">
-          {isInitialLoading && <LoadingState />}
-          {error && <ErrorState message={error} />}
-          {visibleData && !isInitialLoading && (
-            <>
-              <SummaryStrip data={visibleData} />
+                <nav className="dashboard-page-tabs" aria-label="Dashboard pages">
+                  {DASHBOARD_PAGES.map((page) => (
+                    <button
+                      className={activePage === page.key ? "active" : ""}
+                      key={page.key}
+                      type="button"
+                      onClick={() => setActivePage(page.key)}
+                    >
+                      {page.label}
+                    </button>
+                  ))}
+                </nav>
 
               <section className="panel dashboard-controls-panel">
                 <div className="dashboard-control-group grade-source-control">
@@ -574,7 +969,7 @@ export default function App() {
                     <option value="">All climbers</option>
                     {knownClimbers.map((climber) => (
                       <option key={climber} value={climber}>
-                        {climber}
+                        {climberDisplayNames.get(climber) ?? climber}
                       </option>
                     ))}
                   </select>
@@ -597,31 +992,51 @@ export default function App() {
                 </div>
               </section>
 
-              <div className="insight-grid">
-                <GradeChart
-                  title={gradeChartTitle}
+              {activePage === "feed" && (
+                <>
+                  <ActivityFeed
+                    currentUsername={currentUser?.username ?? null}
+                    selectedClimber={selectedClimber}
+                    records={visibleData.records}
+                    onError={setError}
+                    onOpenBoulder={handleOpenBoulder}
+                    onOpenBoulderer={handleOpenBoulderer}
+                  />
+                  <div className="insight-grid">
+                    <GradeChart
+                      title={gradeChartTitle}
+                      gradeOrder={visibleData.grade_order}
+                      series={gradeChartSeries}
+                    />
+                    <AreaChart
+                      data={visibleData.stats.area_counts_by_grade_source[activeAreaMapGradeField]}
+                      gradeSourceLabel={activeAreaMapGradeLabel}
+                    />
+                  </div>
+                </>
+              )}
+
+              {activePage === "logbook" && (
+                <BoulderTable
+                  records={visibleData.records}
                   gradeOrder={visibleData.grade_order}
-                  series={gradeChartSeries}
+                  isSaving={isSaving}
+                  currentDisplayName={currentUser?.display_name ?? null}
+                  currentUsername={currentUser?.username ?? null}
+                  onDelete={handleDeleteBoulder}
+                  onOpenBoulder={handleOpenBoulder}
+                  onOpenBoulderer={handleOpenBoulderer}
+                  onUpdate={handleUpdateBoulder}
                 />
-                <AreaChart
-                  data={visibleData.stats.area_counts_by_grade_source[activeAreaMapGradeField]}
+              )}
+
+              {activePage === "map" && (
+                <AreaGradeMatrix
+                  rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
+                  grades={visibleData.grade_order}
                   gradeSourceLabel={activeAreaMapGradeLabel}
                 />
-              </div>
-
-              <BoulderTable
-                records={visibleData.records}
-                gradeOrder={visibleData.grade_order}
-                isSaving={isSaving}
-                onDelete={handleDeleteBoulder}
-                onOpenBoulder={handleOpenBoulder}
-                onUpdate={handleUpdateBoulder}
-              />
-              <AreaGradeMatrix
-                rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
-                grades={visibleData.grade_order}
-                gradeSourceLabel={activeAreaMapGradeLabel}
-              />
+              )}
             </>
           )}
         </section>

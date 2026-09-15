@@ -1,0 +1,200 @@
+import sqlite3
+from io import BytesIO
+from pathlib import Path
+
+import pytest
+
+from ClimbingDashboard.Api.api_models import BoulderCreateRequest, BoulderMediaUploadRequest
+from ClimbingDashboard.Api.api_service import ApiService
+from ClimbingDashboard.Api.auth_models import SignupRequest
+from ClimbingDashboard.Api.auth_service import AuthService
+from ClimbingDashboard.Models.user_account import UserAccount
+
+
+def test_video_inherits_ascent_visibility_and_requires_owner_for_deletion(
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "dashboard.db"
+    uploads_path = tmp_path / "uploads"
+    auth_service = AuthService(database_path, "invite", 7)
+    public_user = auth_service.signup(
+        SignupRequest("public-user", "password123", "invite")
+    ).user
+    private_user = auth_service.signup(
+        SignupRequest("private-user", "password123", "invite")
+    ).user
+    service = ApiService(database_path, uploads_path=uploads_path)
+
+    _save_ascent(service, public_user, "public")
+    _save_ascent(service, private_user, "private")
+    public_media = _save_video(service, public_user, "public.mp4")["media"][0]
+    private_media = _save_video(service, private_user, "private.mp4")["media"][0]
+
+    anonymous_media = service.get_boulder_media("Shared Boulder", "Test Area", "")["media"]
+    assert [item["id"] for item in anonymous_media] == [public_media["id"]]
+    anonymous_feed_media = service.get_recent_boulder_media()["media"]
+    assert [item["id"] for item in anonymous_feed_media] == [public_media["id"]]
+
+    public_user_media = service.get_boulder_media(
+        "Shared Boulder", "Test Area", "", public_user
+    )["media"]
+    assert [item["id"] for item in public_user_media] == [public_media["id"]]
+
+    private_user_media = service.get_boulder_media(
+        "Shared Boulder", "Test Area", "", private_user
+    )["media"]
+    assert {item["id"] for item in private_user_media} == {
+        public_media["id"],
+        private_media["id"],
+    }
+    assert next(
+        item for item in private_user_media if item["id"] == private_media["id"]
+    )["visibility"] == "private"
+    private_feed_media = service.get_recent_boulder_media(current_user=private_user)["media"]
+    assert {item["id"] for item in private_feed_media} == {
+        public_media["id"],
+        private_media["id"],
+    }
+
+    service.update_boulder(
+        "Shared Boulder",
+        "Test Area",
+        "",
+        private_user.username,
+        _boulder_request("public"),
+        private_user,
+    )
+    now_public_media = service.get_boulder_media("Shared Boulder", "Test Area", "")["media"]
+    assert {item["id"] for item in now_public_media} == {
+        public_media["id"],
+        private_media["id"],
+    }
+    service.update_boulder(
+        "Shared Boulder",
+        "Test Area",
+        "",
+        private_user.username,
+        _boulder_request("private"),
+        private_user,
+    )
+
+    public_file = service.get_boulder_video_file(int(public_media["id"]))
+    assert public_file.path.read_bytes() == b"video-content"
+    with pytest.raises(PermissionError, match="access"):
+        service.get_boulder_video_file(int(private_media["id"]))
+    with pytest.raises(PermissionError, match="own videos"):
+        service.delete_boulder_media(int(private_media["id"]), public_user)
+
+    private_file = service.get_boulder_video_file(int(private_media["id"]), private_user)
+    assert private_file.path.read_bytes() == b"video-content"
+    service.delete_boulder_media(int(private_media["id"]), private_user)
+    assert not private_file.path.exists()
+
+
+def test_existing_video_is_linked_to_its_user_and_ascent(tmp_path: Path) -> None:
+    database_path = tmp_path / "dashboard.db"
+    user = AuthService(database_path, "invite", 7).signup(
+        SignupRequest("legacy-user", "password123", "invite")
+    ).user
+    with sqlite3.connect(database_path) as connection:
+        connection.executescript(
+            """
+            CREATE TABLE boulder_problems (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                area TEXT NOT NULL,
+                sector TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE ascents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                boulder_id INTEGER NOT NULL,
+                user_id INTEGER,
+                climber TEXT NOT NULL DEFAULT '',
+                grade_27crags TEXT NOT NULL DEFAULT '',
+                guide_grade TEXT NOT NULL DEFAULT '',
+                own_grade TEXT NOT NULL DEFAULT '',
+                flash INTEGER NOT NULL DEFAULT 0,
+                climbed_on TEXT,
+                rating INTEGER,
+                visibility TEXT NOT NULL DEFAULT 'public',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE boulder_media (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                boulder_id INTEGER NOT NULL,
+                ascent_id INTEGER,
+                climber TEXT NOT NULL,
+                media_type TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                original_filename TEXT NOT NULL,
+                mime_type TEXT NOT NULL,
+                file_size INTEGER NOT NULL,
+                caption TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                deleted_at TEXT
+            );
+            """
+        )
+        problem_id = connection.execute(
+            "INSERT INTO boulder_problems (name, area, sector) VALUES (?, ?, ?)",
+            ("Legacy Boulder", "Test Area", ""),
+        ).lastrowid
+        ascent_id = connection.execute(
+            """
+            INSERT INTO ascents (boulder_id, user_id, climber, visibility)
+            VALUES (?, ?, ?, 'private')
+            """,
+            (problem_id, user.id, user.username),
+        ).lastrowid
+        connection.execute(
+            """
+            INSERT INTO boulder_media (
+                boulder_id, ascent_id, climber, media_type, file_path,
+                original_filename, mime_type, file_size
+            )
+            VALUES (?, NULL, ?, 'video', 'videos/legacy.mp4', 'legacy.mp4', 'video/mp4', 10)
+            """,
+            (problem_id, user.username),
+        )
+
+    service = ApiService(database_path, uploads_path=tmp_path / "uploads")
+    assert service.get_boulder_media("Legacy Boulder", "Test Area", "")["media"] == []
+    media = service.get_boulder_media("Legacy Boulder", "Test Area", "", user)["media"][0]
+    assert media["user_id"] == user.id
+    assert media["ascent_id"] == ascent_id
+    assert media["visibility"] == "private"
+
+
+def _save_ascent(service: ApiService, user: UserAccount, visibility: str) -> None:
+    service.save_boulder(_boulder_request(visibility), user)
+
+
+def _boulder_request(visibility: str) -> BoulderCreateRequest:
+    return BoulderCreateRequest(
+        name="Shared Boulder",
+        grade_27crags="6a",
+        guide_grade="6a",
+        own_grade="6a",
+        area="Test Area",
+        sector="",
+        climber="ignored",
+        visibility=visibility,
+    )
+
+
+def _save_video(
+    service: ApiService,
+    user: UserAccount,
+    filename: str,
+) -> dict[str, object]:
+    return service.save_boulder_video(
+        BoulderMediaUploadRequest("Shared Boulder", "Test Area", "", "Beta"),
+        BytesIO(b"video-content"),
+        filename,
+        "video/mp4",
+        user,
+    )

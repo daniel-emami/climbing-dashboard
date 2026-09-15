@@ -30,14 +30,26 @@ GRADE_SOURCE_FIELDS = (
     "own_grade",
 )
 
+ASCENT_VISIBILITY_PUBLIC = "public"
+ASCENT_VISIBILITY_PRIVATE = "private"
+ASCENT_VISIBILITY_OPTIONS = (
+    ASCENT_VISIBILITY_PUBLIC,
+    ASCENT_VISIBILITY_PRIVATE,
+)
+
 BOULDER_EXPORT_COLUMNS = (
     "Navn",
     "27Crags grade",
     "Guide grade",
     "Own grade",
     "Område",
+    "Sector",
     "Flash",
     "Dato",
     "Climber",
     "Rating",
+    "Visibility",
 )
+
+DEFAULT_MAX_VIDEO_UPLOAD_BYTES = 500 * 1024 * 1024
+DEFAULT_MAX_PROFILE_PICTURE_BYTES = 10 * 1024 * 1024
