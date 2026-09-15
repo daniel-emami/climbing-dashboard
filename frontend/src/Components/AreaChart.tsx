@@ -8,6 +8,7 @@ import {
   YAxis
 } from "recharts";
 import type { AreaCount } from "../Types/boulderTypes";
+import sharedStyles from "../Styles/Shared.module.css";
 
 type AreaChartProps = {
   data: AreaCount[];
@@ -16,9 +17,9 @@ type AreaChartProps = {
 
 export default function AreaChart({ data }: AreaChartProps) {
   return (
-    <section className="panel chart-panel">
-      <div className="panel-heading">
-        <span className="section-kicker">Areas</span>
+    <section className={`${sharedStyles.panel} ${sharedStyles.chartPanel}`}>
+      <div className={sharedStyles.panelHeading}>
+        <span className={sharedStyles.sectionKicker}>Areas</span>
         <h2>Areas by grade</h2>
       </div>
       <ResponsiveContainer width="100%" height={260}>

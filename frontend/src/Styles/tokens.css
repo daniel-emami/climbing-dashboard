@@ -1,0 +1,29 @@
+:root {
+  --font-mono: "Cutive Mono", monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-page: #edf1f5;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f8fafc;
+  --color-text: #182233;
+  --color-heading: #111827;
+  --color-body: #233044;
+  --color-muted: #64748b;
+  --color-muted-strong: #475569;
+  --color-primary: #0f766e;
+  --color-primary-dark: #0f3f3a;
+  --color-primary-hover: #115e59;
+  --color-primary-soft: #d9f3ee;
+  --color-primary-faint: #eef6f5;
+  --color-control-text: #172033;
+  --color-border: #d8dee8;
+  --color-control-border: #cbd5e1;
+  --color-divider: #e2e8f0;
+  --color-danger: #991b1b;
+  --color-danger-border: #dc2626;
+  --color-danger-soft: #fee2e2;
+
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --shadow-panel: 0 8px 18px rgba(15, 23, 42, 0.05);
+  --focus-ring: 0 0 0 2px rgba(15, 118, 110, 0.16);
+}

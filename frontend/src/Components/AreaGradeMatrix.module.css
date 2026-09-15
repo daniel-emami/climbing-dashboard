@@ -1,0 +1,39 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--color-divider);
+  padding: 9px 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.table th:first-child,
+.table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-surface);
+  text-align: left;
+}
+
+.table thead th {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.table tbody th {
+  color: var(--color-control-text);
+}
+
+.table tbody tr:hover th,
+.table tbody tr:hover td {
+  background: var(--color-surface-subtle);
+}

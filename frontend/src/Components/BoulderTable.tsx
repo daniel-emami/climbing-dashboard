@@ -5,6 +5,8 @@ import type {
   BoulderPageIdentity,
   BoulderRecord
 } from "../Types/boulderTypes";
+import sharedStyles from "../Styles/Shared.module.css";
+import styles from "./BoulderTable.module.css";
 
 type BoulderTableProps = {
   records: BoulderRecord[];
@@ -250,10 +252,10 @@ export default function BoulderTable({
   };
 
   return (
-    <section className="panel">
-      <div className="panel-heading">
-        <span className="section-kicker">Logbook</span>
-        <div className="pagination-controls" aria-label="Logbook pagination">
+    <section className={sharedStyles.panel}>
+      <div className={sharedStyles.panelHeading}>
+        <span className={sharedStyles.sectionKicker}>Logbook</span>
+        <div className={styles.pagination} aria-label="Logbook pagination">
           <span>
             {firstVisibleRecord}-{lastVisibleRecord} of {sortedRecords.length}
           </span>
@@ -273,33 +275,33 @@ export default function BoulderTable({
           </button>
         </div>
       </div>
-      <div className="table-wrap">
-        <table className="logbook-table">
+      <div className={sharedStyles.tableWrap}>
+        <table className={styles.table}>
           <colgroup>
-            <col className="logbook-name-column" />
-            <col className="logbook-area-column" />
-            <col className="logbook-sector-column" />
-            <col className="logbook-climber-column" />
-            <col className="logbook-visibility-column" />
-            <col className="logbook-grade-column" />
-            <col className="logbook-grade-column" />
-            <col className="logbook-grade-column" />
-            <col className="logbook-flash-column" />
-            <col className="logbook-date-column" />
-            <col className="logbook-rating-column" />
-            <col className="logbook-actions-column" />
+            <col className={styles.nameColumn} />
+            <col className={styles.areaColumn} />
+            <col className={styles.sectorColumn} />
+            <col className={styles.climberColumn} />
+            <col className={styles.visibilityColumn} />
+            <col className={styles.gradeColumn} />
+            <col className={styles.gradeColumn} />
+            <col className={styles.gradeColumn} />
+            <col className={styles.flashColumn} />
+            <col className={styles.dateColumn} />
+            <col className={styles.ratingColumn} />
+            <col className={styles.actionsColumn} />
           </colgroup>
           <thead>
             <tr>
               {HEADERS.map((header) => (
                 <th key={header.key}>
                   <button
-                    className="table-sort-button"
+                    className={styles.sortButton}
                     type="button"
                     onClick={() => handleSort(header.key)}
                   >
-                    <span className="table-sort-label">{header.label}</span>
-                    <span className="table-sort-indicator" aria-hidden="true">
+                    <span className={styles.sortLabel}>{header.label}</span>
+                    <span className={styles.sortIndicator} aria-hidden="true">
                       {sortIndicator(header.key)}
                     </span>
                   </button>
@@ -324,14 +326,14 @@ export default function BoulderTable({
                     {isEditing ? (
                       <input
                         aria-label="Boulder name"
-                        className="table-inline-input"
+                        className={styles.inlineInput}
                         required
                         value={editableRecord.name}
                         onChange={(event) => updateDraft("name", event.target.value)}
                       />
                     ) : (
                       <button
-                        className="table-link-button"
+                        className={styles.tableLink}
                         type="button"
                         onClick={() =>
                           onOpenBoulder({
@@ -349,7 +351,7 @@ export default function BoulderTable({
                     {isEditing ? (
                       <input
                         aria-label="Area"
-                        className="table-inline-input"
+                        className={styles.inlineInput}
                         required
                         value={editableRecord.area}
                         onChange={(event) => updateDraft("area", event.target.value)}
@@ -362,7 +364,7 @@ export default function BoulderTable({
                     {isEditing ? (
                       <input
                         aria-label="Sector"
-                        className="table-inline-input"
+                        className={styles.inlineInput}
                         value={editableRecord.sector}
                         onChange={(event) => updateDraft("sector", event.target.value)}
                       />
@@ -374,14 +376,14 @@ export default function BoulderTable({
                     {isEditing ? (
                       <input
                         aria-label="Climber"
-                        className="table-inline-input"
+                        className={styles.inlineInput}
                         disabled
                         required
                         value={currentDisplayName ?? currentUsername ?? editableRecord.climber}
                       />
                     ) : (
                       <button
-                        className="table-link-button profile-link-button"
+                        className={styles.tableLink}
                         type="button"
                         onClick={() => onOpenBoulderer(record.climber)}
                       >
@@ -393,7 +395,7 @@ export default function BoulderTable({
                     {isEditing ? (
                       <select
                         aria-label="Visibility"
-                        className="table-inline-input"
+                        className={styles.inlineInput}
                         value={editableRecord.visibility}
                         onChange={(event) =>
                           updateDraft(
@@ -413,7 +415,7 @@ export default function BoulderTable({
                     {isEditing ? (
                       <input
                         aria-label="27Crags grade"
-                        className="table-inline-input"
+                        className={styles.inlineInput}
                         value={editableRecord.grade_27crags}
                         onChange={(event) => updateDraft("grade_27crags", event.target.value)}
                       />
@@ -425,7 +427,7 @@ export default function BoulderTable({
                     {isEditing ? (
                       <input
                         aria-label="Guide grade"
-                        className="table-inline-input"
+                        className={styles.inlineInput}
                         value={editableRecord.guide_grade}
                         onChange={(event) => updateDraft("guide_grade", event.target.value)}
                       />
@@ -437,7 +439,7 @@ export default function BoulderTable({
                     {isEditing ? (
                       <input
                         aria-label="Own grade"
-                        className="table-inline-input"
+                        className={styles.inlineInput}
                         value={editableRecord.own_grade}
                         onChange={(event) => updateDraft("own_grade", event.target.value)}
                       />
@@ -449,7 +451,7 @@ export default function BoulderTable({
                     {isEditing ? (
                       <input
                         aria-label="Flash"
-                        className="table-inline-checkbox"
+                        className={styles.inlineCheckbox}
                         checked={editableRecord.flash}
                         type="checkbox"
                         onChange={(event) => updateDraft("flash", event.target.checked)}
@@ -464,7 +466,7 @@ export default function BoulderTable({
                     {isEditing ? (
                       <input
                         aria-label="Climbed date"
-                        className="table-inline-input"
+                        className={styles.inlineInput}
                         type="date"
                         value={editableRecord.climbed_on ?? ""}
                         onChange={(event) => updateDraft("climbed_on", event.target.value)}
@@ -477,7 +479,7 @@ export default function BoulderTable({
                     {isEditing ? (
                       <select
                         aria-label="Rating"
-                        className="table-inline-input"
+                        className={styles.inlineInput}
                         value={editableRecord.rating ?? ""}
                         onChange={(event) =>
                           updateDraft(
@@ -498,7 +500,7 @@ export default function BoulderTable({
                     )}
                   </td>
                   <td>
-                    <div className="logbook-action-buttons">
+                    <div className={styles.actionButtons}>
                       {isEditing ? (
                         <>
                           <button
@@ -522,7 +524,7 @@ export default function BoulderTable({
                             Edit
                           </button>
                           <button
-                            className="danger-button"
+                            className={styles.dangerButton}
                             disabled={isSaving || !canChange}
                             type="button"
                             onClick={() => void deleteRecord(record)}

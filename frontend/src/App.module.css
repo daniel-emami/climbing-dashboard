@@ -1,0 +1,371 @@
+.shell {
+  width: min(1640px, 100%);
+  margin: 0 auto;
+  padding: 22px;
+}
+
+.workspaceHeader {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: minmax(210px, 0.8fr) minmax(280px, 1.2fr) minmax(190px, auto);
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 8px;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.07);
+  backdrop-filter: blur(16px);
+}
+
+.brandButton,
+.accountChip {
+  min-width: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: inherit;
+  padding: 6px;
+  text-align: left;
+}
+
+.brandButton {
+  display: inline-grid;
+  grid-template-columns: 42px minmax(0, auto);
+  gap: 10px;
+  align-items: center;
+  justify-self: start;
+}
+
+.brandButton:hover,
+.accountChip:hover {
+  background: var(--color-primary-faint);
+}
+
+.brandMark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: var(--radius-control);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.brandText,
+.accountText {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.brandText strong {
+  color: var(--color-heading);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.brandText span,
+.accountText span,
+.signedOutChip,
+.headerContext {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.headerNav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  justify-self: center;
+  width: min(420px, 100%);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-control);
+  background: #f3f7f8;
+  padding: 4px;
+}
+
+.headerNav button {
+  min-width: 0;
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--color-muted-strong);
+  padding: 0 10px;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.headerNav button:hover {
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+}
+
+.headerNav button.activePage {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  box-shadow: 0 4px 10px rgba(15, 118, 110, 0.18);
+}
+
+.headerContext {
+  justify-self: center;
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+  background: var(--color-surface-subtle);
+  padding: 8px 13px;
+}
+
+.headerAccount {
+  display: flex;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.accountChip {
+  display: inline-grid;
+  grid-template-columns: 34px minmax(0, auto);
+  gap: 9px;
+  align-items: center;
+}
+
+.accountAvatar {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--color-divider);
+  border-radius: 50%;
+  background: #dbe8e6;
+  color: var(--color-primary-dark);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.accountAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.accountText strong {
+  max-width: 150px;
+  overflow: hidden;
+  color: var(--color-heading);
+  font-size: 0.88rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signedOutChip {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+  background: var(--color-surface-subtle);
+  padding: 0 12px;
+}
+
+.brandButton:focus-visible,
+.headerNav button:focus-visible,
+.accountChip:focus-visible,
+.filterRow button:focus-visible,
+.filterRow select:focus-visible,
+.filterRow input:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.2);
+  outline-offset: 1px;
+}
+
+.toolbar {
+  min-width: 0;
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.filterRow {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(430px, 1.1fr) minmax(150px, auto);
+  gap: 18px;
+  align-items: end;
+  padding: 14px;
+}
+
+.logbookFilterRow {
+  grid-template-columns: minmax(300px, 1fr) minmax(150px, auto);
+}
+
+.filterGroup {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.searchFields {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(170px, 1.2fr);
+  gap: 8px;
+}
+
+.searchControl select,
+.searchControl input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-control-text);
+  padding: 0 10px;
+  font-weight: 850;
+}
+
+.searchControl select {
+  appearance: auto;
+}
+
+.searchControl select:focus,
+.searchControl input:focus {
+  border-color: var(--color-primary);
+}
+
+.gradeSourceOptions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.gradeSourceOptions button {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.exportControl button {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: #0f5f58;
+  padding: 0 14px;
+  font-weight: 900;
+}
+
+.exportControl button:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.dashboardLayout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.controlRail {
+  position: sticky;
+  top: 86px;
+  display: grid;
+  gap: 16px;
+}
+
+.dashboardMain {
+  min-width: 0;
+}
+
+.insightGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1050px) {
+  .dashboardLayout,
+  .insightGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .controlRail {
+    position: static;
+  }
+
+  .workspaceHeader {
+    grid-template-columns: minmax(190px, auto) minmax(260px, 1fr);
+  }
+
+  .headerNav,
+  .headerContext {
+    order: 3;
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .headerAccount {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding: 14px;
+  }
+
+  .workspaceHeader {
+    position: static;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .brandButton,
+  .headerAccount,
+  .accountChip,
+  .signedOutChip {
+    width: 100%;
+  }
+
+  .headerAccount {
+    justify-content: stretch;
+  }
+
+  .accountChip {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .accountText strong {
+    max-width: none;
+  }
+
+  .headerNav button {
+    min-height: 38px;
+    padding: 0 8px;
+  }
+
+  .filterRow {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 12px;
+  }
+
+  .exportControl button {
+    min-height: 42px;
+  }
+}
+
+@media (max-width: 420px) {
+  .searchFields {
+    grid-template-columns: 1fr;
+  }
+}

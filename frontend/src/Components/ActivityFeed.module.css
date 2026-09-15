@@ -1,0 +1,231 @@
+.panel.panel {
+  padding-bottom: 4px;
+}
+
+.list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  padding: 13px 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.item:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-control-border);
+  border-radius: 50%;
+  background: var(--color-primary-faint);
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.body {
+  min-width: 0;
+}
+
+.copy,
+.meta,
+.time {
+  margin: 0;
+}
+
+.copy {
+  color: var(--color-body);
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.copy strong {
+  color: var(--color-heading);
+}
+
+.boulderLink {
+  max-width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  font: inherit;
+  font-weight: 900;
+  vertical-align: baseline;
+}
+
+.boulderLink:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.meta {
+  margin-top: 4px;
+  color: var(--color-muted-strong);
+  font-size: 0.8rem;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.time {
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.mediaList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mediaItem {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mediaItem video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-control);
+  background: var(--color-heading);
+  object-fit: contain;
+}
+
+.mediaItem p {
+  margin: 0;
+  color: var(--color-muted-strong);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.comments {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.commentList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.commentItem {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-subtle);
+  padding: 8px 9px;
+}
+
+.commentItem p {
+  margin: 0;
+  color: var(--color-body);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.commentItem strong {
+  color: var(--color-heading);
+  font-weight: 900;
+}
+
+.commentActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.commentForm,
+.commentEditForm {
+  display: grid;
+  gap: 7px;
+  align-items: center;
+}
+
+.commentForm {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.commentEditForm {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.commentForm input,
+.commentEditForm input {
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-control-text);
+  padding: 0 9px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.commentForm input:focus,
+.commentEditForm input:focus {
+  border-color: var(--color-primary);
+  outline: 0;
+  box-shadow: var(--focus-ring);
+}
+
+.commentForm button,
+.commentEditForm button,
+.commentActions button {
+  min-height: 30px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-body);
+  padding: 0 9px;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.commentForm button:hover:not(:disabled),
+.commentEditForm button:hover:not(:disabled),
+.commentActions button:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.commentActions .dangerButton:hover:not(:disabled) {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}

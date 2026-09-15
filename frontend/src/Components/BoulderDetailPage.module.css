@@ -1,0 +1,435 @@
+.page {
+  min-width: 0;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
+  gap: 18px;
+  align-items: end;
+}
+
+.hero h2 {
+  margin-top: 6px;
+  font-size: 1.8rem;
+}
+
+.hero p {
+  margin: 8px 0 0;
+  color: var(--color-muted-strong);
+  font-weight: 850;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.stats div {
+  min-width: 0;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-control);
+  padding: 9px;
+  background: var(--color-surface-subtle);
+}
+
+.stats dt,
+.gradeList dt,
+.ratingSummary dt {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.stats dd {
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: var(--color-heading);
+  font-size: 1.1rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
+  gap: 16px;
+}
+
+.fullWidthPanel {
+  grid-column: 1 / -1;
+}
+
+.gradeList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.gradeList div,
+.ratingSummary div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.ratingSummary {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.gradeList dd,
+.ratingSummary dd {
+  margin: 0;
+  color: var(--color-heading);
+  font-weight: 850;
+}
+
+.count {
+  min-width: 28px;
+  min-height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--color-control-border);
+  border-radius: 999px;
+  color: var(--color-muted-strong);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.commentForm,
+.mediaUploadForm,
+.commentEditForm {
+  display: grid;
+  gap: 10px;
+}
+
+.commentForm {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.mediaUploadForm {
+  grid-template-columns: minmax(140px, 190px) minmax(0, 1fr) minmax(190px, 260px) auto;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.commentForm label,
+.mediaUploadForm label,
+.commentEditForm label {
+  display: grid;
+  gap: 5px;
+  color: var(--color-muted-strong);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.commentForm input,
+.commentForm textarea,
+.mediaUploadForm input,
+.mediaUploadForm select,
+.commentEditForm input,
+.commentEditForm textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-control-text);
+  padding: 8px 10px;
+}
+
+.commentForm input,
+.mediaUploadForm input,
+.mediaUploadForm select,
+.commentEditForm input {
+  min-height: 38px;
+}
+
+.commentForm textarea,
+.commentEditForm textarea {
+  min-height: 38px;
+  resize: vertical;
+}
+
+.commentForm input:focus,
+.commentForm textarea:focus,
+.mediaUploadForm input:focus,
+.mediaUploadForm select:focus,
+.commentEditForm input:focus,
+.commentEditForm textarea:focus {
+  border-color: var(--color-primary);
+  outline: 0;
+  box-shadow: var(--focus-ring);
+}
+
+.commentForm button,
+.mediaUploadForm button,
+.commentActions button {
+  min-height: 38px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-body);
+  padding: 0 12px;
+  font-weight: 850;
+}
+
+.commentForm button:hover:not(:disabled),
+.mediaUploadForm button:hover:not(:disabled),
+.commentActions button:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.commentList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.commentItem {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-subtle);
+  padding: 10px;
+}
+
+.commentMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.commentMeta strong {
+  color: var(--color-heading);
+  font-size: 0.88rem;
+}
+
+.commentMeta span {
+  color: var(--color-muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.commentItem p {
+  margin: 0;
+  color: var(--color-body);
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.commentActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.commentActions button {
+  min-height: 30px;
+  padding: 0 9px;
+  font-size: 0.78rem;
+}
+
+.commentActions .dangerButton:hover:not(:disabled) {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.mediaList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mediaItem {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-subtle);
+  padding: 10px;
+}
+
+.mediaItem video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-control);
+  background: var(--color-heading);
+  object-fit: contain;
+}
+
+.mediaMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mediaMeta strong,
+.mediaMeta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mediaMeta strong {
+  color: var(--color-heading);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.mediaMeta span {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.mediaItem p {
+  margin: 0;
+  color: var(--color-body);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.climberTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.climberTable th,
+.climberTable td {
+  border-bottom: 1px solid var(--color-divider);
+  padding: 9px 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.climberTable th:first-child,
+.climberTable td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-surface);
+  text-align: left;
+}
+
+.climberTable thead th {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.climberTable tbody th {
+  color: var(--color-control-text);
+}
+
+.climberTable tbody tr:hover th,
+.climberTable tbody tr:hover td {
+  background: var(--color-surface-subtle);
+}
+
+.tableLink {
+  max-width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  font: inherit;
+  font-weight: 900;
+}
+
+.tableLink:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.ratingControl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.ratingControl button {
+  min-width: 28px;
+  min-height: 28px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 5px;
+  background: var(--color-surface);
+  color: var(--color-body);
+  padding: 0 7px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.ratingControl button:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+
+.ratingControl button.activeRating {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.ratingControl .clearRating {
+  min-width: 48px;
+}
+
+@media (max-width: 1050px) {
+  .hero,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fullWidthPanel {
+    grid-column: auto;
+  }
+
+  .commentForm,
+  .mediaUploadForm {
+    grid-template-columns: 1fr;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}

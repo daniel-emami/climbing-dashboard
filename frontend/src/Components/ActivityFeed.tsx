@@ -12,6 +12,8 @@ import type {
   BoulderPageIdentity,
   BoulderRecord
 } from "../Types/boulderTypes";
+import sharedStyles from "../Styles/Shared.module.css";
+import styles from "./ActivityFeed.module.css";
 
 type ActivityFeedProps = {
   currentUsername: string | null;
@@ -371,14 +373,14 @@ export default function ActivityFeed({
     const isSavingComment = ascentId !== null && savingAscentIds.has(ascentId);
 
     return (
-      <li className="activity-feed-item" key={item.key}>
-        <div className="activity-feed-avatar" aria-hidden="true">
+      <li className={styles.item} key={item.key}>
+        <div className={styles.avatar} aria-hidden="true">
           {initials(record.climber_display_name)}
         </div>
-        <div className="activity-feed-body">
-          <p className="activity-feed-copy">
+        <div className={styles.body}>
+          <p className={styles.copy}>
             <button
-              className="profile-link-button"
+              className={sharedStyles.profileLinkButton}
               type="button"
               onClick={() => onOpenBoulderer(record.climber)}
             >
@@ -386,32 +388,32 @@ export default function ActivityFeed({
             </button>{" "}
             {record.flash ? "flashed" : "logged"}{" "}
             <button
-              className="activity-feed-link"
+              className={styles.boulderLink}
               type="button"
               onClick={() => onOpenBoulder(boulderIdentityFromRecord(record))}
             >
               {record.name}
             </button>
           </p>
-          <p className="activity-feed-meta">
+          <p className={styles.meta}>
             {formatLocation(record)} · {formatGrade(record)}
             {rating ? ` · ${rating}` : ""}
           </p>
-          <p className="activity-feed-time">
+          <p className={styles.time}>
             Climbed {formatDate(record.climbed_on)} · Added {formatDate(record.added_at)}
           </p>
-          <div className="activity-ascent-comments">
+          <div className={styles.comments}>
             {comments.length > 0 && (
-              <ol className="activity-comment-list">
+              <ol className={styles.commentList}>
                 {comments.map((comment) => {
                   const isEditing = editingCommentId === comment.id;
                   const canEditComment =
                     currentUsername !== null &&
                     comment.climber.toLocaleLowerCase() === currentUsername.toLocaleLowerCase();
                   return (
-                    <li className="activity-comment-item" key={comment.id}>
+                    <li className={styles.commentItem} key={comment.id}>
                       {isEditing ? (
-                        <div className="activity-comment-edit-form">
+                        <div className={styles.commentEditForm}>
                           <input
                             aria-label="Comment"
                             value={editingDraft.body}
@@ -442,7 +444,7 @@ export default function ActivityFeed({
                           <p>
                             <strong>{comment.climber_display_name}</strong> {comment.body}
                           </p>
-                          <div className="activity-comment-actions">
+                          <div className={styles.commentActions}>
                             <span>{formatDateTime(comment.created_at)}</span>
                             {canEditComment && (
                               <>
@@ -454,7 +456,7 @@ export default function ActivityFeed({
                                   Edit
                                 </button>
                                 <button
-                                  className="danger-button"
+                                  className={styles.dangerButton}
                                   disabled={isSavingComment}
                                   type="button"
                                   onClick={() => void removeComment(comment)}
@@ -473,7 +475,7 @@ export default function ActivityFeed({
             )}
             {ascentId !== null && (
               <form
-                className="activity-comment-form"
+                className={styles.commentForm}
                 onSubmit={(event) => void submitComment(event, ascentId)}
               >
                 <input
@@ -499,14 +501,14 @@ export default function ActivityFeed({
   const renderVideoItem = (item: VideoFeedItem) => {
     const { media } = item;
     return (
-      <li className="activity-feed-item activity-video-feed-item" key={item.key}>
-        <div className="activity-feed-avatar" aria-hidden="true">
+      <li className={styles.item} key={item.key}>
+        <div className={styles.avatar} aria-hidden="true">
           {initials(media.climber_display_name)}
         </div>
-        <div className="activity-feed-body">
-          <p className="activity-feed-copy">
+        <div className={styles.body}>
+          <p className={styles.copy}>
             <button
-              className="profile-link-button"
+              className={sharedStyles.profileLinkButton}
               type="button"
               onClick={() => onOpenBoulderer(media.climber)}
             >
@@ -514,20 +516,20 @@ export default function ActivityFeed({
             </button>{" "}
             uploaded a video to{" "}
             <button
-              className="activity-feed-link"
+              className={styles.boulderLink}
               type="button"
               onClick={() => onOpenBoulder(boulderIdentityFromMedia(media))}
             >
               {media.boulder_name}
             </button>
           </p>
-          <p className="activity-feed-meta">{formatMediaLocation(media)}</p>
-          <p className="activity-feed-time">
+          <p className={styles.meta}>{formatMediaLocation(media)}</p>
+          <p className={styles.time}>
             Uploaded {formatDateTime(media.created_at)}
             {media.visibility === "private" ? " · Private" : ""}
           </p>
-          <ol className="activity-media-list">
-            <li className="activity-media-item">
+          <ol className={styles.mediaList}>
+            <li className={styles.mediaItem}>
               <video
                 controls
                 crossOrigin="use-credentials"
@@ -544,15 +546,15 @@ export default function ActivityFeed({
   };
 
   return (
-    <section className="panel activity-feed-panel">
-      <div className="panel-heading">
-        <span className="section-kicker">Feed</span>
+    <section className={`${sharedStyles.panel} ${styles.panel}`}>
+      <div className={sharedStyles.panelHeading}>
+        <span className={sharedStyles.sectionKicker}>Feed</span>
         <h2>Latest activity</h2>
       </div>
       {feedItems.length === 0 ? (
-        <div className="empty-detail-slot">-</div>
+        <div className={sharedStyles.emptyDetailSlot}>-</div>
       ) : (
-        <ol className="activity-feed-list">
+        <ol className={styles.list}>
           {feedItems.map((item) =>
             item.kind === "ascent" ? renderAscentItem(item) : renderVideoItem(item)
           )}

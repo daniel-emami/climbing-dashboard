@@ -15,6 +15,7 @@ import {
 } from "./Api/authApi";
 import {
   fetchBouldererProfile,
+  profilePictureUrl,
   updateBouldererProfile,
   uploadProfilePicture
 } from "./Api/bouldererApi";
@@ -40,13 +41,11 @@ import BoulderTable from "./Components/BoulderTable";
 import ErrorState from "./Components/ErrorState";
 import GradeChart, { type GradeChartSeries } from "./Components/GradeChart";
 import LoadingState from "./Components/LoadingState";
-import SummaryStrip from "./Components/SummaryStrip";
 import TheTopoImportPanel from "./Components/TheTopoImportPanel";
 import {
   GRADE_SOURCE_COLORS,
   GRADE_SOURCE_FIELDS,
-  GRADE_SOURCE_LABELS,
-  type GradeChartMode
+  GRADE_SOURCE_LABELS
 } from "./Config/gradeSources";
 import type {
   AdminPasswordResetRequest,
@@ -70,6 +69,8 @@ import type {
   DashboardStats,
   GradeField
 } from "./Types/boulderTypes";
+import styles from "./App.module.css";
+import sharedStyles from "./Styles/Shared.module.css";
 
 const DASHBOARD_GRADE_SOURCE_FIELDS: GradeField[] = [
   "grade_27crags",
@@ -84,10 +85,6 @@ const DASHBOARD_PAGES: Array<{ key: DashboardPage; label: string }> = [
   { key: "logbook", label: "Logbook" },
   { key: "map", label: "Map" }
 ];
-
-function formatRefreshTime(): string {
-  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
 
 function boulderIdentityFromHash(): BoulderPageIdentity | null {
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -250,14 +247,21 @@ function recordMatchesSearch(record: BoulderRecord, searchQuery: string): boolea
     .includes(query);
 }
 
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toLocaleUpperCase())
+    .join("");
+}
+
 export default function App() {
   const [data, setData] = useState<BouldersResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("own_grade");
-  const [gradeChartMode, setGradeChartMode] = useState<GradeChartMode>("own_grade");
   const [activePage, setActivePage] = useState<DashboardPage>("feed");
   const [selectedClimber, setSelectedClimber] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -286,7 +290,6 @@ export default function App() {
       const payload = await fetchBoulders();
       setData(payload);
       setError(null);
-      setLastUpdated(formatRefreshTime());
     } catch (unknownError: unknown) {
       setError(unknownError instanceof Error ? unknownError.message : "Unknown error");
     } finally {
@@ -468,17 +471,20 @@ export default function App() {
     if (!data) {
       return null;
     }
-    const records = data.records.filter(
-      (record) =>
-        (!selectedClimber || record.climber === selectedClimber) &&
-        recordMatchesSearch(record, searchQuery)
-    );
+    const records =
+      activePage === "feed"
+        ? data.records
+        : data.records.filter(
+            (record) =>
+              (!selectedClimber || record.climber === selectedClimber) &&
+              recordMatchesSearch(record, searchQuery)
+          );
     return {
       ...data,
       records,
       stats: buildStats(records, data.grade_order)
     };
-  }, [data, searchQuery, selectedClimber]);
+  }, [activePage, data, searchQuery, selectedClimber]);
 
   const selectedBoulderRecords = useMemo(() => {
     if (!data || !selectedBoulder) {
@@ -492,18 +498,14 @@ export default function App() {
     if (!visibleData) {
       return [];
     }
-    const fields = gradeChartMode === "all" ? GRADE_SOURCE_FIELDS : [gradeChartMode];
-    return fields.map((field) => ({
+    return GRADE_SOURCE_FIELDS.map((field) => ({
       key: field,
       label: GRADE_SOURCE_LABELS[field],
       color: GRADE_SOURCE_COLORS[field],
       data: visibleData.stats.grade_counts[field]
     }));
-  }, [gradeChartMode, visibleData]);
-  const gradeChartTitle =
-    gradeChartMode === "all"
-      ? "Boulders by all grade sources"
-      : `Boulders by ${GRADE_SOURCE_LABELS[gradeChartMode].toLowerCase()}`;
+  }, [visibleData]);
+  const gradeChartTitle = "Boulders by all grade sources";
 
   const handleAddBoulder = async (request: BoulderCreateRequest) => {
     if (!currentUser) {
@@ -515,7 +517,6 @@ export default function App() {
       const payload = await addBoulder({ ...request, climber: currentUser.username });
       setData(payload);
       setError(null);
-      setLastUpdated(formatRefreshTime());
     } catch (unknownError: unknown) {
       setError(unknownError instanceof Error ? unknownError.message : "Unknown error");
       throw unknownError;
@@ -540,7 +541,6 @@ export default function App() {
       });
       setData(payload);
       setError(null);
-      setLastUpdated(formatRefreshTime());
     } catch (unknownError: unknown) {
       setError(unknownError instanceof Error ? unknownError.message : "Unknown error");
       throw unknownError;
@@ -559,7 +559,6 @@ export default function App() {
       const payload = await deleteBoulder(request);
       setData(payload);
       setError(null);
-      setLastUpdated(formatRefreshTime());
     } catch (unknownError: unknown) {
       setError(unknownError instanceof Error ? unknownError.message : "Unknown error");
       throw unknownError;
@@ -633,7 +632,6 @@ export default function App() {
   const handleImportedBoulders = (payload: BouldersResponse) => {
     setData(payload);
     setError(null);
-    setLastUpdated(formatRefreshTime());
   };
 
   const handleOpenBoulder = (identity: BoulderPageIdentity) => {
@@ -656,6 +654,13 @@ export default function App() {
   const handleCloseBoulderer = () => {
     setSelectedBouldererUsername(null);
     writeBouldererHash(null);
+  };
+
+  const handleOpenDashboardHome = () => {
+    setSelectedBoulder(null);
+    setSelectedBouldererUsername(null);
+    setActivePage("feed");
+    window.history.pushState(null, "", `${window.location.pathname}${window.location.search}`);
   };
 
   const handleSaveBouldererProfile = async (
@@ -822,26 +827,66 @@ export default function App() {
   };
 
   return (
-    <main className="app-shell">
-      <header className="workspace-header">
-        <div>
-          <p className="eyebrow">Outdoor boulders</p>
-          <h1>Climbing Dashboard</h1>
+    <main className={styles.shell}>
+      <header className={styles.workspaceHeader}>
+        <button className={styles.brandButton} type="button" onClick={handleOpenDashboardHome}>
+          <span className={styles.brandMark} aria-hidden="true">
+            TT
+          </span>
+          <span className={styles.brandText}>
+            <strong>Tick Tracker</strong>
+            <span>Outdoor boulder log</span>
+          </span>
+        </button>
+
+        {!selectedBoulder && !selectedBouldererUsername ? (
+          <nav className={styles.headerNav} aria-label="Dashboard pages">
+            {DASHBOARD_PAGES.map((page) => (
+              <button
+                aria-current={activePage === page.key ? "page" : undefined}
+                className={activePage === page.key ? styles.activePage : ""}
+                key={page.key}
+                type="button"
+                onClick={() => setActivePage(page.key)}
+              >
+                {page.label}
+              </button>
+            ))}
+          </nav>
+        ) : (
+          <div className={styles.headerContext}>
+            {selectedBouldererUsername ? "Boulderer profile" : "Boulder page"}
+          </div>
+        )}
+
+        <div className={styles.headerAccount}>
+          {currentUser ? (
+            <button
+              className={styles.accountChip}
+              type="button"
+              onClick={() => handleOpenBoulderer(currentUser.username)}
+            >
+              <span className={styles.accountAvatar} aria-hidden="true">
+                {currentUser.profile_picture_url ? (
+                  <img
+                    alt=""
+                    src={profilePictureUrl(currentUser.profile_picture_url)}
+                  />
+                ) : (
+                  initials(currentUser.display_name || currentUser.username) || "@"
+                )}
+              </span>
+              <span className={styles.accountText}>
+                <strong>{currentUser.display_name || currentUser.username}</strong>
+                <span>@{currentUser.username}</span>
+              </span>
+            </button>
+          ) : (
+            <span className={styles.signedOutChip}>
+              {isAuthLoading ? "Checking account" : "Sign in below"}
+            </span>
+          )}
         </div>
-        <dl className="workspace-status" aria-label="Loaded data status">
-          <div>
-            <dt>Storage</dt>
-            <dd>SQLite</dd>
-          </div>
-          <div>
-            <dt>Rows</dt>
-            <dd>{visibleData?.records.length ?? data?.records.length ?? 0}</dd>
-          </div>
-          <div>
-            <dt>Loaded</dt>
-            <dd>{lastUpdated ?? "-"}</dd>
-          </div>
-        </dl>
       </header>
 
       {selectedBouldererUsername ? (
@@ -885,162 +930,169 @@ export default function App() {
           />
         </>
       ) : (
-        <div className="dashboard-layout">
-          <aside className="control-rail">
-            <AuthPanel
-              user={currentUser}
-              isLoading={isAuthLoading}
-              isSaving={isAuthSaving}
-              onLogin={handleLogin}
-              onLogout={handleLogout}
-              onOpenProfile={handleOpenBoulderer}
-              onResetPassword={handleResetPassword}
-              onSignup={handleSignup}
-            />
-            <TheTopoImportPanel
-              currentUsername={currentUser?.username ?? null}
-              onImported={handleImportedBoulders}
-              onError={setError}
-            />
-            <BoulderForm
-              isSaving={isSaving}
-              knownAreas={knownAreas}
-              knownGrades={knownGrades}
-              knownSectors={knownSectors}
-              currentDisplayName={currentUser?.display_name ?? null}
-              currentUsername={currentUser?.username ?? null}
-              onSubmit={handleAddBoulder}
-            />
-          </aside>
+        <>
+          {visibleData && !isInitialLoading && (
+            <>
+              {activePage !== "feed" && (
+                <section className={styles.toolbar} aria-label="Dashboard filters">
+                  <div
+                    className={`${styles.filterRow} ${
+                      activePage === "logbook" ? styles.logbookFilterRow : ""
+                    }`}
+                  >
+                    <label className={`${styles.filterGroup} ${styles.searchControl}`}>
+                      <span className={sharedStyles.sectionKicker}>Search</span>
+                      <div className={styles.searchFields}>
+                        <select
+                          aria-label="Filter by climber"
+                          value={selectedClimber}
+                          onChange={(event) => setSelectedClimber(event.target.value)}
+                        >
+                          <option value="">All climbers</option>
+                          {knownClimbers.map((climber) => (
+                            <option key={climber} value={climber}>
+                              {climberDisplayNames.get(climber) ?? climber}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          aria-label="Search boulders"
+                          placeholder="Boulder name"
+                          type="search"
+                          value={searchQuery}
+                          onChange={(event) => setSearchQuery(event.target.value)}
+                        />
+                      </div>
+                    </label>
 
-          <section className="dashboard-main" aria-label="Climbing Dashboard">
-            {isInitialLoading && <LoadingState />}
-            {error && <ErrorState message={error} />}
-            {visibleData && !isInitialLoading && (
-              <>
-                <SummaryStrip data={visibleData} />
+                    {activePage === "map" && (
+                      <div className={styles.filterGroup}>
+                        <span className={sharedStyles.sectionKicker}>Grade Source</span>
+                        <div
+                          className={`${sharedStyles.segmentedControl} ${styles.gradeSourceOptions}`}
+                          role="group"
+                          aria-label="Grade source"
+                        >
+                          {DASHBOARD_GRADE_SOURCE_FIELDS.map((field) => (
+                            <button
+                              className={
+                                field === activeAreaMapGradeField ? sharedStyles.active : ""
+                              }
+                              key={field}
+                              type="button"
+                              onClick={() => setActiveAreaMapGradeField(field)}
+                            >
+                              {GRADE_SOURCE_LABELS[field]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                <nav className="dashboard-page-tabs" aria-label="Dashboard pages">
-                  {DASHBOARD_PAGES.map((page) => (
-                    <button
-                      className={activePage === page.key ? "active" : ""}
-                      key={page.key}
-                      type="button"
-                      onClick={() => setActivePage(page.key)}
-                    >
-                      {page.label}
-                    </button>
-                  ))}
-                </nav>
-
-              <section className="panel dashboard-controls-panel">
-                <div className="dashboard-control-group grade-source-control">
-                  <span className="section-kicker">Grade Source</span>
-                  <div className="segmented-control" role="group" aria-label="Grade source">
-                    {DASHBOARD_GRADE_SOURCE_FIELDS.map((field) => (
+                    <div className={styles.exportControl}>
                       <button
-                        className={field === gradeChartMode ? "active" : ""}
-                        key={field}
+                        disabled={visibleData.records.length === 0}
                         type="button"
-                        onClick={() => {
-                          setActiveAreaMapGradeField(field);
-                          setGradeChartMode(field);
-                        }}
+                        onClick={() => void handleExportVisibleBoulders()}
                       >
-                        {GRADE_SOURCE_LABELS[field]}
+                        Export Selected
                       </button>
-                    ))}
-                    <button
-                      className={gradeChartMode === "all" ? "active" : ""}
-                      type="button"
-                      onClick={() => setGradeChartMode("all")}
-                    >
-                      Combined
-                    </button>
+                    </div>
                   </div>
-                </div>
-
-                <label className="dashboard-control-group search-control">
-                  <span className="section-kicker">Search</span>
-                  <select
-                    value={selectedClimber}
-                    onChange={(event) => setSelectedClimber(event.target.value)}
-                  >
-                    <option value="">All climbers</option>
-                    {knownClimbers.map((climber) => (
-                      <option key={climber} value={climber}>
-                        {climberDisplayNames.get(climber) ?? climber}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    placeholder="Boulder name"
-                    type="search"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                  />
-                </label>
-
-                <div className="dashboard-control-group climber-control">
-                  <button
-                    disabled={visibleData.records.length === 0}
-                    type="button"
-                    onClick={() => void handleExportVisibleBoulders()}
-                  >
-                    Export Selected
-                  </button>
-                </div>
-              </section>
-
-              {activePage === "feed" && (
-                <>
-                  <ActivityFeed
-                    currentUsername={currentUser?.username ?? null}
-                    selectedClimber={selectedClimber}
-                    records={visibleData.records}
-                    onError={setError}
-                    onOpenBoulder={handleOpenBoulder}
-                    onOpenBoulderer={handleOpenBoulderer}
-                  />
-                  <div className="insight-grid">
-                    <GradeChart
-                      title={gradeChartTitle}
-                      gradeOrder={visibleData.grade_order}
-                      series={gradeChartSeries}
-                    />
-                    <AreaChart
-                      data={visibleData.stats.area_counts_by_grade_source[activeAreaMapGradeField]}
-                      gradeSourceLabel={activeAreaMapGradeLabel}
-                    />
-                  </div>
-                </>
-              )}
-
-              {activePage === "logbook" && (
-                <BoulderTable
-                  records={visibleData.records}
-                  gradeOrder={visibleData.grade_order}
-                  isSaving={isSaving}
-                  currentDisplayName={currentUser?.display_name ?? null}
-                  currentUsername={currentUser?.username ?? null}
-                  onDelete={handleDeleteBoulder}
-                  onOpenBoulder={handleOpenBoulder}
-                  onOpenBoulderer={handleOpenBoulderer}
-                  onUpdate={handleUpdateBoulder}
-                />
-              )}
-
-              {activePage === "map" && (
-                <AreaGradeMatrix
-                  rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
-                  grades={visibleData.grade_order}
-                  gradeSourceLabel={activeAreaMapGradeLabel}
-                />
+                </section>
               )}
             </>
           )}
-        </section>
-      </div>
+
+          <div className={styles.dashboardLayout}>
+            <aside className={styles.controlRail}>
+              <AuthPanel
+                user={currentUser}
+                isLoading={isAuthLoading}
+                isSaving={isAuthSaving}
+                onLogin={handleLogin}
+                onLogout={handleLogout}
+                onOpenProfile={handleOpenBoulderer}
+                onResetPassword={handleResetPassword}
+                onSignup={handleSignup}
+              />
+              <TheTopoImportPanel
+                currentUsername={currentUser?.username ?? null}
+                onImported={handleImportedBoulders}
+                onError={setError}
+              />
+              <BoulderForm
+                isSaving={isSaving}
+                knownAreas={knownAreas}
+                knownGrades={knownGrades}
+                knownSectors={knownSectors}
+                currentDisplayName={currentUser?.display_name ?? null}
+                currentUsername={currentUser?.username ?? null}
+                onSubmit={handleAddBoulder}
+              />
+            </aside>
+
+            <section className={styles.dashboardMain} aria-label="Climbing Dashboard">
+              {isInitialLoading && <LoadingState />}
+              {error && <ErrorState message={error} />}
+              {visibleData && !isInitialLoading && (
+                <>
+                  {activePage === "feed" && (
+                    <>
+                      <ActivityFeed
+                        currentUsername={currentUser?.username ?? null}
+                        selectedClimber=""
+                        records={visibleData.records}
+                        onError={setError}
+                        onOpenBoulder={handleOpenBoulder}
+                        onOpenBoulderer={handleOpenBoulderer}
+                      />
+                      <div className={styles.insightGrid}>
+                        <GradeChart
+                          title={gradeChartTitle}
+                          gradeOrder={visibleData.grade_order}
+                          series={gradeChartSeries}
+                        />
+                        <AreaChart
+                          data={
+                            visibleData.stats.area_counts_by_grade_source.own_grade
+                          }
+                          gradeSourceLabel={GRADE_SOURCE_LABELS.own_grade}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {activePage === "logbook" && (
+                    <BoulderTable
+                      records={visibleData.records}
+                      gradeOrder={visibleData.grade_order}
+                      isSaving={isSaving}
+                      currentDisplayName={currentUser?.display_name ?? null}
+                      currentUsername={currentUser?.username ?? null}
+                      onDelete={handleDeleteBoulder}
+                      onOpenBoulder={handleOpenBoulder}
+                      onOpenBoulderer={handleOpenBoulderer}
+                      onUpdate={handleUpdateBoulder}
+                    />
+                  )}
+
+                  {activePage === "map" && (
+                    <AreaGradeMatrix
+                      rows={
+                        visibleData.stats.area_grade_matrix_by_grade_source[
+                          activeAreaMapGradeField
+                        ]
+                      }
+                      grades={visibleData.grade_order}
+                      gradeSourceLabel={activeAreaMapGradeLabel}
+                    />
+                  )}
+                </>
+              )}
+            </section>
+          </div>
+        </>
       )}
     </main>
   );
