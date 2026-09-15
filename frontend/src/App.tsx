@@ -15,6 +15,7 @@ import {
 } from "./Api/authApi";
 import {
   fetchBouldererProfile,
+  profilePictureUrl,
   updateBouldererProfile,
   uploadProfilePicture
 } from "./Api/bouldererApi";
@@ -244,6 +245,15 @@ function recordMatchesSearch(record: BoulderRecord, searchQuery: string): boolea
     .join(" ")
     .toLocaleLowerCase()
     .includes(query);
+}
+
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toLocaleUpperCase())
+    .join("");
 }
 
 export default function App() {
@@ -646,6 +656,13 @@ export default function App() {
     writeBouldererHash(null);
   };
 
+  const handleOpenDashboardHome = () => {
+    setSelectedBoulder(null);
+    setSelectedBouldererUsername(null);
+    setActivePage("feed");
+    window.history.pushState(null, "", `${window.location.pathname}${window.location.search}`);
+  };
+
   const handleSaveBouldererProfile = async (
     displayName: string,
     profilePicture: File | null
@@ -812,9 +829,63 @@ export default function App() {
   return (
     <main className={styles.shell}>
       <header className={styles.workspaceHeader}>
-        <div>
-          <p className={styles.eyebrow}>Outdoor boulders</p>
-          <h1>Climbing Dashboard</h1>
+        <button className={styles.brandButton} type="button" onClick={handleOpenDashboardHome}>
+          <span className={styles.brandMark} aria-hidden="true">
+            TT
+          </span>
+          <span className={styles.brandText}>
+            <strong>Tick Tracker</strong>
+            <span>Outdoor boulder log</span>
+          </span>
+        </button>
+
+        {!selectedBoulder && !selectedBouldererUsername ? (
+          <nav className={styles.headerNav} aria-label="Dashboard pages">
+            {DASHBOARD_PAGES.map((page) => (
+              <button
+                aria-current={activePage === page.key ? "page" : undefined}
+                className={activePage === page.key ? styles.activePage : ""}
+                key={page.key}
+                type="button"
+                onClick={() => setActivePage(page.key)}
+              >
+                {page.label}
+              </button>
+            ))}
+          </nav>
+        ) : (
+          <div className={styles.headerContext}>
+            {selectedBouldererUsername ? "Boulderer profile" : "Boulder page"}
+          </div>
+        )}
+
+        <div className={styles.headerAccount}>
+          {currentUser ? (
+            <button
+              className={styles.accountChip}
+              type="button"
+              onClick={() => handleOpenBoulderer(currentUser.username)}
+            >
+              <span className={styles.accountAvatar} aria-hidden="true">
+                {currentUser.profile_picture_url ? (
+                  <img
+                    alt=""
+                    src={profilePictureUrl(currentUser.profile_picture_url)}
+                  />
+                ) : (
+                  initials(currentUser.display_name || currentUser.username) || "@"
+                )}
+              </span>
+              <span className={styles.accountText}>
+                <strong>{currentUser.display_name || currentUser.username}</strong>
+                <span>@{currentUser.username}</span>
+              </span>
+            </button>
+          ) : (
+            <span className={styles.signedOutChip}>
+              {isAuthLoading ? "Checking account" : "Sign in below"}
+            </span>
+          )}
         </div>
       </header>
 
@@ -861,88 +932,76 @@ export default function App() {
       ) : (
         <>
           {visibleData && !isInitialLoading && (
-            <section className={styles.toolbar} aria-label="Dashboard navigation and filters">
-              <nav className={styles.pageTabs} aria-label="Dashboard pages">
-                {DASHBOARD_PAGES.map((page) => (
-                  <button
-                    aria-current={activePage === page.key ? "page" : undefined}
-                    className={activePage === page.key ? styles.activePage : ""}
-                    key={page.key}
-                    type="button"
-                    onClick={() => setActivePage(page.key)}
-                  >
-                    {page.label}
-                  </button>
-                ))}
-              </nav>
-
+            <>
               {activePage !== "feed" && (
-                <div
-                  className={`${styles.filterRow} ${
-                    activePage === "logbook" ? styles.logbookFilterRow : ""
-                  }`}
-                >
-                  <label className={`${styles.filterGroup} ${styles.searchControl}`}>
-                    <span className={sharedStyles.sectionKicker}>Search</span>
-                    <div className={styles.searchFields}>
-                      <select
-                        aria-label="Filter by climber"
-                        value={selectedClimber}
-                        onChange={(event) => setSelectedClimber(event.target.value)}
-                      >
-                        <option value="">All climbers</option>
-                        {knownClimbers.map((climber) => (
-                          <option key={climber} value={climber}>
-                            {climberDisplayNames.get(climber) ?? climber}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        aria-label="Search boulders"
-                        placeholder="Boulder name"
-                        type="search"
-                        value={searchQuery}
-                        onChange={(event) => setSearchQuery(event.target.value)}
-                      />
-                    </div>
-                  </label>
-
-                  {activePage === "map" && (
-                    <div className={styles.filterGroup}>
-                      <span className={sharedStyles.sectionKicker}>Grade Source</span>
-                      <div
-                        className={`${sharedStyles.segmentedControl} ${styles.gradeSourceOptions}`}
-                        role="group"
-                        aria-label="Grade source"
-                      >
-                        {DASHBOARD_GRADE_SOURCE_FIELDS.map((field) => (
-                          <button
-                            className={
-                              field === activeAreaMapGradeField ? sharedStyles.active : ""
-                            }
-                            key={field}
-                            type="button"
-                            onClick={() => setActiveAreaMapGradeField(field)}
-                          >
-                            {GRADE_SOURCE_LABELS[field]}
-                          </button>
-                        ))}
+                <section className={styles.toolbar} aria-label="Dashboard filters">
+                  <div
+                    className={`${styles.filterRow} ${
+                      activePage === "logbook" ? styles.logbookFilterRow : ""
+                    }`}
+                  >
+                    <label className={`${styles.filterGroup} ${styles.searchControl}`}>
+                      <span className={sharedStyles.sectionKicker}>Search</span>
+                      <div className={styles.searchFields}>
+                        <select
+                          aria-label="Filter by climber"
+                          value={selectedClimber}
+                          onChange={(event) => setSelectedClimber(event.target.value)}
+                        >
+                          <option value="">All climbers</option>
+                          {knownClimbers.map((climber) => (
+                            <option key={climber} value={climber}>
+                              {climberDisplayNames.get(climber) ?? climber}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          aria-label="Search boulders"
+                          placeholder="Boulder name"
+                          type="search"
+                          value={searchQuery}
+                          onChange={(event) => setSearchQuery(event.target.value)}
+                        />
                       </div>
-                    </div>
-                  )}
+                    </label>
 
-                  <div className={styles.exportControl}>
-                    <button
-                      disabled={visibleData.records.length === 0}
-                      type="button"
-                      onClick={() => void handleExportVisibleBoulders()}
-                    >
-                      Export Selected
-                    </button>
+                    {activePage === "map" && (
+                      <div className={styles.filterGroup}>
+                        <span className={sharedStyles.sectionKicker}>Grade Source</span>
+                        <div
+                          className={`${sharedStyles.segmentedControl} ${styles.gradeSourceOptions}`}
+                          role="group"
+                          aria-label="Grade source"
+                        >
+                          {DASHBOARD_GRADE_SOURCE_FIELDS.map((field) => (
+                            <button
+                              className={
+                                field === activeAreaMapGradeField ? sharedStyles.active : ""
+                              }
+                              key={field}
+                              type="button"
+                              onClick={() => setActiveAreaMapGradeField(field)}
+                            >
+                              {GRADE_SOURCE_LABELS[field]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className={styles.exportControl}>
+                      <button
+                        disabled={visibleData.records.length === 0}
+                        type="button"
+                        onClick={() => void handleExportVisibleBoulders()}
+                      >
+                        Export Selected
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </section>
               )}
-            </section>
+            </>
           )}
 
           <div className={styles.dashboardLayout}>
