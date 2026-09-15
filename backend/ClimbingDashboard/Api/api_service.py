@@ -38,6 +38,7 @@ from ClimbingDashboard.Models.dashboard_stats import (
 from ClimbingDashboard.Models.readable_media_file import ReadableMediaFile
 from ClimbingDashboard.Models.stored_media_file import StoredMediaFile
 from ClimbingDashboard.Models.user_account import UserAccount
+from ClimbingDashboard.Storage.base_video_transcoder import BaseVideoTranscoder
 from ClimbingDashboard.Storage.local_media_file_storage import LocalMediaFileStorage
 from ClimbingDashboard.Storage.sqlite_storage import SqliteStorage
 from ClimbingDashboard.Utilities.location_normalizer import (
@@ -55,6 +56,7 @@ class ApiService(BaseApiService):
         location_normalizer: LocationNormalizer | None = None,
         uploads_path: str | Path | None = None,
         max_video_upload_bytes: int = DEFAULT_MAX_VIDEO_UPLOAD_BYTES,
+        video_transcoder: BaseVideoTranscoder | None = None,
     ) -> None:
         """Create the API service for a selected database path."""
 
@@ -65,6 +67,7 @@ class ApiService(BaseApiService):
             if uploads_path is not None
             else selected_database_path.parent / "uploads",
             max_video_upload_bytes,
+            video_transcoder,
         )
         self.location_normalizer = (
             location_normalizer if location_normalizer is not None else LocationNormalizer()

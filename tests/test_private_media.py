@@ -9,6 +9,13 @@ from ClimbingDashboard.Api.api_service import ApiService
 from ClimbingDashboard.Api.auth_models import SignupRequest
 from ClimbingDashboard.Api.auth_service import AuthService
 from ClimbingDashboard.Models.user_account import UserAccount
+from ClimbingDashboard.Storage.base_video_transcoder import BaseVideoTranscoder
+
+
+class FakeVideoTranscoder(BaseVideoTranscoder):
+    def transcode_to_mp4(self, source_path: Path, target_path: Path) -> None:
+        assert source_path.read_bytes() == b"video-content"
+        target_path.write_bytes(b"optimized-video-content")
 
 
 def test_video_inherits_ascent_visibility_and_requires_owner_for_deletion(
@@ -23,12 +30,18 @@ def test_video_inherits_ascent_visibility_and_requires_owner_for_deletion(
     private_user = auth_service.signup(
         SignupRequest("private-user", "password123", "invite")
     ).user
-    service = ApiService(database_path, uploads_path=uploads_path)
+    service = ApiService(
+        database_path,
+        uploads_path=uploads_path,
+        video_transcoder=FakeVideoTranscoder(),
+    )
 
     _save_ascent(service, public_user, "public")
     _save_ascent(service, private_user, "private")
     public_media = _save_video(service, public_user, "public.mp4")["media"][0]
     private_media = _save_video(service, private_user, "private.mp4")["media"][0]
+    assert public_media["mime_type"] == "video/mp4"
+    assert public_media["file_size"] == len(b"optimized-video-content")
 
     anonymous_media = service.get_boulder_media("Shared Boulder", "Test Area", "")["media"]
     assert [item["id"] for item in anonymous_media] == [public_media["id"]]
@@ -79,14 +92,14 @@ def test_video_inherits_ascent_visibility_and_requires_owner_for_deletion(
     )
 
     public_file = service.get_boulder_video_file(int(public_media["id"]))
-    assert public_file.path.read_bytes() == b"video-content"
+    assert public_file.path.read_bytes() == b"optimized-video-content"
     with pytest.raises(PermissionError, match="access"):
         service.get_boulder_video_file(int(private_media["id"]))
     with pytest.raises(PermissionError, match="own videos"):
         service.delete_boulder_media(int(private_media["id"]), public_user)
 
     private_file = service.get_boulder_video_file(int(private_media["id"]), private_user)
-    assert private_file.path.read_bytes() == b"video-content"
+    assert private_file.path.read_bytes() == b"optimized-video-content"
     service.delete_boulder_media(int(private_media["id"]), private_user)
     assert not private_file.path.exists()
 
