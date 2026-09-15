@@ -1,0 +1,59 @@
+@import url("https://fonts.googleapis.com/css2?family=Courier+Prime");
+
+:root {
+  color: var(--color-text);
+  background: var(--color-page);
+  font-family: var(--font-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+h1,
+h2,
+p,
+dl,
+dd {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  color: var(--color-heading);
+  font-size: 2rem;
+  line-height: 1.05;
+}
+
+h2 {
+  margin-bottom: 0;
+  color: var(--color-heading);
+  font-size: 1.02rem;
+  line-height: 1.2;
+}
+
+@media (max-width: 760px) {
+  h1 {
+    font-size: 1.55rem;
+  }
+}
