@@ -8,7 +8,9 @@ Each account also has a boulderer page with climbing highlights, ratings, videos
 and an owner-editable display name and profile picture.
 Uploaded boulder videos are saved as local files under `data/uploads/videos`,
 with metadata stored in SQLite. Videos inherit the visibility of the uploader's
-ascent and are served through a permission-checked API route.
+ascent and are served through a permission-checked API route. New video uploads
+are transcoded with FFmpeg into browser-friendly MP4 files before they are saved,
+so the original phone upload is only temporary.
 
 Location names are normalized before new manual climbs and imported climbs are
 saved. The alias rules live in
@@ -30,6 +32,13 @@ Install backend dependencies:
 
 ```bash
 uv sync
+```
+
+Video uploads require FFmpeg because the backend optimizes uploads before saving
+them. On macOS, install it with:
+
+```bash
+brew install ffmpeg
 ```
 
 Start the API:
@@ -216,6 +225,11 @@ Uploaded media files are stored outside SQLite:
 data/uploads/videos
 data/uploads/profile-pictures
 ```
+
+New boulder video uploads are converted to H.264 MP4 files capped at 1080p for
+smaller storage and smoother browser playback. The raw uploaded file is deleted
+after conversion. Docker installs FFmpeg automatically; local development needs
+FFmpeg installed on the host machine.
 
 Uploaded boulder videos always appear as video-upload events in the feed.
 Public-ascent videos are visible to everyone. Private-ascent videos appear only

@@ -10,6 +10,13 @@ from ClimbingDashboard.Api.auth_service import AuthService
 from ClimbingDashboard.Api.boulderer_service import BouldererService
 from ClimbingDashboard.Api.profile_models import ProfileUpdateRequest
 from ClimbingDashboard.Exceptions.profile_error import ProfileError
+from ClimbingDashboard.Storage.base_video_transcoder import BaseVideoTranscoder
+
+
+class FakeVideoTranscoder(BaseVideoTranscoder):
+    def transcode_to_mp4(self, source_path: Path, target_path: Path) -> None:
+        assert source_path.read_bytes()
+        target_path.write_bytes(b"optimized-video-content")
 
 
 def test_profile_respects_ascent_privacy_and_calculates_stats(tmp_path: Path) -> None:
@@ -17,7 +24,11 @@ def test_profile_respects_ascent_privacy_and_calculates_stats(tmp_path: Path) ->
     auth = AuthService(database_path, "invite", 7)
     owner = auth.signup(SignupRequest("owner", "password123", "invite", "Old Name")).user
     viewer = auth.signup(SignupRequest("viewer", "password123", "invite")).user
-    api = ApiService(database_path, uploads_path=tmp_path / "uploads")
+    api = ApiService(
+        database_path,
+        uploads_path=tmp_path / "uploads",
+        video_transcoder=FakeVideoTranscoder(),
+    )
     api.save_boulder(_boulder("Public Send", "7a", "Rocklands", "public", 5), owner)
     api.save_boulder(_boulder("Private Send", "7b", "Rocklands", "private", 4), owner)
     api.save_boulder(_boulder("Someone Else", "8a", "Kjugekull", "public", 3), viewer)
