@@ -644,8 +644,7 @@ h2 {
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
 }
 
-.boulderer-summary dt,
-.boulderer-highest-grades dt {
+.boulderer-summary dt {
   color: #64748b;
   font-size: 0.7rem;
   font-weight: 900;
@@ -759,19 +758,12 @@ h2 {
   background: #0f766e;
 }
 
-.boulderer-highest-grades {
+.boulderer-grade-source-control {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
   margin: 15px 0 0;
   padding-top: 12px;
   border-top: 1px solid #e2e8f0;
-}
-
-.boulderer-highest-grades dd {
-  margin: 5px 0 0;
-  color: #111827;
-  font-weight: 900;
 }
 
 .boulderer-rating-list {

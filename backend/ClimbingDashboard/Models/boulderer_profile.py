@@ -20,7 +20,7 @@ class BouldererProfileStats:
     rated_ascents: int
     average_rating: float | None
     highest_grades: dict[str, str | None]
-    grade_counts: list[GradeCount]
+    grade_counts: dict[str, list[GradeCount]]
 
     def to_payload(self) -> dict[str, object]:
         return {
@@ -30,7 +30,10 @@ class BouldererProfileStats:
             "rated_ascents": self.rated_ascents,
             "average_rating": self.average_rating,
             "highest_grades": self.highest_grades,
-            "grade_counts": [count.to_payload() for count in self.grade_counts],
+            "grade_counts": {
+                source: [count.to_payload() for count in counts]
+                for source, counts in self.grade_counts.items()
+            },
         }
 
 
@@ -56,7 +59,6 @@ class BouldererProfile:
         ordered_records = sorted(records, key=cls._record_date, reverse=True)
         ratings = [record for record in ordered_records if record.rating is not None]
         area_counts = Counter(record.area for record in records if record.area)
-        own_grade_counts = Counter(record.own_grade for record in records if record.own_grade)
         stats = BouldererProfileStats(
             total_ascents=len(records),
             flash_count=sum(record.flash for record in records),
@@ -73,7 +75,16 @@ class BouldererProfile:
                 )
                 for source in GRADE_SOURCE_FIELDS
             },
-            grade_counts=cls._ordered_grade_counts(own_grade_counts),
+            grade_counts={
+                source: cls._ordered_grade_counts(
+                    Counter(
+                        getattr(record, source)
+                        for record in records
+                        if getattr(record, source)
+                    )
+                )
+                for source in GRADE_SOURCE_FIELDS
+            },
         )
         return cls(
             user=user,

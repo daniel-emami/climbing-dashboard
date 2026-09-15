@@ -13,7 +13,7 @@ export type BouldererProfileStats = {
   rated_ascents: number;
   average_rating: number | null;
   highest_grades: Record<GradeField, string | null>;
-  grade_counts: GradeCount[];
+  grade_counts: Record<GradeField, GradeCount[]>;
 };
 
 export type BouldererProfile = {

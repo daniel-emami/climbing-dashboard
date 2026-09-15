@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { profilePictureUrl } from "../Api/bouldererApi";
 import { mediaUrl } from "../Api/mediaApi";
-import type { BoulderPageIdentity, BoulderRecord } from "../Types/boulderTypes";
+import { GRADE_SOURCE_LABELS } from "../Config/gradeSources";
+import type { BoulderPageIdentity, BoulderRecord, GradeField } from "../Types/boulderTypes";
 import type { BouldererProfile } from "../Types/bouldererTypes";
 
 type BouldererProfilePageProps = {
@@ -52,9 +53,11 @@ export default function BouldererProfilePage({
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(profile.user.display_name);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [gradeSource, setGradeSource] = useState<GradeField>("own_grade");
+  const gradeCounts = profile.stats.grade_counts[gradeSource];
   const largestGradeCount = useMemo(
-    () => Math.max(1, ...profile.stats.grade_counts.map((entry) => entry.count)),
-    [profile.stats.grade_counts]
+    () => Math.max(1, ...gradeCounts.map((entry) => entry.count)),
+    [gradeCounts]
   );
 
   useEffect(() => {
@@ -178,13 +181,15 @@ export default function BouldererProfilePage({
 
         <section className="panel boulderer-grades-panel">
           <div className="panel-heading">
-            <span className="section-kicker">Own grade distribution</span>
+            <span className="section-kicker">
+              {GRADE_SOURCE_LABELS[gradeSource]} grade distribution
+            </span>
           </div>
-          {profile.stats.grade_counts.length === 0 ? (
+          {gradeCounts.length === 0 ? (
             <div className="empty-detail-slot">No graded ascents</div>
           ) : (
             <ol className="boulderer-grade-bars">
-              {profile.stats.grade_counts.map((entry) => (
+              {gradeCounts.map((entry) => (
                 <li key={entry.grade}>
                   <span>{entry.grade}</span>
                   <div>
@@ -195,11 +200,22 @@ export default function BouldererProfilePage({
               ))}
             </ol>
           )}
-          <dl className="boulderer-highest-grades">
-            <div><dt>27Crags</dt><dd>{profile.stats.highest_grades.grade_27crags ?? "-"}</dd></div>
-            <div><dt>Guide</dt><dd>{profile.stats.highest_grades.guide_grade ?? "-"}</dd></div>
-            <div><dt>Own</dt><dd>{profile.stats.highest_grades.own_grade ?? "-"}</dd></div>
-          </dl>
+          <div
+            className="segmented-control boulderer-grade-source-control"
+            role="group"
+            aria-label="Profile grade source"
+          >
+            {(["grade_27crags", "guide_grade", "own_grade"] as GradeField[]).map((source) => (
+              <button
+                className={gradeSource === source ? "active" : ""}
+                key={source}
+                type="button"
+                onClick={() => setGradeSource(source)}
+              >
+                {GRADE_SOURCE_LABELS[source]}
+              </button>
+            ))}
+          </div>
         </section>
 
         <section className="panel boulderer-ratings-panel">
