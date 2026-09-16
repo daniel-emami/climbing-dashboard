@@ -1,24 +1,12 @@
+import { apiForm, apiJson, apiUrl } from "./apiClient";
 import type {
   BoulderMediaResponse,
   BoulderMediaUploadRequest,
   BoulderPageIdentity
 } from "../Types/boulderTypes";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
-
-async function parseMediaResponse(response: Response): Promise<BoulderMediaResponse> {
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.detail ?? `Media request failed with ${response.status}`);
-  }
-  return response.json() as Promise<BoulderMediaResponse>;
-}
-
 export function mediaUrl(path: string): string {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  return `${API_BASE_URL}${path}`;
+  return apiUrl(path);
 }
 
 export async function fetchBoulderMedia(
@@ -29,20 +17,22 @@ export async function fetchBoulderMedia(
     area: identity.area,
     sector: identity.sector
   });
-  const response = await fetch(`${API_BASE_URL}/api/boulders/media?${params.toString()}`, {
-    credentials: "include"
-  });
-  return parseMediaResponse(response);
+  return apiJson<BoulderMediaResponse>(
+    `/api/boulders/media?${params.toString()}`,
+    {},
+    "Media request failed"
+  );
 }
 
 export async function fetchRecentBoulderMedia(limit = 30): Promise<BoulderMediaResponse> {
   const params = new URLSearchParams({
     limit: String(limit)
   });
-  const response = await fetch(`${API_BASE_URL}/api/boulders/media/recent?${params.toString()}`, {
-    credentials: "include"
-  });
-  return parseMediaResponse(response);
+  return apiJson<BoulderMediaResponse>(
+    `/api/boulders/media/recent?${params.toString()}`,
+    {},
+    "Media request failed"
+  );
 }
 
 export async function uploadBoulderVideo(
@@ -55,18 +45,18 @@ export async function uploadBoulderVideo(
   formData.append("caption", request.caption);
   formData.append("file", request.file);
 
-  const response = await fetch(`${API_BASE_URL}/api/boulders/media`, {
-    method: "POST",
-    credentials: "include",
-    body: formData
-  });
-  return parseMediaResponse(response);
+  return apiForm<BoulderMediaResponse>(
+    "/api/boulders/media",
+    formData,
+    { method: "POST" },
+    "Media request failed"
+  );
 }
 
 export async function deleteBoulderMedia(mediaId: number): Promise<BoulderMediaResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/boulders/media/${mediaId}`, {
-    method: "DELETE",
-    credentials: "include"
-  });
-  return parseMediaResponse(response);
+  return apiJson<BoulderMediaResponse>(
+    `/api/boulders/media/${mediaId}`,
+    { method: "DELETE" },
+    "Media request failed"
+  );
 }

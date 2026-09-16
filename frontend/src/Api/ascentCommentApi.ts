@@ -1,3 +1,4 @@
+import { apiJson, apiJsonBody } from "./apiClient";
 import type {
   AscentCommentCreateRequest,
   AscentCommentsByAscentResponse,
@@ -5,25 +6,14 @@ import type {
   AscentCommentUpdateRequest
 } from "../Types/boulderTypes";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
-
-async function parseAscentCommentsResponse(
-  response: Response
-): Promise<AscentCommentsResponse> {
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.detail ?? `Ascent comment request failed with ${response.status}`);
-  }
-  return response.json() as Promise<AscentCommentsResponse>;
-}
-
 export async function fetchAscentComments(
   ascentId: number
 ): Promise<AscentCommentsResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/ascents/${ascentId}/comments`, {
-    credentials: "include"
-  });
-  return parseAscentCommentsResponse(response);
+  return apiJson<AscentCommentsResponse>(
+    `/api/ascents/${ascentId}/comments`,
+    {},
+    "Ascent comment request failed"
+  );
 }
 
 export async function fetchAscentCommentsBatch(
@@ -33,51 +23,42 @@ export async function fetchAscentCommentsBatch(
   const params = new URLSearchParams({
     ascent_ids: uniqueAscentIds.join(",")
   });
-  const response = await fetch(`${API_BASE_URL}/api/ascents/comments?${params.toString()}`, {
-    credentials: "include"
-  });
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.detail ?? `Ascent comment request failed with ${response.status}`);
-  }
-  return response.json() as Promise<AscentCommentsByAscentResponse>;
+  return apiJson<AscentCommentsByAscentResponse>(
+    `/api/ascents/comments?${params.toString()}`,
+    {},
+    "Ascent comment request failed"
+  );
 }
 
 export async function addAscentComment(
   request: AscentCommentCreateRequest
 ): Promise<AscentCommentsResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/ascents/comments`, {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(request)
-  });
-  return parseAscentCommentsResponse(response);
+  return apiJsonBody<AscentCommentsResponse>(
+    "/api/ascents/comments",
+    request,
+    { method: "POST" },
+    "Ascent comment request failed"
+  );
 }
 
 export async function updateAscentComment(
   commentId: number,
   request: AscentCommentUpdateRequest
 ): Promise<AscentCommentsResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/ascents/comments/${commentId}`, {
-    method: "PUT",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(request)
-  });
-  return parseAscentCommentsResponse(response);
+  return apiJsonBody<AscentCommentsResponse>(
+    `/api/ascents/comments/${commentId}`,
+    request,
+    { method: "PUT" },
+    "Ascent comment request failed"
+  );
 }
 
 export async function deleteAscentComment(
   commentId: number
 ): Promise<AscentCommentsResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/ascents/comments/${commentId}`, {
-    method: "DELETE",
-    credentials: "include"
-  });
-  return parseAscentCommentsResponse(response);
+  return apiJson<AscentCommentsResponse>(
+    `/api/ascents/comments/${commentId}`,
+    { method: "DELETE" },
+    "Ascent comment request failed"
+  );
 }
