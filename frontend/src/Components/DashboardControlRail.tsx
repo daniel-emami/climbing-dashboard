@@ -1,8 +1,8 @@
 import type { ComponentProps } from "react";
 
 import AuthPanel from "./AuthPanel";
-import BoulderForm from "./BoulderForm";
 import TheTopoImportPanel from "./TheTopoImportPanel";
+import { BoulderForm } from "../Features/Logbook";
 import styles from "../App.module.css";
 
 type DashboardControlRailProps = {

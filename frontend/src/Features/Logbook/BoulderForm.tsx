@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
-import type { BoulderCreateRequest } from "../Types/boulderTypes";
-import sharedStyles from "../Styles/Shared.module.css";
+import { RATING_OPTIONS } from "../../Config/ratings";
+import type { BoulderCreateRequest } from "../../Types/boulderTypes";
+import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./BoulderForm.module.css";
 
 const EMPTY_FORM: BoulderCreateRequest = {
@@ -16,8 +17,6 @@ const EMPTY_FORM: BoulderCreateRequest = {
   rating: null,
   visibility: "public"
 };
-
-const RATING_OPTIONS = [1, 2, 3, 4, 5];
 
 type BoulderFormProps = {
   isSaving: boolean;

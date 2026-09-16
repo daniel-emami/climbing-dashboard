@@ -16,7 +16,6 @@ from ClimbingDashboard.Api.api_models import (
     BoulderMediaUploadRequest,
     BouldersPayload,
 )
-from ClimbingDashboard.Api.base_api_service import BaseApiService
 from ClimbingDashboard.Api.boulder_service import BoulderService
 from ClimbingDashboard.Api.comment_service import CommentService
 from ClimbingDashboard.Api.dashboard_stats_service import DashboardStatsService
@@ -32,7 +31,7 @@ from ClimbingDashboard.Storage.sqlite_storage import SqliteStorage
 from ClimbingDashboard.Utilities.location_normalizer import LocationNormalizer
 
 
-class ApiService(BaseApiService):
+class ApiService:
     def __init__(
         self,
         database_path: str | Path,

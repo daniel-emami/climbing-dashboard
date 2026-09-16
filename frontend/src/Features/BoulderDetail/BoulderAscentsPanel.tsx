@@ -3,6 +3,7 @@ import type {
   BoulderIdentity,
   BoulderRecord
 } from "../../Types/boulderTypes";
+import { RATING_OPTIONS } from "../../Config/ratings";
 import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./BoulderDetailPage.module.css";
 
@@ -13,8 +14,6 @@ type BoulderAscentsPanelProps = {
   onOpenBoulderer: (username: string) => void;
   onUpdate: (original: BoulderIdentity, boulder: BoulderCreateRequest) => Promise<void>;
 };
-
-const RATING_OPTIONS = [1, 2, 3, 4, 5];
 
 function compareDates(left: string | null, right: string | null): number {
   return (left ?? "").localeCompare(right ?? "");
