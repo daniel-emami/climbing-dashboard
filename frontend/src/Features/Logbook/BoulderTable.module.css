@@ -147,7 +147,7 @@
   max-width: 100%;
   border: 0;
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-secondary);
   padding: 0;
   overflow: hidden;
   text-align: left;
@@ -157,7 +157,7 @@
 }
 
 .tableLink:hover {
-  color: var(--color-primary-hover);
+  color: var(--color-secondary-hover);
   text-decoration: underline;
 }
 

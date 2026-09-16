@@ -15,9 +15,9 @@
   margin-bottom: 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-surface-glass);
   padding: 8px;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.07);
+  box-shadow: var(--shadow-header);
   backdrop-filter: blur(16px);
 }
 
@@ -87,7 +87,7 @@
   width: min(420px, 100%);
   border: 1px solid var(--color-divider);
   border-radius: var(--radius-control);
-  background: #f3f7f8;
+  background: var(--color-nav-background);
   padding: 4px;
 }
 
@@ -112,7 +112,7 @@
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-surface);
-  box-shadow: 0 4px 10px rgba(15, 118, 110, 0.18);
+  box-shadow: var(--shadow-active);
 }
 
 .headerContext {
@@ -144,8 +144,8 @@
   overflow: hidden;
   border: 1px solid var(--color-divider);
   border-radius: 50%;
-  background: #dbe8e6;
-  color: var(--color-primary-dark);
+  background: var(--color-avatar-background);
+  color: var(--color-secondary-dark);
   font-size: 0.76rem;
   font-weight: 900;
 }
@@ -182,7 +182,7 @@
 .filterRow button:focus-visible,
 .filterRow select:focus-visible,
 .filterRow input:focus-visible {
-  outline: 3px solid rgba(15, 118, 110, 0.2);
+  outline: 3px solid var(--color-focus-outline);
   outline-offset: 1px;
 }
 
@@ -255,17 +255,17 @@
 .exportControl button {
   width: 100%;
   min-height: 38px;
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--color-secondary);
   border-radius: var(--radius-control);
   background: var(--color-surface);
-  color: #0f5f58;
+  color: var(--color-secondary-dark);
   padding: 0 14px;
   font-weight: 900;
 }
 
 .exportControl button:hover:not(:disabled) {
-  background: var(--color-primary-soft);
-  color: var(--color-primary-dark);
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
 }
 
 .dashboardLayout {

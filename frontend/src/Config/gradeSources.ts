@@ -15,7 +15,7 @@ export const GRADE_SOURCE_LABELS: Record<GradeField, string> = {
 };
 
 export const GRADE_SOURCE_COLORS: Record<GradeField, string> = {
-  grade_27crags: "#274979",
-  guide_grade: "#9f6b22",
+  grade_27crags: "#5367a8",
+  guide_grade: "#c08416",
   own_grade: "#0f766e"
 };

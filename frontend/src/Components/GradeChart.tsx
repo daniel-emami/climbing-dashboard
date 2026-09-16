@@ -51,10 +51,10 @@ export default function GradeChart({ title, gradeOrder, series }: GradeChartProp
       </div>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={chartData} barCategoryGap="22%" margin={{ top: 12, right: 12, left: -18, bottom: 0 }}>
-          <CartesianGrid stroke="#e2e8f0" vertical={false} />
+          <CartesianGrid stroke="var(--color-chart-grid)" vertical={false} />
           <XAxis dataKey="grade" tickLine={false} axisLine={false} />
           <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-          <Tooltip cursor={{ fill: "#eef6f5" }} />
+          <Tooltip cursor={{ fill: "var(--color-chart-hover)" }} />
           {series.length > 1 && <Legend wrapperStyle={{ fontSize: "0.76rem", paddingTop: 8 }} />}
           {series.map((entry) => (
             <Bar

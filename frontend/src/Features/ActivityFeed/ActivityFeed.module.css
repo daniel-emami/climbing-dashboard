@@ -30,8 +30,8 @@
   place-items: center;
   border: 1px solid var(--color-control-border);
   border-radius: 50%;
-  background: var(--color-primary-faint);
-  color: var(--color-primary);
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
   font-size: 0.82rem;
   font-weight: 900;
 }
@@ -60,7 +60,7 @@
   max-width: 100%;
   border: 0;
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-secondary);
   padding: 0;
   overflow: hidden;
   text-align: left;
@@ -71,7 +71,7 @@
 }
 
 .boulderLink:hover {
-  color: var(--color-primary-hover);
+  color: var(--color-secondary-hover);
   text-decoration: underline;
 }
 

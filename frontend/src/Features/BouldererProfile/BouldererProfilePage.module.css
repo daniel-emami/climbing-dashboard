@@ -24,10 +24,10 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 1px solid #b7c4d4;
+  border: 1px solid var(--color-control-border);
   border-radius: 50%;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  background: var(--color-secondary-soft);
+  color: var(--color-secondary-dark);
   font-size: 1.7rem;
   font-weight: 900;
 }
@@ -167,7 +167,7 @@
 .videoList button {
   border: 0;
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-secondary);
   padding: 0;
   overflow: hidden;
   text-align: left;
