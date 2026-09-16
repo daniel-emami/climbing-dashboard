@@ -1,11 +1,11 @@
-import type { BoulderPageIdentity, BoulderRecord } from "../Types/boulderTypes";
+import type { BoulderPageIdentity, BoulderRecord } from "../../Types/boulderTypes";
 import {
   boulderIdentityFromRecord,
   displayDate,
   locationLabel,
   ownGradeLabel
-} from "../Utilities/bouldererProfileUtils";
-import sharedStyles from "../Styles/Shared.module.css";
+} from "../../Utilities/bouldererProfileUtils";
+import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./BouldererProfilePage.module.css";
 
 type BouldererRecentAscentsPanelProps = {

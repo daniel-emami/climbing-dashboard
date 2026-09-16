@@ -1,6 +1,6 @@
-import { mediaUrl } from "../Api/mediaApi";
-import type { BoulderMedia, BoulderPageIdentity } from "../Types/boulderTypes";
-import sharedStyles from "../Styles/Shared.module.css";
+import { mediaUrl } from "../../Api/mediaApi";
+import type { BoulderMedia, BoulderPageIdentity } from "../../Types/boulderTypes";
+import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./BouldererProfilePage.module.css";
 
 type BouldererVideosPanelProps = {

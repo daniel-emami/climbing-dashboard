@@ -1,9 +1,9 @@
-import type { BoulderPageIdentity, BoulderRecord } from "../Types/boulderTypes";
+import type { BoulderPageIdentity, BoulderRecord } from "../../Types/boulderTypes";
 import {
   boulderIdentityFromRecord,
   locationLabel
-} from "../Utilities/bouldererProfileUtils";
-import sharedStyles from "../Styles/Shared.module.css";
+} from "../../Utilities/bouldererProfileUtils";
+import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./BouldererProfilePage.module.css";
 
 type BouldererRatingsPanelProps = {

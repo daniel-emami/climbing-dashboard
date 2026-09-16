@@ -4,21 +4,21 @@ import {
   deleteAscentComment,
   fetchAscentCommentsBatch,
   updateAscentComment
-} from "../Api/ascentCommentApi";
-import { fetchRecentBoulderMedia } from "../Api/mediaApi";
+} from "../../Api/ascentCommentApi";
+import { fetchRecentBoulderMedia } from "../../Api/mediaApi";
 import type {
   AscentComment,
   BoulderMedia,
   BoulderPageIdentity,
   BoulderRecord
-} from "../Types/boulderTypes";
+} from "../../Types/boulderTypes";
 import {
   ascentTimestamp,
   boulderKey,
   recordKey,
   timestamp
-} from "../Utilities/activityFeedUtils";
-import sharedStyles from "../Styles/Shared.module.css";
+} from "../../Utilities/activityFeedUtils";
+import sharedStyles from "../../Styles/Shared.module.css";
 import ActivityAscentFeedItem from "./ActivityAscentFeedItem";
 import styles from "./ActivityFeed.module.css";
 import ActivityVideoFeedItem from "./ActivityVideoFeedItem";

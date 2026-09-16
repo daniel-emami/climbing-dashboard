@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 
-import type { BoulderComment, BoulderCommentUpdateRequest } from "../Types/boulderTypes";
-import sharedStyles from "../Styles/Shared.module.css";
+import type { BoulderComment, BoulderCommentUpdateRequest } from "../../Types/boulderTypes";
+import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./BoulderDetailPage.module.css";
 
 type BoulderCommentsPanelProps = {

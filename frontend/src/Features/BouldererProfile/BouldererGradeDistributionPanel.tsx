@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { GRADE_SOURCE_LABELS } from "../Config/gradeSources";
-import type { GradeCount, GradeField } from "../Types/boulderTypes";
-import sharedStyles from "../Styles/Shared.module.css";
+import { GRADE_SOURCE_LABELS } from "../../Config/gradeSources";
+import type { GradeCount, GradeField } from "../../Types/boulderTypes";
+import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./BouldererProfilePage.module.css";
 
 type BouldererGradeDistributionPanelProps = {

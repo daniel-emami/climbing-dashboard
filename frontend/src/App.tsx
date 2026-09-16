@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { exportBoulders } from "./Api/boulderApi";
 import AppHeader from "./Components/AppHeader";
-import BoulderDetailPage from "./Components/BoulderDetailPage";
-import BouldererProfilePage from "./Components/BouldererProfilePage";
 import DashboardControlRail from "./Components/DashboardControlRail";
 import DashboardPageContent from "./Components/DashboardPageContent";
 import DashboardToolbar from "./Components/DashboardToolbar";
 import ErrorState from "./Components/ErrorState";
 import LoadingState from "./Components/LoadingState";
+import BoulderDetailPage from "./Features/BoulderDetail";
+import BouldererProfilePage from "./Features/BouldererProfile";
 import type {
   BoulderCreateRequest,
   BoulderIdentity,

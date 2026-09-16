@@ -3,7 +3,7 @@ import type {
   AscentComment,
   BoulderPageIdentity,
   BoulderRecord
-} from "../Types/boulderTypes";
+} from "../../Types/boulderTypes";
 import {
   boulderIdentityFromRecord,
   formatDate,
@@ -12,8 +12,8 @@ import {
   formatLocation,
   formatRating,
   initials
-} from "../Utilities/activityFeedUtils";
-import sharedStyles from "../Styles/Shared.module.css";
+} from "../../Utilities/activityFeedUtils";
+import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./ActivityFeed.module.css";
 
 type ActivityAscentFeedItemProps = {

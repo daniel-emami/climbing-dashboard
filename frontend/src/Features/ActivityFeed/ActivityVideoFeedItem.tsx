@@ -1,12 +1,12 @@
-import { mediaUrl } from "../Api/mediaApi";
-import type { BoulderMedia, BoulderPageIdentity } from "../Types/boulderTypes";
+import { mediaUrl } from "../../Api/mediaApi";
+import type { BoulderMedia, BoulderPageIdentity } from "../../Types/boulderTypes";
 import {
   boulderIdentityFromMedia,
   formatDateTime,
   formatMediaLocation,
   initials
-} from "../Utilities/activityFeedUtils";
-import sharedStyles from "../Styles/Shared.module.css";
+} from "../../Utilities/activityFeedUtils";
+import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./ActivityFeed.module.css";
 
 type ActivityVideoFeedItemProps = {

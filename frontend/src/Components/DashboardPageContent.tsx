@@ -1,10 +1,10 @@
-import ActivityFeed from "./ActivityFeed";
 import AreaChart from "./AreaChart";
 import AreaGradeMatrix from "./AreaGradeMatrix";
 import BoulderTable from "./BoulderTable";
 import ErrorState from "./ErrorState";
 import GradeChart, { type GradeChartSeries } from "./GradeChart";
 import LoadingState from "./LoadingState";
+import ActivityFeed from "../Features/ActivityFeed";
 import { GRADE_SOURCE_LABELS } from "../Config/gradeSources";
 import type { DashboardPage } from "../Routing/hashRoutes";
 import type {

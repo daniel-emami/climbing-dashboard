@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
 
-import { mediaUrl } from "../Api/mediaApi";
-import type { BoulderMedia, BoulderMediaUploadRequest } from "../Types/boulderTypes";
-import sharedStyles from "../Styles/Shared.module.css";
+import { mediaUrl } from "../../Api/mediaApi";
+import type { BoulderMedia, BoulderMediaUploadRequest } from "../../Types/boulderTypes";
+import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./BoulderDetailPage.module.css";
 
 type BoulderMediaPanelProps = {

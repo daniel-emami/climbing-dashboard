@@ -2,8 +2,8 @@ import type {
   BoulderCreateRequest,
   BoulderIdentity,
   BoulderRecord
-} from "../Types/boulderTypes";
-import sharedStyles from "../Styles/Shared.module.css";
+} from "../../Types/boulderTypes";
+import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./BoulderDetailPage.module.css";
 
 type BoulderAscentsPanelProps = {

@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { profilePictureUrl } from "../Api/bouldererApi";
-import type { BoulderPageIdentity } from "../Types/boulderTypes";
-import type { BouldererProfile } from "../Types/bouldererTypes";
-import sharedStyles from "../Styles/Shared.module.css";
+import { profilePictureUrl } from "../../Api/bouldererApi";
+import type { BoulderPageIdentity } from "../../Types/boulderTypes";
+import type { BouldererProfile } from "../../Types/bouldererTypes";
+import sharedStyles from "../../Styles/Shared.module.css";
 import BouldererGradeDistributionPanel from "./BouldererGradeDistributionPanel";
 import styles from "./BouldererProfilePage.module.css";
 import BouldererRatingsPanel from "./BouldererRatingsPanel";

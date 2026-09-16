@@ -7,8 +7,8 @@ import type {
   BoulderMediaUploadRequest,
   BoulderPageIdentity,
   BoulderRecord
-} from "../Types/boulderTypes";
-import sharedStyles from "../Styles/Shared.module.css";
+} from "../../Types/boulderTypes";
+import sharedStyles from "../../Styles/Shared.module.css";
 import BoulderAscentsPanel from "./BoulderAscentsPanel";
 import BoulderCommentsPanel from "./BoulderCommentsPanel";
 import styles from "./BoulderDetailPage.module.css";
