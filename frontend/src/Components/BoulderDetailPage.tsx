@@ -1,5 +1,3 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { mediaUrl } from "../Api/mediaApi";
 import type {
   BoulderComment,
   BoulderCommentUpdateRequest,
@@ -11,7 +9,10 @@ import type {
   BoulderRecord
 } from "../Types/boulderTypes";
 import sharedStyles from "../Styles/Shared.module.css";
+import BoulderAscentsPanel from "./BoulderAscentsPanel";
+import BoulderCommentsPanel from "./BoulderCommentsPanel";
 import styles from "./BoulderDetailPage.module.css";
+import BoulderMediaPanel from "./BoulderMediaPanel";
 
 type BoulderDetailPageProps = {
   identity: BoulderPageIdentity;
@@ -45,12 +46,6 @@ type GradeSummary = {
   grade: string;
   count: number;
 };
-
-const RATING_OPTIONS = [1, 2, 3, 4, 5];
-
-function compareDates(left: string | null, right: string | null): number {
-  return (left ?? "").localeCompare(right ?? "");
-}
 
 function latestDate(records: BoulderRecord[]): string | null {
   const dates = records
@@ -100,22 +95,6 @@ function formatGradeSummary(summary: GradeSummary[]): string {
     .join(", ");
 }
 
-function recordToRequest(record: BoulderRecord): BoulderCreateRequest {
-  return {
-    name: record.name,
-    grade_27crags: record.grade_27crags,
-    guide_grade: record.guide_grade,
-    own_grade: record.own_grade,
-    area: record.area,
-    sector: record.sector,
-    climber: record.climber,
-    flash: record.flash,
-    climbed_on: record.climbed_on,
-    rating: record.rating,
-    visibility: record.visibility
-  };
-}
-
 function averageRating(records: BoulderRecord[]): number | null {
   const ratings = records
     .map((record) => record.rating)
@@ -124,51 +103,6 @@ function averageRating(records: BoulderRecord[]): number | null {
     return null;
   }
   return ratings.reduce((total, rating) => total + rating, 0) / ratings.length;
-}
-
-function formatCommentTime(value: string): string {
-  return value.replace("T", " ").slice(0, 16);
-}
-
-function formatMediaSize(value: number): string {
-  if (value < 1024 * 1024) {
-    return `${Math.max(1, Math.round(value / 1024))} KB`;
-  }
-  return `${(value / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function RatingButtons({
-  disabled,
-  rating,
-  onChange
-}: {
-  disabled: boolean;
-  rating: number | null;
-  onChange: (rating: number | null) => void;
-}) {
-  return (
-    <div className={styles.ratingControl} aria-label="Rating">
-      {RATING_OPTIONS.map((option) => (
-        <button
-          className={rating === option ? styles.activeRating : ""}
-          disabled={disabled}
-          key={option}
-          type="button"
-          onClick={() => onChange(option)}
-        >
-          {option}
-        </button>
-      ))}
-      <button
-        className={styles.clearRating}
-        disabled={disabled || rating === null}
-        type="button"
-        onClick={() => onChange(null)}
-      >
-        Clear
-      </button>
-    </div>
-  );
 }
 
 export default function BoulderDetailPage({
@@ -193,14 +127,6 @@ export default function BoulderDetailPage({
   onUpdateComment,
   onUpdate
 }: BoulderDetailPageProps) {
-  const [commentBody, setCommentBody] = useState("");
-  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
-  const [editingBody, setEditingBody] = useState("");
-  const [mediaCaption, setMediaCaption] = useState("");
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const sortedRecords = records
-    .slice()
-    .sort((left, right) => compareDates(right.climbed_on, left.climbed_on));
   const flashCount = records.filter((record) => record.flash).length;
   const climberCount = new Set(records.map((record) => record.climber).filter(Boolean)).size;
   const latest = latestDate(records);
@@ -214,102 +140,6 @@ export default function BoulderDetailPage({
       currentUsername !== null &&
       record.climber.toLocaleLowerCase() === currentUsername.toLocaleLowerCase()
   );
-
-  useEffect(() => {
-    setCommentBody("");
-    setEditingCommentId(null);
-    setEditingBody("");
-    setMediaCaption("");
-    setMediaFile(null);
-  }, [currentUsername, identity.area, identity.name, identity.sector]);
-
-  const updateRating = async (record: BoulderRecord, rating: number | null) => {
-    try {
-      await onUpdate(
-        {
-          name: record.name,
-          area: record.area,
-          sector: record.sector,
-          climber: record.climber
-        },
-        {
-          ...recordToRequest(record),
-          rating
-        }
-      );
-    } catch {
-      return;
-    }
-  };
-
-  const submitComment = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const body = commentBody.trim();
-    if (!currentUsername || !body) {
-      return;
-    }
-    await onAddComment(body);
-    setCommentBody("");
-  };
-
-  const startEditingComment = (comment: BoulderComment) => {
-    setEditingCommentId(comment.id);
-    setEditingBody(comment.body);
-  };
-
-  const cancelEditingComment = () => {
-    setEditingCommentId(null);
-    setEditingBody("");
-  };
-
-  const saveEditingComment = async () => {
-    if (editingCommentId === null) {
-      return;
-    }
-    const body = editingBody.trim();
-    if (!currentUsername || !body) {
-      return;
-    }
-    await onUpdateComment(editingCommentId, { body });
-    cancelEditingComment();
-  };
-
-  const deleteComment = async (comment: BoulderComment) => {
-    const shouldDelete = window.confirm(
-      `Delete comment from ${comment.climber_display_name}?`
-    );
-    if (!shouldDelete) {
-      return;
-    }
-    await onDeleteComment(comment.id);
-    if (editingCommentId === comment.id) {
-      cancelEditingComment();
-    }
-  };
-
-  const submitVideo = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!currentUsername || !hasCurrentUserAscent || !mediaFile) {
-      return;
-    }
-    await onUploadVideo({
-      caption: mediaCaption.trim(),
-      file: mediaFile
-    });
-    setMediaCaption("");
-    setMediaFile(null);
-    event.currentTarget.reset();
-  };
-
-  const deleteMedia = async (mediaItem: BoulderMedia) => {
-    const shouldDelete = window.confirm(
-      `Delete video from ${mediaItem.climber_display_name}?`
-    );
-    if (!shouldDelete) {
-      return;
-    }
-    await onDeleteMedia(mediaItem.id);
-  };
 
   return (
     <section className={styles.page} aria-label="Boulder details">
@@ -382,248 +212,34 @@ export default function BoulderDetailPage({
           </dl>
         </section>
 
-        <section className={`${sharedStyles.panel} ${styles.fullWidthPanel}`}>
-          <div className={sharedStyles.panelHeading}>
-            <span className={sharedStyles.sectionKicker}>Videos</span>
-            <span className={styles.count}>{media.length}</span>
-          </div>
-          {isMediaLoading ? (
-            <div className={sharedStyles.emptyDetailSlot}>Loading</div>
-          ) : media.length === 0 ? (
-            <div className={sharedStyles.emptyDetailSlot}>-</div>
-          ) : (
-            <ol className={styles.mediaList}>
-              {media.map((mediaItem) => {
-                const canDeleteMedia =
-                  currentUserId !== null &&
-                  (mediaItem.user_id === currentUserId ||
-                    (mediaItem.user_id === null &&
-                      currentUsername !== null &&
-                      mediaItem.climber.toLocaleLowerCase() ===
-                        currentUsername.toLocaleLowerCase()));
-                return (
-                  <li className={styles.mediaItem} key={mediaItem.id}>
-                    <video
-                      controls
-                      crossOrigin="use-credentials"
-                      playsInline
-                      preload="metadata"
-                      src={mediaUrl(mediaItem.url)}
-                    />
-                    <div className={styles.mediaMeta}>
-                      <strong>{mediaItem.climber_display_name}</strong>
-                      <span>
-                        {formatCommentTime(mediaItem.created_at)} ·{" "}
-                        {formatMediaSize(mediaItem.file_size)}
-                        {mediaItem.visibility === "private" ? " · Private" : ""}
-                      </span>
-                    </div>
-                    {mediaItem.caption && <p>{mediaItem.caption}</p>}
-                    {canDeleteMedia && (
-                      <div className={styles.commentActions}>
-                        <button
-                          className={styles.dangerButton}
-                          disabled={isMediaSaving}
-                          type="button"
-                          onClick={() => void deleteMedia(mediaItem)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          )}
+        <BoulderMediaPanel
+          currentUserId={currentUserId}
+          currentUsername={currentUsername}
+          hasCurrentUserAscent={hasCurrentUserAscent}
+          isLoading={isMediaLoading}
+          isSaving={isMediaSaving}
+          media={media}
+          onDeleteMedia={onDeleteMedia}
+          onUploadVideo={onUploadVideo}
+        />
 
-          <form className={styles.mediaUploadForm} onSubmit={(event) => void submitVideo(event)}>
-            <label>
-              Caption
-              <input
-                disabled={!hasCurrentUserAscent}
-                value={mediaCaption}
-                onChange={(event) => setMediaCaption(event.target.value)}
-              />
-            </label>
-            <label>
-              Video file
-              <input
-                required
-                accept="video/*"
-                disabled={!hasCurrentUserAscent}
-                type="file"
-                onChange={(event) => setMediaFile(event.target.files?.[0] ?? null)}
-              />
-            </label>
-            <button
-              disabled={isMediaSaving || !hasCurrentUserAscent || !mediaFile}
-              type="submit"
-            >
-              {!currentUsername
-                ? "Login To Upload"
-                : hasCurrentUserAscent
-                  ? "Upload"
-                  : "Log Ascent To Upload"}
-            </button>
-          </form>
-        </section>
+        <BoulderAscentsPanel
+          currentUsername={currentUsername}
+          isSaving={isSaving}
+          records={records}
+          onOpenBoulderer={onOpenBoulderer}
+          onUpdate={onUpdate}
+        />
 
-        <section className={`${sharedStyles.panel} ${styles.fullWidthPanel}`}>
-          <div className={sharedStyles.panelHeading}>
-            <span className={sharedStyles.sectionKicker}>Climbers</span>
-          </div>
-          <div className={sharedStyles.tableWrap}>
-            <table className={styles.climberTable}>
-              <thead>
-                <tr>
-                  <th>Climber</th>
-                  <th>Own grade</th>
-                  <th>27Crags</th>
-                  <th>Guide</th>
-                  <th>Flash</th>
-                  <th>Date</th>
-                  <th>Rating</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRecords.map((record) => (
-                  <tr
-                    key={
-                      record.ascent_id ??
-                      `${record.climber}-${record.climbed_on}-${record.own_grade}`
-                    }
-                  >
-                    <th>
-                      <button
-                        className={styles.tableLink}
-                        type="button"
-                        onClick={() => onOpenBoulderer(record.climber)}
-                      >
-                        {record.climber_display_name || "-"}
-                      </button>
-                    </th>
-                    <td>{record.own_grade}</td>
-                    <td>{record.grade_27crags}</td>
-                    <td>{record.guide_grade}</td>
-                    <td>{record.flash ? "Yes" : ""}</td>
-                    <td>{record.climbed_on ?? ""}</td>
-                    <td>
-                      <RatingButtons
-                        disabled={
-                          isSaving ||
-                          currentUsername === null ||
-                          record.climber.toLocaleLowerCase() !==
-                            currentUsername.toLocaleLowerCase()
-                        }
-                        rating={record.rating}
-                        onChange={(rating) => void updateRating(record, rating)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className={`${sharedStyles.panel} ${styles.fullWidthPanel}`}>
-          <div className={sharedStyles.panelHeading}>
-            <span className={sharedStyles.sectionKicker}>Comments</span>
-            <span className={styles.count}>{comments.length}</span>
-          </div>
-          {isCommentsLoading ? (
-            <div className={sharedStyles.emptyDetailSlot}>Loading</div>
-          ) : comments.length === 0 ? (
-            <div className={sharedStyles.emptyDetailSlot}>-</div>
-          ) : (
-            <ol className={styles.commentList}>
-              {comments.map((comment) => {
-                const isEditing = editingCommentId === comment.id;
-                const canEditComment =
-                  currentUsername !== null &&
-                  comment.climber.toLocaleLowerCase() === currentUsername.toLocaleLowerCase();
-                return (
-                  <li className={styles.commentItem} key={comment.id}>
-                    {isEditing ? (
-                      <div className={styles.commentEditForm}>
-                        <label>
-                          Comment
-                          <textarea
-                            required
-                            rows={3}
-                            value={editingBody}
-                            onChange={(event) => setEditingBody(event.target.value)}
-                          />
-                        </label>
-                        <div className={styles.commentActions}>
-                          <button
-                            disabled={isCommentSaving || !canEditComment}
-                            type="button"
-                            onClick={() => void saveEditingComment()}
-                          >
-                            Save
-                          </button>
-                          <button
-                            disabled={isCommentSaving}
-                            type="button"
-                            onClick={cancelEditingComment}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className={styles.commentMeta}>
-                          <strong>{comment.climber_display_name}</strong>
-                          <span>{formatCommentTime(comment.created_at)}</span>
-                        </div>
-                        <p>{comment.body}</p>
-                        {canEditComment && (
-                          <div className={styles.commentActions}>
-                            <button
-                              disabled={isCommentSaving}
-                              type="button"
-                              onClick={() => startEditingComment(comment)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className={styles.dangerButton}
-                              disabled={isCommentSaving}
-                              type="button"
-                              onClick={() => void deleteComment(comment)}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-
-          <form className={styles.commentForm} onSubmit={(event) => void submitComment(event)}>
-            <label>
-              Comment
-              <textarea
-                required
-                disabled={!currentUsername}
-                rows={3}
-                value={commentBody}
-                placeholder={currentUsername ? "" : "Log in to comment"}
-                onChange={(event) => setCommentBody(event.target.value)}
-              />
-            </label>
-            <button disabled={isCommentSaving || !currentUsername} type="submit">
-              {currentUsername ? "Post" : "Login To Post"}
-            </button>
-          </form>
-        </section>
+        <BoulderCommentsPanel
+          comments={comments}
+          currentUsername={currentUsername}
+          isLoading={isCommentsLoading}
+          isSaving={isCommentSaving}
+          onAddComment={onAddComment}
+          onDeleteComment={onDeleteComment}
+          onUpdateComment={onUpdateComment}
+        />
       </div>
     </section>
   );

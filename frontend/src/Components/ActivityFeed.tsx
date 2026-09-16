@@ -5,15 +5,23 @@ import {
   fetchAscentCommentsBatch,
   updateAscentComment
 } from "../Api/ascentCommentApi";
-import { fetchRecentBoulderMedia, mediaUrl } from "../Api/mediaApi";
+import { fetchRecentBoulderMedia } from "../Api/mediaApi";
 import type {
   AscentComment,
   BoulderMedia,
   BoulderPageIdentity,
   BoulderRecord
 } from "../Types/boulderTypes";
+import {
+  ascentTimestamp,
+  boulderKey,
+  recordKey,
+  timestamp
+} from "../Utilities/activityFeedUtils";
 import sharedStyles from "../Styles/Shared.module.css";
+import ActivityAscentFeedItem from "./ActivityAscentFeedItem";
 import styles from "./ActivityFeed.module.css";
+import ActivityVideoFeedItem from "./ActivityVideoFeedItem";
 
 type ActivityFeedProps = {
   currentUsername: string | null;
@@ -47,109 +55,8 @@ type CommentDraft = {
   body: string;
 };
 
-function parsedDate(value: string | null): Date | null {
-  if (!value) {
-    return null;
-  }
-  const normalizedValue = value.includes("T") ? value : value.replace(" ", "T");
-  const parsed = new Date(normalizedValue);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function timestamp(value: string | null): number {
-  return parsedDate(value)?.getTime() ?? 0;
-}
-
-function ascentTimestamp(record: BoulderRecord): number {
-  return timestamp(record.climbed_on) || timestamp(record.added_at);
-}
-
 function compareFeedItems(left: FeedItem, right: FeedItem): number {
   return right.timestamp - left.timestamp || right.key.localeCompare(left.key);
-}
-
-function formatDate(value: string | null): string {
-  if (!value) {
-    return "-";
-  }
-  const parsed = parsedDate(value);
-  if (!parsed) {
-    return value;
-  }
-  return parsed.toLocaleDateString([], {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  });
-}
-
-function formatDateTime(value: string): string {
-  const parsed = parsedDate(value);
-  if (!parsed) {
-    return value.replace("T", " ").slice(0, 16);
-  }
-  return parsed.toLocaleString([], {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-}
-
-function formatLocation(record: BoulderRecord): string {
-  return [record.area, record.sector].filter(Boolean).join(" / ");
-}
-
-function formatMediaLocation(media: BoulderMedia): string {
-  return [media.area, media.sector].filter(Boolean).join(" / ");
-}
-
-function formatGrade(record: BoulderRecord): string {
-  const grades = [
-    record.own_grade ? `Own ${record.own_grade}` : "",
-    record.grade_27crags ? `27Crags ${record.grade_27crags}` : "",
-    record.guide_grade ? `Guide ${record.guide_grade}` : ""
-  ].filter(Boolean);
-  return grades.length > 0 ? grades.join(" · ") : "Ungraded";
-}
-
-function formatRating(rating: number | null): string {
-  return rating === null ? "" : `${rating}/5`;
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+|_/).filter(Boolean);
-  if (parts.length === 0) {
-    return "?";
-  }
-  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
-}
-
-function boulderKey(name: string, area: string, sector: string): string {
-  return [name, area, sector].map((value) => value.trim().toLocaleLowerCase()).join("|");
-}
-
-function boulderIdentityFromRecord(record: BoulderRecord): BoulderPageIdentity {
-  return {
-    name: record.name,
-    area: record.area,
-    sector: record.sector
-  };
-}
-
-function boulderIdentityFromMedia(media: BoulderMedia): BoulderPageIdentity {
-  return {
-    name: media.boulder_name,
-    area: media.area,
-    sector: media.sector
-  };
-}
-
-function recordKey(record: BoulderRecord): string {
-  return (
-    record.ascent_id?.toString() ??
-    `${record.name}-${record.area}-${record.sector}-${record.climber}-${record.added_at}-${record.climbed_on}`
-  );
 }
 
 export default function ActivityFeed({
@@ -364,187 +271,6 @@ export default function ActivityFeed({
     }
   };
 
-  const renderAscentItem = (item: AscentFeedItem) => {
-    const { record } = item;
-    const rating = formatRating(record.rating);
-    const ascentId = record.ascent_id;
-    const comments = ascentId === null ? [] : commentsByAscentId[ascentId] ?? [];
-    const draft = ascentId === null ? { body: "" } : draftForAscent(ascentId);
-    const isSavingComment = ascentId !== null && savingAscentIds.has(ascentId);
-
-    return (
-      <li className={styles.item} key={item.key}>
-        <div className={styles.avatar} aria-hidden="true">
-          {initials(record.climber_display_name)}
-        </div>
-        <div className={styles.body}>
-          <p className={styles.copy}>
-            <button
-              className={sharedStyles.profileLinkButton}
-              type="button"
-              onClick={() => onOpenBoulderer(record.climber)}
-            >
-              {record.climber_display_name || "Unknown climber"}
-            </button>{" "}
-            {record.flash ? "flashed" : "logged"}{" "}
-            <button
-              className={styles.boulderLink}
-              type="button"
-              onClick={() => onOpenBoulder(boulderIdentityFromRecord(record))}
-            >
-              {record.name}
-            </button>
-          </p>
-          <p className={styles.meta}>
-            {formatLocation(record)} · {formatGrade(record)}
-            {rating ? ` · ${rating}` : ""}
-          </p>
-          <p className={styles.time}>
-            Climbed {formatDate(record.climbed_on)} · Added {formatDate(record.added_at)}
-          </p>
-          <div className={styles.comments}>
-            {comments.length > 0 && (
-              <ol className={styles.commentList}>
-                {comments.map((comment) => {
-                  const isEditing = editingCommentId === comment.id;
-                  const canEditComment =
-                    currentUsername !== null &&
-                    comment.climber.toLocaleLowerCase() === currentUsername.toLocaleLowerCase();
-                  return (
-                    <li className={styles.commentItem} key={comment.id}>
-                      {isEditing ? (
-                        <div className={styles.commentEditForm}>
-                          <input
-                            aria-label="Comment"
-                            value={editingDraft.body}
-                            onChange={(event) =>
-                              setEditingDraft((current) => ({
-                                ...current,
-                                body: event.target.value
-                              }))
-                            }
-                          />
-                          <button
-                            disabled={isSavingComment || !canEditComment}
-                            type="button"
-                            onClick={() => void saveEditingComment(comment)}
-                          >
-                            Save
-                          </button>
-                          <button
-                            disabled={isSavingComment}
-                            type="button"
-                            onClick={cancelEditingComment}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <p>
-                            <strong>{comment.climber_display_name}</strong> {comment.body}
-                          </p>
-                          <div className={styles.commentActions}>
-                            <span>{formatDateTime(comment.created_at)}</span>
-                            {canEditComment && (
-                              <>
-                                <button
-                                  disabled={isSavingComment}
-                                  type="button"
-                                  onClick={() => startEditingComment(comment)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className={styles.dangerButton}
-                                  disabled={isSavingComment}
-                                  type="button"
-                                  onClick={() => void removeComment(comment)}
-                                >
-                                  Delete
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-            )}
-            {ascentId !== null && (
-              <form
-                className={styles.commentForm}
-                onSubmit={(event) => void submitComment(event, ascentId)}
-              >
-                <input
-                  aria-label="Ascent comment"
-                  disabled={!currentUsername}
-                  placeholder={currentUsername ? "Comment on this ascent" : "Log in to comment"}
-                  value={draft.body}
-                  onChange={(event) =>
-                    updateDraft(ascentId, { ...draft, body: event.target.value })
-                  }
-                />
-                <button disabled={isSavingComment || !currentUsername} type="submit">
-                  {currentUsername ? "Post" : "Login To Post"}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      </li>
-    );
-  };
-
-  const renderVideoItem = (item: VideoFeedItem) => {
-    const { media } = item;
-    return (
-      <li className={styles.item} key={item.key}>
-        <div className={styles.avatar} aria-hidden="true">
-          {initials(media.climber_display_name)}
-        </div>
-        <div className={styles.body}>
-          <p className={styles.copy}>
-            <button
-              className={sharedStyles.profileLinkButton}
-              type="button"
-              onClick={() => onOpenBoulderer(media.climber)}
-            >
-              {media.climber_display_name || "Unknown climber"}
-            </button>{" "}
-            uploaded a video to{" "}
-            <button
-              className={styles.boulderLink}
-              type="button"
-              onClick={() => onOpenBoulder(boulderIdentityFromMedia(media))}
-            >
-              {media.boulder_name}
-            </button>
-          </p>
-          <p className={styles.meta}>{formatMediaLocation(media)}</p>
-          <p className={styles.time}>
-            Uploaded {formatDateTime(media.created_at)}
-            {media.visibility === "private" ? " · Private" : ""}
-          </p>
-          <ol className={styles.mediaList}>
-            <li className={styles.mediaItem}>
-              <video
-                controls
-                crossOrigin="use-credentials"
-                playsInline
-                preload="metadata"
-                src={mediaUrl(media.url)}
-              />
-              {media.caption && <p>{media.caption}</p>}
-            </li>
-          </ol>
-        </div>
-      </li>
-    );
-  };
-
   return (
     <section className={`${sharedStyles.panel} ${styles.panel}`}>
       <div className={sharedStyles.panelHeading}>
@@ -555,9 +281,45 @@ export default function ActivityFeed({
         <div className={sharedStyles.emptyDetailSlot}>-</div>
       ) : (
         <ol className={styles.list}>
-          {feedItems.map((item) =>
-            item.kind === "ascent" ? renderAscentItem(item) : renderVideoItem(item)
-          )}
+          {feedItems.map((item) => {
+            if (item.kind === "video") {
+              return (
+                <ActivityVideoFeedItem
+                  itemKey={item.key}
+                  key={item.key}
+                  media={item.media}
+                  onOpenBoulder={onOpenBoulder}
+                  onOpenBoulderer={onOpenBoulderer}
+                />
+              );
+            }
+
+            const ascentId = item.record.ascent_id;
+            return (
+              <ActivityAscentFeedItem
+                comments={ascentId === null ? [] : commentsByAscentId[ascentId] ?? []}
+                currentUsername={currentUsername}
+                draftBody={ascentId === null ? "" : draftForAscent(ascentId).body}
+                editingCommentId={editingCommentId}
+                editingDraftBody={editingDraft.body}
+                isSavingComment={ascentId !== null && savingAscentIds.has(ascentId)}
+                itemKey={item.key}
+                key={item.key}
+                record={item.record}
+                onCancelEditingComment={cancelEditingComment}
+                onChangeDraft={(nextAscentId, body) => updateDraft(nextAscentId, { body })}
+                onChangeEditingDraft={(body) => setEditingDraft({ body })}
+                onOpenBoulder={onOpenBoulder}
+                onOpenBoulderer={onOpenBoulderer}
+                onRemoveComment={(comment) => void removeComment(comment)}
+                onSaveEditingComment={(comment) => void saveEditingComment(comment)}
+                onStartEditingComment={startEditingComment}
+                onSubmitComment={(event, nextAscentId) =>
+                  void submitComment(event, nextAscentId)
+                }
+              />
+            );
+          })}
         </ol>
       )}
     </section>

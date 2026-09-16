@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { profilePictureUrl } from "../Api/bouldererApi";
-import { mediaUrl } from "../Api/mediaApi";
-import { GRADE_SOURCE_LABELS } from "../Config/gradeSources";
-import type { BoulderPageIdentity, BoulderRecord, GradeField } from "../Types/boulderTypes";
+import type { BoulderPageIdentity } from "../Types/boulderTypes";
 import type { BouldererProfile } from "../Types/bouldererTypes";
 import sharedStyles from "../Styles/Shared.module.css";
+import BouldererGradeDistributionPanel from "./BouldererGradeDistributionPanel";
 import styles from "./BouldererProfilePage.module.css";
+import BouldererRatingsPanel from "./BouldererRatingsPanel";
+import BouldererRecentAscentsPanel from "./BouldererRecentAscentsPanel";
+import BouldererVideosPanel from "./BouldererVideosPanel";
 
 type BouldererProfilePageProps = {
   profile: BouldererProfile;
@@ -23,28 +25,6 @@ function initials(name: string): string {
   return parts.slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 }
 
-function location(record: BoulderRecord): string {
-  return [record.area, record.sector].filter(Boolean).join(" / ");
-}
-
-function ownGrade(record: BoulderRecord): string {
-  return record.own_grade || record.grade_27crags || record.guide_grade || "-";
-}
-
-function boulderIdentity(record: BoulderRecord): BoulderPageIdentity {
-  return { name: record.name, area: record.area, sector: record.sector };
-}
-
-function displayDate(value: string | null): string {
-  if (!value) {
-    return "-";
-  }
-  const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString([], { day: "2-digit", month: "short", year: "2-digit" });
-}
-
 export default function BouldererProfilePage({
   profile,
   isSaving,
@@ -55,12 +35,6 @@ export default function BouldererProfilePage({
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(profile.user.display_name);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
-  const [gradeSource, setGradeSource] = useState<GradeField>("own_grade");
-  const gradeCounts = profile.stats.grade_counts[gradeSource];
-  const largestGradeCount = useMemo(
-    () => Math.max(1, ...gradeCounts.map((entry) => entry.count)),
-    [gradeCounts]
-  );
 
   useEffect(() => {
     setDisplayName(profile.user.display_name);
@@ -162,130 +136,21 @@ export default function BouldererProfilePage({
       </dl>
 
       <div className={styles.grid}>
-        <section className={`${sharedStyles.panel} ${styles.gridPanel}`}>
-          <div className={sharedStyles.panelHeading}>
-            <span className={sharedStyles.sectionKicker}>Recent ascents</span>
-            <strong>{profile.stats.flash_count} flashes</strong>
-          </div>
-          {profile.recent_ascents.length === 0 ? (
-            <div className={sharedStyles.emptyDetailSlot}>No visible ascents</div>
-          ) : (
-            <ol className={styles.ascentList}>
-              {profile.recent_ascents.map((record) => (
-                <li key={record.ascent_id ?? `${record.name}-${record.climbed_on}`}>
-                  <button type="button" onClick={() => onOpenBoulder(boulderIdentity(record))}>
-                    {record.name}
-                  </button>
-                  <span>{location(record)}</span>
-                  <strong>{ownGrade(record)}</strong>
-                  <time>{displayDate(record.climbed_on)}</time>
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
+        <BouldererRecentAscentsPanel
+          flashCount={profile.stats.flash_count}
+          records={profile.recent_ascents}
+          onOpenBoulder={onOpenBoulder}
+        />
 
-        <section className={`${sharedStyles.panel} ${styles.gridPanel}`}>
-          <div className={sharedStyles.panelHeading}>
-            <span className={sharedStyles.sectionKicker}>
-              {GRADE_SOURCE_LABELS[gradeSource]} grade distribution
-            </span>
-          </div>
-          {gradeCounts.length === 0 ? (
-            <div className={sharedStyles.emptyDetailSlot}>No graded ascents</div>
-          ) : (
-            <ol className={styles.gradeBars}>
-              {gradeCounts.map((entry) => (
-                <li key={entry.grade}>
-                  <span>{entry.grade}</span>
-                  <div>
-                    <i style={{ width: `${(entry.count / largestGradeCount) * 100}%` }} />
-                  </div>
-                  <strong>{entry.count}</strong>
-                </li>
-              ))}
-            </ol>
-          )}
-          <div
-            className={`${sharedStyles.segmentedControl} ${styles.gradeSourceControl}`}
-            role="group"
-            aria-label="Profile grade source"
-          >
-            {(["grade_27crags", "guide_grade", "own_grade"] as GradeField[]).map((source) => (
-              <button
-                className={gradeSource === source ? sharedStyles.active : ""}
-                key={source}
-                type="button"
-                onClick={() => setGradeSource(source)}
-              >
-                {GRADE_SOURCE_LABELS[source]}
-              </button>
-            ))}
-          </div>
-        </section>
+        <BouldererGradeDistributionPanel gradeCountsBySource={profile.stats.grade_counts} />
 
-        <section
-          className={`${sharedStyles.panel} ${styles.gridPanel} ${styles.fullWidthPanel}`}
-        >
-          <div className={sharedStyles.panelHeading}>
-            <span className={sharedStyles.sectionKicker}>Ratings</span>
-            <strong>{profile.stats.rated_ascents} rated</strong>
-          </div>
-          {profile.ratings.length === 0 ? (
-            <div className={sharedStyles.emptyDetailSlot}>No ratings yet</div>
-          ) : (
-            <ol className={styles.ratingList}>
-              {profile.ratings.map((record) => (
-                <li key={record.ascent_id ?? `${record.name}-${record.rating}`}>
-                  <button type="button" onClick={() => onOpenBoulder(boulderIdentity(record))}>
-                    {record.name}
-                  </button>
-                  <span>{location(record)}</span>
-                  <strong>{record.rating}/5</strong>
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
+        <BouldererRatingsPanel
+          ratedCount={profile.stats.rated_ascents}
+          records={profile.ratings}
+          onOpenBoulder={onOpenBoulder}
+        />
 
-        <section
-          className={`${sharedStyles.panel} ${styles.gridPanel} ${styles.fullWidthPanel}`}
-        >
-          <div className={sharedStyles.panelHeading}>
-            <span className={sharedStyles.sectionKicker}>Uploaded videos</span>
-            <strong>{profile.media.length}</strong>
-          </div>
-          {profile.media.length === 0 ? (
-            <div className={sharedStyles.emptyDetailSlot}>No visible videos</div>
-          ) : (
-            <ol className={styles.videoList}>
-              {profile.media.map((item) => (
-                <li key={item.id}>
-                  <video
-                    controls
-                    crossOrigin="use-credentials"
-                    playsInline
-                    preload="metadata"
-                    src={mediaUrl(item.url)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onOpenBoulder({
-                        name: item.boulder_name,
-                        area: item.area,
-                        sector: item.sector
-                      })
-                    }
-                  >
-                    {item.boulder_name}
-                  </button>
-                  <span>{item.caption || [item.area, item.sector].filter(Boolean).join(" / ")}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
+        <BouldererVideosPanel media={profile.media} onOpenBoulder={onOpenBoulder} />
       </div>
     </section>
   );
