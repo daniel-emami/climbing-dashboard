@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { confirmTheTopoImport, previewTheTopoImport } from "../Api/importApi";
-import type { BoulderRecord, BouldersResponse } from "../Types/boulderTypes";
+import type { AscentVisibility, BoulderRecord, BouldersResponse } from "../Types/boulderTypes";
 import type { ImportPreviewResponse } from "../Types/importTypes";
 import sharedStyles from "../Styles/Shared.module.css";
 import styles from "./TheTopoImportPanel.module.css";
@@ -25,6 +25,7 @@ export default function TheTopoImportPanel({
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [visibility, setVisibility] = useState<AscentVisibility>("public");
 
   const selectedBoulders = useMemo(
     () => preview?.boulders.filter((boulder) => selectedKeys.has(boulderKey(boulder))) ?? [],
@@ -70,7 +71,7 @@ export default function TheTopoImportPanel({
     try {
       const payload = await confirmTheTopoImport({
         source: preview.source,
-        boulders: selectedBoulders
+        boulders: selectedBoulders.map((boulder) => ({ ...boulder, visibility }))
       });
       onImported(payload);
       setPreview(null);
@@ -108,6 +109,16 @@ export default function TheTopoImportPanel({
             <strong>{preview.imported_count} boulders found</strong>
             <span>{selectedBoulders.length} selected</span>
           </div>
+          <label className={styles.visibilityControl}>
+            Visibility
+            <select
+              value={visibility}
+              onChange={(event) => setVisibility(event.target.value as AscentVisibility)}
+            >
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </label>
           <button
             className={sharedStyles.primaryButton}
             disabled={isConfirming || selectedBoulders.length === 0 || !currentUsername}

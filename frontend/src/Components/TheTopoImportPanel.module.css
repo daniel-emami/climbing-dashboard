@@ -21,6 +21,25 @@
   color: var(--color-heading);
 }
 
+.visibilityControl {
+  display: grid;
+  gap: 5px;
+  color: var(--color-muted-strong);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.visibilityControl select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-control-text);
+  padding: 7px 9px;
+}
+
 .previewList {
   display: grid;
   max-height: 210px;
