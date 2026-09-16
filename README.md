@@ -20,7 +20,7 @@ saved. The alias rules live in
 
 ```text
 backend/ClimbingDashboard/Api        FastAPI app, router, API service
-backend/ClimbingDashboard/Storage    SQLite storage and Excel import/export helpers
+backend/ClimbingDashboard/Storage    SQLite storage and Excel export helpers
 backend/ClimbingDashboard/Models     Boulder domain model
 backend/ClimbingDashboard/Utilities  Date conversion helpers
 frontend/src                         Vite React dashboard

@@ -6,16 +6,6 @@ import type {
   AscentCommentUpdateRequest
 } from "../Types/boulderTypes";
 
-export async function fetchAscentComments(
-  ascentId: number
-): Promise<AscentCommentsResponse> {
-  return apiJson<AscentCommentsResponse>(
-    `/api/ascents/${ascentId}/comments`,
-    {},
-    "Ascent comment request failed"
-  );
-}
-
 export async function fetchAscentCommentsBatch(
   ascentIds: number[]
 ): Promise<AscentCommentsByAscentResponse> {

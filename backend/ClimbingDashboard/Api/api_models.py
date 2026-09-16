@@ -65,23 +65,6 @@ class BoulderCreateRequest:
             visibility=payload.get("visibility", ASCENT_VISIBILITY_PUBLIC),
         )
 
-    def to_error_payload(self) -> dict[str, object]:
-        """Return the request as simple data, useful for debugging responses."""
-
-        return {
-            "name": self.name,
-            "grade_27crags": self.grade_27crags,
-            "guide_grade": self.guide_grade,
-            "own_grade": self.own_grade,
-            "area": self.area,
-            "sector": self.sector,
-            "climber": self.climber,
-            "flash": self.flash,
-            "climbed_on": self.climbed_on.isoformat() if self.climbed_on else None,
-            "rating": self.rating,
-            "visibility": self.visibility,
-        }
-
     def to_record(self, climber: str | None = None) -> BoulderRecord:
         """Return a domain record using the request's validated fields."""
 
@@ -124,7 +107,6 @@ class BoulderCreateRequest:
         return visibility(value)
 
 
-type BoulderPayload = dict[str, object]
 type BouldersPayload = dict[str, object]
 
 
