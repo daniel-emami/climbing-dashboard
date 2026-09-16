@@ -3,10 +3,16 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from ClimbingDashboard.Config.constants import (
-    ASCENT_VISIBILITY_OPTIONS,
-    ASCENT_VISIBILITY_PUBLIC,
+from ClimbingDashboard.Api.boulder_payload_fields import (
+    optional_text,
+    payload_bool,
+    rating,
+    rating_in_range,
+    required_text,
+    visibility,
 )
+from ClimbingDashboard.Config.constants import ASCENT_VISIBILITY_PUBLIC
+from ClimbingDashboard.Models.boulder_record import BoulderRecord
 from ClimbingDashboard.Utilities.date_utils import parse_climbed_date
 
 
@@ -59,83 +65,48 @@ class BoulderCreateRequest:
             visibility=payload.get("visibility", ASCENT_VISIBILITY_PUBLIC),
         )
 
-    def to_error_payload(self) -> dict[str, object]:
-        """Return the request as simple data, useful for debugging responses."""
+    def to_record(self, climber: str | None = None) -> BoulderRecord:
+        """Return a domain record using the request's validated fields."""
 
-        return {
-            "name": self.name,
-            "grade_27crags": self.grade_27crags,
-            "guide_grade": self.guide_grade,
-            "own_grade": self.own_grade,
-            "area": self.area,
-            "sector": self.sector,
-            "climber": self.climber,
-            "flash": self.flash,
-            "climbed_on": self.climbed_on.isoformat() if self.climbed_on else None,
-            "rating": self.rating,
-            "visibility": self.visibility,
-        }
+        return BoulderRecord(
+            name=self.name,
+            grade_27crags=self.grade_27crags,
+            guide_grade=self.guide_grade,
+            own_grade=self.own_grade,
+            area=self.area,
+            sector=self.sector,
+            climber=self._optional_text(climber) if climber is not None else self.climber,
+            flash=self.flash,
+            climbed_on=self.climbed_on,
+            rating=self.rating,
+            visibility=self.visibility,
+        )
 
     @staticmethod
     def _required_text(value: object, field_name: str) -> str:
-        text = "" if value is None else str(value).strip()
-        if not text:
-            raise ValueError(f"{field_name} is required")
-        return text
+        return required_text(value, field_name)
 
     @staticmethod
     def _optional_text(value: object) -> str:
-        return "" if value is None else str(value).strip()
+        return optional_text(value)
 
     @staticmethod
     def _bool(value: object) -> bool:
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, int | float):
-            return bool(value)
-        if isinstance(value, str):
-            return value.strip().lower() in {"1", "true", "yes", "y", "flash"}
-        return False
+        return payload_bool(value)
 
     @staticmethod
     def _rating(value: object) -> int | None:
-        if value is None:
-            return None
-        if isinstance(value, str):
-            text = value.strip()
-            if not text:
-                return None
-            try:
-                return BoulderCreateRequest._rating_in_range(int(text))
-            except ValueError as exc:
-                raise ValueError("rating must be empty or a number from 1 to 5") from exc
-        if isinstance(value, bool):
-            raise ValueError("rating must be empty or a number from 1 to 5")
-        if isinstance(value, int):
-            return BoulderCreateRequest._rating_in_range(value)
-        if isinstance(value, float) and value.is_integer():
-            return BoulderCreateRequest._rating_in_range(int(value))
-        raise ValueError("rating must be empty or a number from 1 to 5")
+        return rating(value)
 
     @staticmethod
     def _rating_in_range(rating: int) -> int:
-        if rating < 1 or rating > 5:
-            raise ValueError("rating must be empty or a number from 1 to 5")
-        return rating
+        return rating_in_range(rating)
 
     @staticmethod
     def _visibility(value: object) -> str:
-        visibility = (
-            ASCENT_VISIBILITY_PUBLIC
-            if value is None
-            else str(value).strip().lower()
-        )
-        if visibility not in ASCENT_VISIBILITY_OPTIONS:
-            raise ValueError("visibility must be public or private")
-        return visibility
+        return visibility(value)
 
 
-type BoulderPayload = dict[str, object]
 type BouldersPayload = dict[str, object]
 
 

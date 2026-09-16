@@ -91,6 +91,3 @@ class AdminPasswordResetRequest:
         """Build an admin password-reset request from a JSON-like dictionary."""
 
         return cls(username=payload.get("username"))
-
-
-type AuthPayload = dict[str, object]

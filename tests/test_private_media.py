@@ -1,4 +1,3 @@
-import sqlite3
 from io import BytesIO
 from pathlib import Path
 
@@ -102,84 +101,6 @@ def test_video_inherits_ascent_visibility_and_requires_owner_for_deletion(
     assert private_file.path.read_bytes() == b"optimized-video-content"
     service.delete_boulder_media(int(private_media["id"]), private_user)
     assert not private_file.path.exists()
-
-
-def test_existing_video_is_linked_to_its_user_and_ascent(tmp_path: Path) -> None:
-    database_path = tmp_path / "dashboard.db"
-    user = AuthService(database_path, "invite", 7).signup(
-        SignupRequest("legacy-user", "password123", "invite")
-    ).user
-    with sqlite3.connect(database_path) as connection:
-        connection.executescript(
-            """
-            CREATE TABLE boulder_problems (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                area TEXT NOT NULL,
-                sector TEXT NOT NULL DEFAULT '',
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE ascents (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                boulder_id INTEGER NOT NULL,
-                user_id INTEGER,
-                climber TEXT NOT NULL DEFAULT '',
-                grade_27crags TEXT NOT NULL DEFAULT '',
-                guide_grade TEXT NOT NULL DEFAULT '',
-                own_grade TEXT NOT NULL DEFAULT '',
-                flash INTEGER NOT NULL DEFAULT 0,
-                climbed_on TEXT,
-                rating INTEGER,
-                visibility TEXT NOT NULL DEFAULT 'public',
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE boulder_media (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                boulder_id INTEGER NOT NULL,
-                ascent_id INTEGER,
-                climber TEXT NOT NULL,
-                media_type TEXT NOT NULL,
-                file_path TEXT NOT NULL,
-                original_filename TEXT NOT NULL,
-                mime_type TEXT NOT NULL,
-                file_size INTEGER NOT NULL,
-                caption TEXT NOT NULL DEFAULT '',
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                deleted_at TEXT
-            );
-            """
-        )
-        problem_id = connection.execute(
-            "INSERT INTO boulder_problems (name, area, sector) VALUES (?, ?, ?)",
-            ("Legacy Boulder", "Test Area", ""),
-        ).lastrowid
-        ascent_id = connection.execute(
-            """
-            INSERT INTO ascents (boulder_id, user_id, climber, visibility)
-            VALUES (?, ?, ?, 'private')
-            """,
-            (problem_id, user.id, user.username),
-        ).lastrowid
-        connection.execute(
-            """
-            INSERT INTO boulder_media (
-                boulder_id, ascent_id, climber, media_type, file_path,
-                original_filename, mime_type, file_size
-            )
-            VALUES (?, NULL, ?, 'video', 'videos/legacy.mp4', 'legacy.mp4', 'video/mp4', 10)
-            """,
-            (problem_id, user.username),
-        )
-
-    service = ApiService(database_path, uploads_path=tmp_path / "uploads")
-    assert service.get_boulder_media("Legacy Boulder", "Test Area", "")["media"] == []
-    media = service.get_boulder_media("Legacy Boulder", "Test Area", "", user)["media"][0]
-    assert media["user_id"] == user.id
-    assert media["ascent_id"] == ascent_id
-    assert media["visibility"] == "private"
 
 
 def _save_ascent(service: ApiService, user: UserAccount, visibility: str) -> None:

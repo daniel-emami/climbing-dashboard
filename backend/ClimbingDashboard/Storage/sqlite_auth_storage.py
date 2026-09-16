@@ -7,6 +7,7 @@ from ClimbingDashboard.Exceptions.storage_error import StorageError
 from ClimbingDashboard.Models.user_account import UserAccount
 from ClimbingDashboard.Models.user_credentials import UserCredentials
 from ClimbingDashboard.Storage.base_auth_storage import BaseAuthStorage
+from ClimbingDashboard.Storage.sqlite_connection import connect_sqlite
 from ClimbingDashboard.Storage.sqlite_user_schema import ensure_users_schema
 
 
@@ -259,10 +260,7 @@ class SqliteAuthStorage(BaseAuthStorage):
             raise StorageError(f"Failed to reset user password: {exc}") from exc
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.database_path)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys = ON")
-        return connection
+        return connect_sqlite(self.database_path)
 
     def _create_schema(self) -> None:
         try:
