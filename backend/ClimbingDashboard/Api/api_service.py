@@ -457,19 +457,7 @@ class ApiService(BaseApiService):
         request: BoulderCreateRequest,
         current_user: UserAccount,
     ) -> BoulderRecord:
-        record = BoulderRecord(
-            name=request.name,
-            grade_27crags=request.grade_27crags,
-            guide_grade=request.guide_grade,
-            own_grade=request.own_grade,
-            area=request.area,
-            sector=request.sector,
-            climber=current_user.username,
-            flash=request.flash,
-            climbed_on=request.climbed_on,
-            rating=request.rating,
-            visibility=request.visibility,
-        )
+        record = request.to_record(current_user.username)
         return self.location_normalizer.normalize_record(record)
 
     def _read_comments_from_first_existing_location(
