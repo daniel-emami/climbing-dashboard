@@ -5,7 +5,6 @@ import GradeChart, { type GradeChartSeries } from "./GradeChart";
 import LoadingState from "./LoadingState";
 import ActivityFeed from "../Features/ActivityFeed";
 import { BoulderTable } from "../Features/Logbook";
-import { GRADE_SOURCE_LABELS } from "../Config/gradeSources";
 import type { DashboardPage } from "../Routing/hashRoutes";
 import type {
   BoulderCreateRequest,
@@ -63,49 +62,51 @@ export default function DashboardPageContent({
       {visibleData && !isInitialLoading && (
         <>
           {activePage === "feed" && (
-            <>
-              <ActivityFeed
-                currentUsername={currentUsername}
-                selectedClimber=""
-                records={visibleData.records}
-                onError={onError}
-                onOpenBoulder={onOpenBoulder}
-                onOpenBoulderer={onOpenBoulderer}
-              />
-              <div className={styles.insightGrid}>
-                <GradeChart
-                  title={gradeChartTitle}
-                  gradeOrder={visibleData.grade_order}
-                  series={gradeChartSeries}
-                />
-                <AreaChart
-                  data={visibleData.stats.area_counts_by_grade_source.own_grade}
-                  gradeSourceLabel={GRADE_SOURCE_LABELS.own_grade}
-                />
-              </div>
-            </>
+            <ActivityFeed
+              currentUsername={currentUsername}
+              selectedClimber=""
+              records={visibleData.records}
+              onError={onError}
+              onOpenBoulder={onOpenBoulder}
+              onOpenBoulderer={onOpenBoulderer}
+            />
           )}
 
           {activePage === "logbook" && (
-            <BoulderTable
-              records={visibleData.records}
-              gradeOrder={visibleData.grade_order}
-              isSaving={isSaving}
-              currentDisplayName={currentDisplayName}
-              currentUsername={currentUsername}
-              onDelete={onDeleteBoulder}
-              onOpenBoulder={onOpenBoulder}
-              onOpenBoulderer={onOpenBoulderer}
-              onUpdate={onUpdateBoulder}
-            />
+            <>
+              <GradeChart
+                title={gradeChartTitle}
+                gradeOrder={visibleData.grade_order}
+                series={gradeChartSeries}
+              />
+              <BoulderTable
+                records={visibleData.records}
+                gradeOrder={visibleData.grade_order}
+                isSaving={isSaving}
+                currentDisplayName={currentDisplayName}
+                currentUsername={currentUsername}
+                onDelete={onDeleteBoulder}
+                onOpenBoulder={onOpenBoulder}
+                onOpenBoulderer={onOpenBoulderer}
+                onUpdate={onUpdateBoulder}
+              />
+            </>
           )}
 
           {activePage === "map" && (
-            <AreaGradeMatrix
-              rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
-              grades={visibleData.grade_order}
-              gradeSourceLabel={activeAreaMapGradeLabel}
-            />
+            <>
+              <AreaChart
+                data={
+                  visibleData.stats.area_counts_by_grade_source[activeAreaMapGradeField]
+                }
+                gradeSourceLabel={activeAreaMapGradeLabel}
+              />
+              <AreaGradeMatrix
+                rows={visibleData.stats.area_grade_matrix_by_grade_source[activeAreaMapGradeField]}
+                grades={visibleData.grade_order}
+                gradeSourceLabel={activeAreaMapGradeLabel}
+              />
+            </>
           )}
         </>
       )}

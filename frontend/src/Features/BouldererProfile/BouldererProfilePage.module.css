@@ -203,29 +203,50 @@
 
 .gradeBars {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .gradeBars li {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) 28px;
-  gap: 8px;
+  grid-template-columns: 42px minmax(0, 1fr) 58px;
+  gap: 10px;
   align-items: center;
-  font-size: 0.78rem;
+  min-height: 26px;
+  font-size: 0.8rem;
 }
 
-.gradeBars li > div {
-  height: 9px;
+.gradeLabel {
+  color: var(--color-heading);
+  font-weight: 900;
+}
+
+.gradeBarTrack {
+  height: 14px;
   overflow: hidden;
-  border-radius: 3px;
-  background: var(--color-divider);
+  border: 1px solid var(--color-divider);
+  border-radius: 4px;
+  background: var(--color-nav-background);
 }
 
-.gradeBars i {
+.gradeBarFill {
   display: block;
   height: 100%;
+  min-width: 3px;
   border-radius: 3px;
-  background: var(--color-primary);
+}
+
+.gradeValue {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 5px;
+  color: var(--color-heading);
+}
+
+.gradeValue small {
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  font-weight: 850;
 }
 
 .gradeSourceControl {

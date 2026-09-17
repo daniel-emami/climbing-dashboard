@@ -2,6 +2,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -15,18 +16,71 @@ type AreaChartProps = {
   gradeSourceLabel: string;
 };
 
-export default function AreaChart({ data }: AreaChartProps) {
+type AreaAxisTickProps = {
+  x?: number;
+  y?: number;
+  payload?: {
+    value?: string | number;
+  };
+};
+
+const MAX_LABEL_LINE_LENGTH = 18;
+
+function areaLabelLines(label: string): string[] {
+  if (label.length <= MAX_LABEL_LINE_LENGTH) {
+    return [label];
+  }
+
+  const preferredBreak = label.lastIndexOf(" ", MAX_LABEL_LINE_LENGTH);
+  const splitAt = preferredBreak >= 8 ? preferredBreak : MAX_LABEL_LINE_LENGTH;
+  const firstLine = label.slice(0, splitAt).trim();
+  const remainder = label.slice(splitAt).trim();
+  const secondLine =
+    remainder.length > MAX_LABEL_LINE_LENGTH
+      ? `${remainder.slice(0, MAX_LABEL_LINE_LENGTH - 1).trim()}…`
+      : remainder;
+  return [firstLine, secondLine];
+}
+
+function AreaAxisTick({ x = 0, y = 0, payload }: AreaAxisTickProps) {
+  const area = String(payload?.value ?? "");
+  const lines = areaLabelLines(area);
+
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+      <title>{area}</title>
+      <text
+        fill="var(--color-muted-strong)"
+        fontSize={12}
+        textAnchor="end"
+        x={-9}
+        y={lines.length === 1 ? 4 : -3}
+      >
+        {lines.map((line, index) => (
+          <tspan dy={index === 0 ? 0 : 14} key={`${line}-${index}`} x={-9}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+}
+
+export default function AreaChart({ data, gradeSourceLabel }: AreaChartProps) {
+  const chartData = data.slice(0, 12);
+  const chartHeight = Math.max(260, chartData.length * 36);
+
   return (
     <section className={`${sharedStyles.panel} ${sharedStyles.chartPanel}`}>
       <div className={sharedStyles.panelHeading}>
         <span className={sharedStyles.sectionKicker}>Areas</span>
-        <h2>Areas by grade</h2>
+        <h2>{gradeSourceLabel} by area</h2>
       </div>
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
         <BarChart
-          data={data.slice(0, 12)}
+          data={chartData}
           layout="vertical"
-          margin={{ top: 12, right: 18, left: 42, bottom: 0 }}
+          margin={{ top: 12, right: 34, left: 4, bottom: 0 }}
         >
           <CartesianGrid stroke="var(--color-chart-grid)" horizontal={false} />
           <XAxis
@@ -39,8 +93,9 @@ export default function AreaChart({ data }: AreaChartProps) {
           <YAxis
             type="category"
             dataKey="area"
-            width={78}
-            tick={{ fill: "var(--color-muted)" }}
+            interval={0}
+            tick={<AreaAxisTick />}
+            width={150}
             tickLine={false}
             axisLine={false}
           />
@@ -54,7 +109,14 @@ export default function AreaChart({ data }: AreaChartProps) {
             cursor={{ fill: "var(--color-chart-hover)" }}
             labelStyle={{ color: "var(--color-heading)" }}
           />
-          <Bar dataKey="count" fill="var(--color-chart-area)" radius={[0, 4, 4, 0]} />
+          <Bar dataKey="count" fill="var(--color-chart-area)" radius={[0, 4, 4, 0]}>
+            <LabelList
+              dataKey="count"
+              fill="var(--color-body)"
+              fontSize={12}
+              position="right"
+            />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </section>

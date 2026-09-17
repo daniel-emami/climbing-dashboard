@@ -286,15 +286,8 @@
   min-width: 0;
 }
 
-.insightGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
-}
-
 @media (max-width: 1050px) {
-  .dashboardLayout,
-  .insightGrid {
+  .dashboardLayout {
     grid-template-columns: 1fr;
   }
 

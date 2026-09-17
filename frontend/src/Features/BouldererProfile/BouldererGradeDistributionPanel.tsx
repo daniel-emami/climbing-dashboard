@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
-import { GRADE_SOURCE_LABELS } from "../../Config/gradeSources";
+import {
+  GRADE_SOURCE_COLORS,
+  GRADE_SOURCE_LABELS
+} from "../../Config/gradeSources";
 import type { GradeCount, GradeField } from "../../Types/boulderTypes";
 import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./BouldererProfilePage.module.css";
@@ -17,13 +20,17 @@ export default function BouldererGradeDistributionPanel({
     () => Math.max(1, ...gradeCounts.map((entry) => entry.count)),
     [gradeCounts]
   );
+  const totalGradeCount = useMemo(
+    () => gradeCounts.reduce((total, entry) => total + entry.count, 0),
+    [gradeCounts]
+  );
+  const barColor = GRADE_SOURCE_COLORS[gradeSource];
 
   return (
     <section className={`${sharedStyles.panel} ${styles.gridPanel}`}>
       <div className={sharedStyles.panelHeading}>
-        <span className={sharedStyles.sectionKicker}>
-          {GRADE_SOURCE_LABELS[gradeSource]} grade distribution
-        </span>
+        <span className={sharedStyles.sectionKicker}>Grade distribution</span>
+        <h2>{GRADE_SOURCE_LABELS[gradeSource]}</h2>
       </div>
       {gradeCounts.length === 0 ? (
         <div className={sharedStyles.emptyDetailSlot}>No graded ascents</div>
@@ -31,11 +38,28 @@ export default function BouldererGradeDistributionPanel({
         <ol className={styles.gradeBars}>
           {gradeCounts.map((entry) => (
             <li key={entry.grade}>
-              <span>{entry.grade}</span>
-              <div>
-                <i style={{ width: `${(entry.count / largestGradeCount) * 100}%` }} />
+              <span className={styles.gradeLabel}>{entry.grade}</span>
+              <div
+                aria-label={`${entry.grade}: ${entry.count} of ${totalGradeCount} ascents`}
+                className={styles.gradeBarTrack}
+                role="img"
+              >
+                <i
+                  className={styles.gradeBarFill}
+                  style={{
+                    backgroundColor: barColor,
+                    width: `${(entry.count / largestGradeCount) * 100}%`
+                  }}
+                />
               </div>
-              <strong>{entry.count}</strong>
+              <span className={styles.gradeValue}>
+                <strong>{entry.count}</strong>
+                <small>
+                  {totalGradeCount === 0
+                    ? "0%"
+                    : `${Math.round((entry.count / totalGradeCount) * 100)}%`}
+                </small>
+              </span>
             </li>
           ))}
         </ol>

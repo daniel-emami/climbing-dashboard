@@ -206,7 +206,7 @@ export default function BoulderForm({
         disabled={isSaving || !currentUsername}
         type="submit"
       >
-        {isSaving ? "Saving..." : currentUsername ? "Save Boulder" : "Login To Save"}
+        {isSaving ? "Saving..." : currentUsername ? "Log Boulder" : "Login To Save"}
       </button>
     </form>
   );
