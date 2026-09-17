@@ -238,6 +238,7 @@ export default function BoulderDetailPage({
           isSaving={isCommentSaving}
           onAddComment={onAddComment}
           onDeleteComment={onDeleteComment}
+          onOpenBoulderer={onOpenBoulderer}
           onUpdateComment={onUpdateComment}
         />
       </div>

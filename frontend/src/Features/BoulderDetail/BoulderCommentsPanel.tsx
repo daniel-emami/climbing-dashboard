@@ -11,6 +11,7 @@ type BoulderCommentsPanelProps = {
   isSaving: boolean;
   onAddComment: (body: string) => Promise<void>;
   onDeleteComment: (commentId: number) => Promise<void>;
+  onOpenBoulderer: (username: string) => void;
   onUpdateComment: (
     commentId: number,
     request: BoulderCommentUpdateRequest
@@ -28,6 +29,7 @@ export default function BoulderCommentsPanel({
   isSaving,
   onAddComment,
   onDeleteComment,
+  onOpenBoulderer,
   onUpdateComment
 }: BoulderCommentsPanelProps) {
   const [commentBody, setCommentBody] = useState("");
@@ -129,7 +131,13 @@ export default function BoulderCommentsPanel({
                 ) : (
                   <>
                     <div className={styles.commentMeta}>
-                      <strong>{comment.climber_display_name}</strong>
+                      <button
+                        className={sharedStyles.profileLinkButton}
+                        type="button"
+                        onClick={() => onOpenBoulderer(comment.climber)}
+                      >
+                        {comment.climber_display_name}
+                      </button>
                       <span>{formatCommentTime(comment.created_at)}</span>
                     </div>
                     <p>{comment.body}</p>

@@ -128,7 +128,14 @@ export default function ActivityAscentFeedItem({
                     ) : (
                       <>
                         <p>
-                          <strong>{comment.climber_display_name}</strong> {comment.body}
+                          <button
+                            className={sharedStyles.profileLinkButton}
+                            type="button"
+                            onClick={() => onOpenBoulderer(comment.climber)}
+                          >
+                            {comment.climber_display_name}
+                          </button>{" "}
+                          {comment.body}
                         </p>
                         <div className={styles.commentActions}>
                           <span>{formatDateTime(comment.created_at)}</span>

@@ -222,6 +222,10 @@
   font-size: 0.88rem;
 }
 
+.commentMeta button {
+  font-size: 0.88rem;
+}
+
 .commentMeta span {
   color: var(--color-muted);
   font-size: 0.76rem;
