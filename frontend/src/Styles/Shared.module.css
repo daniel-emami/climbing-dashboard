@@ -60,13 +60,13 @@
 .controlPanel .primaryButton {
   border-color: var(--color-primary);
   background: var(--color-primary);
-  color: var(--color-surface);
+  color: var(--color-on-primary);
 }
 
 .controlPanel .primaryButton:hover:not(:disabled) {
   border-color: var(--color-primary-hover);
   background: var(--color-primary-hover);
-  color: var(--color-surface);
+  color: var(--color-on-primary);
 }
 
 .controlHeading,
@@ -95,7 +95,7 @@
 }
 
 .sectionKicker {
-  color: var(--color-secondary);
+  color: var(--color-accent);
   font-size: 0.74rem;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -111,7 +111,7 @@
 .segmentedControl button.active {
   border-color: var(--color-primary);
   background: var(--color-primary);
-  color: var(--color-surface);
+  color: var(--color-on-primary);
 }
 
 .backButton {
@@ -138,11 +138,21 @@
   padding: 0;
   font: inherit;
   font-weight: 900;
+  text-decoration: underline;
+  text-decoration-color: var(--color-control-border);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 .profileLinkButton:hover {
   color: var(--color-secondary-hover);
-  text-decoration: underline;
+  text-decoration-color: currentColor;
+}
+
+.profileLinkButton:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 3px;
 }
 
 .emptyDetailSlot {

@@ -24,9 +24,14 @@ export default function ActivityVideoFeedItem({
 }: ActivityVideoFeedItemProps) {
   return (
     <li className={styles.item} key={itemKey}>
-      <div className={styles.avatar} aria-hidden="true">
+      <button
+        aria-label={`Open ${media.climber_display_name || media.climber}'s profile`}
+        className={styles.avatar}
+        type="button"
+        onClick={() => onOpenBoulderer(media.climber)}
+      >
         {initials(media.climber_display_name)}
-      </div>
+      </button>
       <div className={styles.body}>
         <p className={styles.copy}>
           <button

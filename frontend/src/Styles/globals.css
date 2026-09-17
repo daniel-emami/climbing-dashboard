@@ -3,11 +3,17 @@
 :root {
   color: var(--color-text);
   background: var(--color-page);
+  color-scheme: dark;
   font-family: var(--font-mono);
 }
 
 * {
   box-sizing: border-box;
+}
+
+::selection {
+  background: var(--color-primary-soft);
+  color: var(--color-heading);
 }
 
 body {
@@ -19,6 +25,17 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+input,
+select,
+textarea {
+  accent-color: var(--color-primary);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-muted);
 }
 
 button {

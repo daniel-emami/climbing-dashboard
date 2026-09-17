@@ -60,9 +60,14 @@ export default function ActivityAscentFeedItem({
 
   return (
     <li className={styles.item} key={itemKey}>
-      <div className={styles.avatar} aria-hidden="true">
+      <button
+        aria-label={`Open ${record.climber_display_name || record.climber}'s profile`}
+        className={styles.avatar}
+        type="button"
+        onClick={() => onOpenBoulderer(record.climber)}
+      >
         {initials(record.climber_display_name)}
-      </div>
+      </button>
       <div className={styles.body}>
         <p className={styles.copy}>
           <button

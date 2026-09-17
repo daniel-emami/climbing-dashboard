@@ -52,9 +52,28 @@ export default function GradeChart({ title, gradeOrder, series }: GradeChartProp
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={chartData} barCategoryGap="22%" margin={{ top: 12, right: 12, left: -18, bottom: 0 }}>
           <CartesianGrid stroke="var(--color-chart-grid)" vertical={false} />
-          <XAxis dataKey="grade" tickLine={false} axisLine={false} />
-          <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-          <Tooltip cursor={{ fill: "var(--color-chart-hover)" }} />
+          <XAxis
+            dataKey="grade"
+            tick={{ fill: "var(--color-muted)" }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            allowDecimals={false}
+            tick={{ fill: "var(--color-muted)" }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <Tooltip
+            contentStyle={{
+              background: "var(--color-surface-subtle)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-control)",
+              color: "var(--color-text)"
+            }}
+            cursor={{ fill: "var(--color-chart-hover)" }}
+            labelStyle={{ color: "var(--color-heading)" }}
+          />
           {series.length > 1 && <Legend wrapperStyle={{ fontSize: "0.76rem", paddingTop: 8 }} />}
           {series.map((entry) => (
             <Bar

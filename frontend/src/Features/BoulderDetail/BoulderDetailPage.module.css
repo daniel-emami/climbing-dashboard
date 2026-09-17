@@ -401,7 +401,7 @@
 .ratingControl button.activeRating {
   border-color: var(--color-primary);
   background: var(--color-primary);
-  color: var(--color-surface);
+  color: var(--color-on-primary);
 }
 
 .ratingControl .clearRating {

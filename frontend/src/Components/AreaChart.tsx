@@ -29,9 +29,31 @@ export default function AreaChart({ data }: AreaChartProps) {
           margin={{ top: 12, right: 18, left: 42, bottom: 0 }}
         >
           <CartesianGrid stroke="var(--color-chart-grid)" horizontal={false} />
-          <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
-          <YAxis type="category" dataKey="area" width={78} tickLine={false} axisLine={false} />
-          <Tooltip cursor={{ fill: "var(--color-chart-hover)" }} />
+          <XAxis
+            type="number"
+            allowDecimals={false}
+            tick={{ fill: "var(--color-muted)" }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            type="category"
+            dataKey="area"
+            width={78}
+            tick={{ fill: "var(--color-muted)" }}
+            tickLine={false}
+            axisLine={false}
+          />
+          <Tooltip
+            contentStyle={{
+              background: "var(--color-surface-subtle)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-control)",
+              color: "var(--color-text)"
+            }}
+            cursor={{ fill: "var(--color-chart-hover)" }}
+            labelStyle={{ color: "var(--color-heading)" }}
+          />
           <Bar dataKey="count" fill="var(--color-chart-area)" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
