@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { exportBoulders, fetchBoulderDetail } from "./Api/boulderApi";
 import { fetchBoulderSuggestions, type BoulderSuggestions } from "./Api/suggestionsApi";
 import AppHeader from "./Components/AppHeader";
@@ -68,12 +68,6 @@ export default function App() {
     selectedBouldererUsername
   } = useHashRoute();
   const isFeedPage = activePage === "feed" && !selectedBoulder && !selectedBouldererUsername;
-
-  useLayoutEffect(() => {
-    if (isFeedPage) document.documentElement.dataset.feedTheme = "true";
-    else delete document.documentElement.dataset.feedTheme;
-    return () => { delete document.documentElement.dataset.feedTheme; };
-  }, [isFeedPage]);
 
   useEffect(() => {
     if (!isFeedPage) {
