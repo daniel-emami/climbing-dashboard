@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { exportBoulders } from "./Api/boulderApi";
+import { useEffect, useRef, useState } from "react";
+import { exportBoulders, fetchBoulderDetail } from "./Api/boulderApi";
+import { fetchBoulderSuggestions, type BoulderSuggestions } from "./Api/suggestionsApi";
 import AppHeader from "./Components/AppHeader";
 import DashboardControlRail from "./Components/DashboardControlRail";
 import DashboardPageContent from "./Components/DashboardPageContent";
@@ -12,6 +13,7 @@ import type {
   BoulderCreateRequest,
   BoulderIdentity,
   BoulderPageIdentity,
+  BoulderRecord,
   GradeField
 } from "./Types/boulderTypes";
 import { type DashboardPage } from "./Routing/hashRoutes";
@@ -19,6 +21,7 @@ import { useAuthSession } from "./Hooks/useAuthSession";
 import { useBouldererProfile } from "./Hooks/useBouldererProfile";
 import { useBoulders } from "./Hooks/useBoulders";
 import { useDashboardDerivedData } from "./Hooks/useDashboardDerivedData";
+import { useFeed } from "./Hooks/useFeed";
 import { useHashRoute } from "./Hooks/useHashRoute";
 import { useSelectedBoulderContent } from "./Hooks/useSelectedBoulderContent";
 import styles from "./App.module.css";
@@ -35,6 +38,13 @@ export default function App() {
   const [activePage, setActivePage] = useState<DashboardPage>("feed");
   const [selectedClimber, setSelectedClimber] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<BoulderSuggestions | null>(null);
+  const [suggestionsViewer, setSuggestionsViewer] = useState<string | null>(null);
+  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
+  const [detailData, setDetailData] = useState<{ records: BoulderRecord[]; grade_order: string[] } | null>(null);
+  const [loadedDetailKey, setLoadedDetailKey] = useState<string | null>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const suggestionsViewerRef = useRef("anonymous");
   const {
     closeBoulder: handleCloseBoulder,
     closeBoulderer: handleCloseBoulderer,
@@ -50,9 +60,11 @@ export default function App() {
     handleDeleteBoulder: deleteSavedBoulder,
     handleImportedBoulders,
     handleUpdateBoulder: updateSavedBoulder,
+    hasLoaded,
     isInitialLoading,
     isSaving,
-    loadStoredData
+    loadStoredData,
+    resetData
   } = useBoulders({ onError: setError });
 
   const {
@@ -65,10 +77,55 @@ export default function App() {
     isAuthSaving,
     setCurrentUser
   } = useAuthSession({
-    onDataRefresh: loadStoredData,
+    onDataRefresh: async () => {
+      resetData();
+      setSuggestions(null);
+      setLoadedDetailKey(null);
+      suggestionsViewerRef.current = "pending";
+    },
     onError: setError,
     onLogoutComplete: () => setSelectedClimber("")
   });
+
+  const {
+    feedData,
+    isFeedLoading,
+    invalidateFeed
+  } = useFeed({
+    active: activePage === "feed" && !selectedBoulder && !selectedBouldererUsername && !isAuthLoading,
+    viewerKey: isAuthLoading ? "pending" : String(currentUser?.id ?? "anonymous"),
+    onError: setError
+  });
+
+  useEffect(() => {
+    if (!isAuthLoading && !selectedBouldererUsername && !selectedBoulder && activePage !== "feed" && !hasLoaded && !isInitialLoading) {
+      void loadStoredData();
+    }
+  }, [activePage, hasLoaded, isAuthLoading, isInitialLoading, loadStoredData, selectedBoulder, selectedBouldererUsername]);
+
+  const detailKey = selectedBoulder
+    ? `${currentUser?.id ?? "anonymous"}:${selectedBoulder.name}:${selectedBoulder.area}:${selectedBoulder.sector}`
+    : null;
+  useEffect(() => {
+    if (!selectedBoulder || data || isAuthLoading || loadedDetailKey === detailKey) return;
+    let cancelled = false;
+    setIsDetailLoading(true);
+    fetchBoulderDetail(selectedBoulder)
+      .then((payload) => {
+        if (!cancelled) {
+          setDetailData(payload);
+          setLoadedDetailKey(detailKey);
+          setError(null);
+        }
+      })
+      .catch((unknownError: unknown) => {
+        if (!cancelled) setError(unknownError instanceof Error ? unknownError.message : "Unknown boulder error");
+      })
+      .finally(() => {
+        if (!cancelled) setIsDetailLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [data, detailKey, isAuthLoading, loadedDetailKey, selectedBoulder]);
 
   const {
     handleSaveBouldererProfile,
@@ -77,7 +134,11 @@ export default function App() {
     selectedBouldererProfile
   } = useBouldererProfile({
     currentUser,
-    onDataRefresh: loadStoredData,
+    onDataRefresh: async () => {
+      if (hasLoaded) await loadStoredData();
+      invalidateFeed();
+      setLoadedDetailKey(null);
+    },
     onError: setError,
     selectedUsername: selectedBouldererUsername,
     setCurrentUser
@@ -127,16 +188,47 @@ export default function App() {
     }
   }, [knownClimbers, selectedClimber]);
 
-  const handleAddBoulder = (request: BoulderCreateRequest) =>
-    saveBoulder(request, currentUser?.username ?? null);
+  const handleAddBoulder = async (request: BoulderCreateRequest) => {
+    await saveBoulder(request, currentUser?.username ?? null, Boolean(data));
+    invalidateFeed();
+    setSuggestions(null);
+  };
 
   const handleUpdateBoulder = async (
     original: BoulderIdentity,
     boulder: BoulderCreateRequest
-  ) => updateSavedBoulder(original, boulder, currentUser?.username ?? null);
+  ) => {
+    await updateSavedBoulder(original, boulder, currentUser?.username ?? null);
+    invalidateFeed();
+    setSuggestions(null);
+  };
 
-  const handleDeleteBoulder = (request: BoulderIdentity) =>
-    deleteSavedBoulder(request, currentUser?.username ?? null);
+  const handleDeleteBoulder = async (request: BoulderIdentity) => {
+    await deleteSavedBoulder(request, currentUser?.username ?? null);
+    invalidateFeed();
+    setSuggestions(null);
+  };
+
+  const loadSuggestions = async () => {
+    const viewer = String(currentUser?.id ?? "anonymous");
+    suggestionsViewerRef.current = viewer;
+    if (data || isSuggestionsLoading || (suggestions && suggestionsViewer === viewer)) return;
+    setIsSuggestionsLoading(true);
+    try {
+      const payload = await fetchBoulderSuggestions();
+      if (suggestionsViewerRef.current === viewer) {
+        setSuggestions(payload);
+        setSuggestionsViewer(viewer);
+      }
+    } catch (unknownError: unknown) {
+      setError(unknownError instanceof Error ? unknownError.message : "Unknown suggestions error");
+    } finally {
+      setIsSuggestionsLoading(false);
+    }
+  };
+  const visibleSuggestions = suggestionsViewer === String(currentUser?.id ?? "anonymous")
+    ? suggestions
+    : null;
 
   const handleOpenDashboardHome = () => {
     setActivePage("feed");
@@ -192,12 +284,12 @@ export default function App() {
             />
           )}
         </>
-      ) : selectedBoulder && data && !isInitialLoading ? (
+      ) : selectedBoulder ? ((data && !isInitialLoading) || (detailData && loadedDetailKey === detailKey) ? (
         <>
           {error && <ErrorState message={error} />}
           <BoulderDetailPage
             identity={selectedBoulder}
-            gradeOrder={data.grade_order}
+            gradeOrder={data?.grade_order ?? detailData?.grade_order ?? []}
             comments={selectedBoulderComments}
             isSaving={isSaving}
             isCommentsLoading={isCommentsLoading}
@@ -207,18 +299,29 @@ export default function App() {
             isMediaLoading={isMediaLoading}
             isMediaSaving={isMediaSaving}
             media={selectedBoulderMedia}
-            records={selectedBoulderRecords}
+            records={data ? selectedBoulderRecords : detailData?.records ?? []}
             onAddComment={handleAddBoulderComment}
             onBack={handleCloseBoulder}
             onDeleteComment={handleDeleteBoulderComment}
-            onDeleteMedia={handleDeleteBoulderMedia}
+            onDeleteMedia={async (mediaId) => {
+              await handleDeleteBoulderMedia(mediaId);
+              invalidateFeed();
+            }}
             onOpenBoulderer={handleOpenBoulderer}
-            onUploadVideo={handleUploadBoulderVideo}
+            onUploadVideo={async (request) => {
+              await handleUploadBoulderVideo(request);
+              invalidateFeed();
+            }}
             onUpdateComment={handleUpdateBoulderComment}
             onUpdate={handleUpdateBoulder}
           />
         </>
       ) : (
+        <>
+          {error && <ErrorState message={error} />}
+          {(isInitialLoading || isDetailLoading) && <LoadingState />}
+        </>
+      )) : (
         <>
           {visibleData && !isInitialLoading && (
             <DashboardToolbar
@@ -251,17 +354,22 @@ export default function App() {
               }}
               importPanelProps={{
                 currentUsername: currentUser?.username ?? null,
-                onImported: handleImportedBoulders,
+                onImported: (payload) => {
+                  handleImportedBoulders(payload);
+                  invalidateFeed();
+                  setSuggestions(null);
+                },
                 onError: setError
               }}
               boulderFormProps={{
                 isSaving,
-                knownAreas,
-                knownGrades,
-                knownSectors,
+                knownAreas: data ? knownAreas : visibleSuggestions?.areas ?? [],
+                knownGrades: data ? knownGrades : visibleSuggestions?.grades ?? [],
+                knownSectors: data ? knownSectors : visibleSuggestions?.sectors ?? [],
                 currentDisplayName: currentUser?.display_name ?? null,
                 currentUsername: currentUser?.username ?? null,
-                onSubmit: handleAddBoulder
+                onSubmit: handleAddBoulder,
+                onSuggestionsNeeded: () => { void loadSuggestions(); }
               }}
             />
 
@@ -272,12 +380,15 @@ export default function App() {
               currentDisplayName={currentUser?.display_name ?? null}
               currentUsername={currentUser?.username ?? null}
               error={error}
+              feedItems={feedData?.items ?? null}
               gradeChartSeries={gradeChartSeries}
               gradeChartTitle={gradeChartTitle}
               isInitialLoading={isInitialLoading}
+              isFeedLoading={isFeedLoading}
               isSaving={isSaving}
               onDeleteBoulder={handleDeleteBoulder}
               onError={setError}
+              onRefreshFeed={invalidateFeed}
               onOpenBoulder={handleOpenBoulder}
               onOpenBoulderer={handleOpenBoulderer}
               onUpdateBoulder={handleUpdateBoulder}

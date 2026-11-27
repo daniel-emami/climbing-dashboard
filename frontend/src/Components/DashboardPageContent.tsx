@@ -4,6 +4,7 @@ import ErrorState from "./ErrorState";
 import GradeChart, { type GradeChartSeries } from "./GradeChart";
 import LoadingState from "./LoadingState";
 import ActivityFeed from "../Features/ActivityFeed";
+import type { FeedItem } from "../Api/feedApi";
 import { BoulderTable } from "../Features/Logbook";
 import type { DashboardPage } from "../Routing/hashRoutes";
 import type {
@@ -22,12 +23,15 @@ type DashboardPageContentProps = {
   currentDisplayName: string | null;
   currentUsername: string | null;
   error: string | null;
+  feedItems: FeedItem[] | null;
   gradeChartSeries: GradeChartSeries[];
   gradeChartTitle: string;
   isInitialLoading: boolean;
+  isFeedLoading: boolean;
   isSaving: boolean;
   onDeleteBoulder: (request: BoulderIdentity) => Promise<void>;
   onError: (message: string | null) => void;
+  onRefreshFeed: () => void;
   onOpenBoulder: (identity: BoulderPageIdentity) => void;
   onOpenBoulderer: (username: string) => void;
   onUpdateBoulder: (
@@ -44,12 +48,15 @@ export default function DashboardPageContent({
   currentDisplayName,
   currentUsername,
   error,
+  feedItems,
   gradeChartSeries,
   gradeChartTitle,
   isInitialLoading,
+  isFeedLoading,
   isSaving,
   onDeleteBoulder,
   onError,
+  onRefreshFeed,
   onOpenBoulder,
   onOpenBoulderer,
   onUpdateBoulder,
@@ -57,21 +64,20 @@ export default function DashboardPageContent({
 }: DashboardPageContentProps) {
   return (
     <section className={styles.dashboardMain} aria-label="Climbing Dashboard">
-      {isInitialLoading && <LoadingState />}
+      {(isInitialLoading || isFeedLoading) && <LoadingState />}
       {error && <ErrorState message={error} />}
-      {visibleData && !isInitialLoading && (
+      {activePage === "feed" && feedItems && !isFeedLoading && (
+        <ActivityFeed
+          currentUsername={currentUsername}
+          items={feedItems}
+          onError={onError}
+          onRefresh={onRefreshFeed}
+          onOpenBoulder={onOpenBoulder}
+          onOpenBoulderer={onOpenBoulderer}
+        />
+      )}
+      {activePage !== "feed" && visibleData && !isInitialLoading && (
         <>
-          {activePage === "feed" && (
-            <ActivityFeed
-              currentUsername={currentUsername}
-              selectedClimber=""
-              records={visibleData.records}
-              onError={onError}
-              onOpenBoulder={onOpenBoulder}
-              onOpenBoulderer={onOpenBoulderer}
-            />
-          )}
-
           {activePage === "logbook" && (
             <>
               <GradeChart

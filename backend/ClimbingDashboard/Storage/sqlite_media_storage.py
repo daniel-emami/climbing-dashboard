@@ -86,14 +86,16 @@ class SqliteMediaStorage:
         self,
         limit: int,
         private_user_id: int | None = None,
+        feed_order: bool = False,
     ) -> list[BoulderMedia]:
         """Read recent public media plus the selected user's private media."""
 
         clean_limit = max(1, min(limit, 100))
+        tie_order = "('video-' || media.id)" if feed_order else "media.id"
         try:
             with self._connect() as connection:
                 rows = connection.execute(
-                    """
+                    f"""
                     SELECT
                         media.id,
                         problems.name,
@@ -132,7 +134,7 @@ class SqliteMediaStorage:
                             ascents.visibility = 'public'
                             OR (? IS NOT NULL AND media.user_id = ?)
                         )
-                    ORDER BY media.created_at DESC, media.id DESC
+                    ORDER BY media.created_at DESC, {tie_order} DESC
                     LIMIT ?
                     """,
                     (private_user_id, private_user_id, clean_limit),

@@ -1,23 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   addAscentComment,
   deleteAscentComment,
-  fetchAscentCommentsBatch,
   updateAscentComment
 } from "../../Api/ascentCommentApi";
-import { fetchRecentBoulderMedia } from "../../Api/mediaApi";
-import type {
-  AscentComment,
-  BoulderMedia,
-  BoulderPageIdentity,
-  BoulderRecord
-} from "../../Types/boulderTypes";
-import {
-  ascentTimestamp,
-  boulderKey,
-  recordKey,
-  timestamp
-} from "../../Utilities/activityFeedUtils";
+import type { FeedItem } from "../../Api/feedApi";
+import type { AscentComment, BoulderPageIdentity } from "../../Types/boulderTypes";
 import sharedStyles from "../../Styles/Shared.module.css";
 import ActivityAscentFeedItem from "./ActivityAscentFeedItem";
 import styles from "./ActivityFeed.module.css";
@@ -25,49 +13,25 @@ import ActivityVideoFeedItem from "./ActivityVideoFeedItem";
 
 type ActivityFeedProps = {
   currentUsername: string | null;
-  selectedClimber: string;
-  records: BoulderRecord[];
+  items: FeedItem[];
   onError: (message: string) => void;
+  onRefresh: () => void;
   onOpenBoulder: (identity: BoulderPageIdentity) => void;
   onOpenBoulderer: (username: string) => void;
 };
-
-type AscentFeedItem = {
-  kind: "ascent";
-  key: string;
-  timestamp: number;
-  record: BoulderRecord;
-};
-
-type VideoFeedItem = {
-  kind: "video";
-  key: string;
-  timestamp: number;
-  media: BoulderMedia;
-};
-
-type FeedItem = AscentFeedItem | VideoFeedItem;
-
-const FEED_LIMIT = 30;
-const RECENT_MEDIA_LIMIT = 60;
 
 type CommentDraft = {
   body: string;
 };
 
-function compareFeedItems(left: FeedItem, right: FeedItem): number {
-  return right.timestamp - left.timestamp || right.key.localeCompare(left.key);
-}
-
 export default function ActivityFeed({
   currentUsername,
-  selectedClimber,
-  records,
+  items,
   onError,
+  onRefresh,
   onOpenBoulder,
   onOpenBoulderer
 }: ActivityFeedProps) {
-  const [recentMedia, setRecentMedia] = useState<BoulderMedia[]>([]);
   const [commentsByAscentId, setCommentsByAscentId] = useState<Record<number, AscentComment[]>>(
     {}
   );
@@ -77,103 +41,14 @@ export default function ActivityFeed({
   const [editingDraft, setEditingDraft] = useState<CommentDraft>({ body: "" });
 
   useEffect(() => {
-    let ignoreResult = false;
-    fetchRecentBoulderMedia(RECENT_MEDIA_LIMIT)
-      .then((payload) => {
-        if (!ignoreResult) {
-          setRecentMedia(payload.media);
-        }
-      })
-      .catch((unknownError: unknown) => {
-        if (!ignoreResult) {
-          onError(unknownError instanceof Error ? unknownError.message : "Unknown media error");
-        }
-      });
-
-    return () => {
-      ignoreResult = true;
-    };
-  }, [currentUsername, onError]);
-
-  const visibleBoulderKeys = useMemo(
-    () =>
-      new Set(
-        records.map((record) => boulderKey(record.name, record.area, record.sector))
-      ),
-    [records]
-  );
-
-  const visibleMedia = useMemo(
-    () =>
-      recentMedia.filter(
-        (media) =>
-          visibleBoulderKeys.has(boulderKey(media.boulder_name, media.area, media.sector)) &&
-          (!selectedClimber || media.climber === selectedClimber)
-      ),
-    [recentMedia, selectedClimber, visibleBoulderKeys]
-  );
-
-  const feedItems = useMemo<FeedItem[]>(
-    () =>
-      [
-        ...records.map<AscentFeedItem>((record) => ({
-          kind: "ascent",
-          key: `ascent-${recordKey(record)}`,
-          timestamp: ascentTimestamp(record),
-          record
-        })),
-        ...visibleMedia.map<VideoFeedItem>((media) => ({
-          kind: "video",
-          key: `video-${media.id}`,
-          timestamp: timestamp(media.created_at),
-          media
-        }))
-      ]
-        .sort(compareFeedItems)
-        .slice(0, FEED_LIMIT),
-    [records, visibleMedia]
-  );
-
-  const feedAscentIds = useMemo(
-    () =>
-      feedItems
-        .filter((item): item is AscentFeedItem => item.kind === "ascent")
-        .map((item) => item.record.ascent_id)
-        .filter((ascentId): ascentId is number => ascentId !== null && ascentId > 0),
-    [feedItems]
-  );
-
-  useEffect(() => {
-    if (feedAscentIds.length === 0) {
-      setCommentsByAscentId({});
-      return;
+    const nextComments: Record<number, AscentComment[]> = {};
+    for (const item of items) {
+      if (item.kind === "ascent" && item.record.ascent_id !== null) {
+        nextComments[item.record.ascent_id] = item.comments;
+      }
     }
-
-    let ignoreResult = false;
-    fetchAscentCommentsBatch(feedAscentIds)
-      .then((payload) => {
-        if (ignoreResult) {
-          return;
-        }
-        const nextComments: Record<number, AscentComment[]> = {};
-        for (const ascentId of feedAscentIds) {
-          nextComments[ascentId] =
-            payload.comments_by_ascent_id[String(ascentId)] ?? [];
-        }
-        setCommentsByAscentId(nextComments);
-      })
-      .catch((unknownError: unknown) => {
-        if (!ignoreResult) {
-          onError(
-            unknownError instanceof Error ? unknownError.message : "Unknown ascent comment error"
-          );
-        }
-      });
-
-    return () => {
-      ignoreResult = true;
-    };
-  }, [feedAscentIds, onError]);
+    setCommentsByAscentId(nextComments);
+  }, [items]);
 
   const draftForAscent = (ascentId: number): CommentDraft =>
     draftsByAscentId[ascentId] ?? { body: "" };
@@ -209,6 +84,7 @@ export default function ActivityFeed({
     try {
       const payload = await addAscentComment({ ascent_id: ascentId, body });
       setCommentsByAscentId((current) => ({ ...current, [ascentId]: payload.comments }));
+      onRefresh();
       updateDraft(ascentId, { body: "" });
     } catch (unknownError: unknown) {
       onError(unknownError instanceof Error ? unknownError.message : "Unknown ascent comment error");
@@ -239,6 +115,7 @@ export default function ActivityFeed({
         ...current,
         [comment.ascent_id]: payload.comments
       }));
+      onRefresh();
       cancelEditingComment();
     } catch (unknownError: unknown) {
       onError(unknownError instanceof Error ? unknownError.message : "Unknown ascent comment error");
@@ -261,6 +138,7 @@ export default function ActivityFeed({
         ...current,
         [comment.ascent_id]: payload.comments
       }));
+      onRefresh();
       if (editingCommentId === comment.id) {
         cancelEditingComment();
       }
@@ -277,16 +155,16 @@ export default function ActivityFeed({
         <span className={sharedStyles.sectionKicker}>Feed</span>
         <h2>Latest activity</h2>
       </div>
-      {feedItems.length === 0 ? (
+      {items.length === 0 ? (
         <div className={sharedStyles.emptyDetailSlot}>-</div>
       ) : (
         <ol className={styles.list}>
-          {feedItems.map((item) => {
+          {items.map((item) => {
             if (item.kind === "video") {
               return (
                 <ActivityVideoFeedItem
-                  itemKey={item.key}
-                  key={item.key}
+                  itemKey={`video-${item.media.id}`}
+                  key={`video-${item.media.id}`}
                   media={item.media}
                   onOpenBoulder={onOpenBoulder}
                   onOpenBoulderer={onOpenBoulderer}
@@ -303,8 +181,8 @@ export default function ActivityFeed({
                 editingCommentId={editingCommentId}
                 editingDraftBody={editingDraft.body}
                 isSavingComment={ascentId !== null && savingAscentIds.has(ascentId)}
-                itemKey={item.key}
-                key={item.key}
+                itemKey={`ascent-${ascentId}`}
+                key={`ascent-${ascentId}`}
                 record={item.record}
                 onCancelEditingComment={cancelEditingComment}
                 onChangeDraft={(nextAscentId, body) => updateDraft(nextAscentId, { body })}

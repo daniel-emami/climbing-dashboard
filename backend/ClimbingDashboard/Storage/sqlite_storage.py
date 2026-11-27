@@ -27,10 +27,15 @@ class SqliteStorage(BaseStorage):
         self.comment_storage = SqliteCommentStorage(self.database_path)
         self.media_storage = SqliteMediaStorage(self.database_path)
 
-    def read_boulders(self, private_user_id: int | None = None) -> list[BoulderRecord]:
+    def read_boulders(
+        self,
+        private_user_id: int | None = None,
+        feed_limit: int | None = None,
+        boulder_identity: tuple[str, str, str] | None = None,
+    ) -> list[BoulderRecord]:
         """Read all stored ascent records joined with their boulder problem."""
 
-        return self.boulder_storage.read_boulders(private_user_id)
+        return self.boulder_storage.read_boulders(private_user_id, feed_limit, boulder_identity)
 
     def append_boulder(
         self,
@@ -181,10 +186,11 @@ class SqliteStorage(BaseStorage):
         self,
         limit: int,
         private_user_id: int | None = None,
+        feed_order: bool = False,
     ) -> list[BoulderMedia]:
         """Read recent public media plus the selected user's private media."""
 
-        return self.media_storage.read_recent_boulder_media(limit, private_user_id)
+        return self.media_storage.read_recent_boulder_media(limit, private_user_id, feed_order)
 
     def read_boulder_media_by_id(
         self,

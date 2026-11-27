@@ -13,7 +13,12 @@ class BaseStorage(ABC):
     """Interface for boulder persistence implementations."""
 
     @abstractmethod
-    def read_boulders(self, private_user_id: int | None = None) -> list[BoulderRecord]:
+    def read_boulders(
+        self,
+        private_user_id: int | None = None,
+        feed_limit: int | None = None,
+        boulder_identity: tuple[str, str, str] | None = None,
+    ) -> list[BoulderRecord]:
         """Read all stored boulder records."""
 
     @abstractmethod
@@ -138,6 +143,7 @@ class BaseStorage(ABC):
         self,
         limit: int,
         private_user_id: int | None = None,
+        feed_order: bool = False,
     ) -> list[BoulderMedia]:
         """Read recent public media plus a selected user's private media."""
 

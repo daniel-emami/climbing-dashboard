@@ -34,13 +34,14 @@ class BoulderService:
         self,
         request: BoulderCreateRequest,
         current_user: UserAccount,
-    ) -> BouldersPayload:
+        dashboard: bool = True,
+    ) -> dict[str, object]:
         record = self._record_from_request(request, current_user)
         try:
             self.storage.append_boulder(record, current_user.id)
         except StorageError as exc:
             raise ApiDataError(f"Could not save boulder: {exc}") from exc
-        return self.get_boulders(current_user)
+        return self.get_boulders(current_user) if dashboard else {"ok": True}
 
     def update_boulder(
         self,

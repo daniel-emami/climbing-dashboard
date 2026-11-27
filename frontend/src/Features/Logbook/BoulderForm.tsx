@@ -26,6 +26,7 @@ type BoulderFormProps = {
   currentUsername: string | null;
   knownSectors: string[];
   onSubmit: (request: BoulderCreateRequest) => Promise<void>;
+  onSuggestionsNeeded: () => void;
 };
 
 export default function BoulderForm({
@@ -35,7 +36,8 @@ export default function BoulderForm({
   currentDisplayName,
   currentUsername,
   knownSectors,
-  onSubmit
+  onSubmit,
+  onSuggestionsNeeded
 }: BoulderFormProps) {
   const [form, setForm] = useState<BoulderCreateRequest>(EMPTY_FORM);
 
@@ -69,7 +71,7 @@ export default function BoulderForm({
   };
 
   return (
-    <form className={sharedStyles.controlPanel} onSubmit={(event) => void handleSubmit(event)}>
+    <form className={sharedStyles.controlPanel} onFocusCapture={onSuggestionsNeeded} onSubmit={(event) => void handleSubmit(event)}>
       <div className={sharedStyles.controlHeading}>
         <span>Log climb</span>
         <strong>New Boulder</strong>

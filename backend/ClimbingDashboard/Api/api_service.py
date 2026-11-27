@@ -19,10 +19,14 @@ from ClimbingDashboard.Api.api_models import (
 from ClimbingDashboard.Api.boulder_service import BoulderService
 from ClimbingDashboard.Api.comment_service import CommentService
 from ClimbingDashboard.Api.dashboard_stats_service import DashboardStatsService
+from ClimbingDashboard.Api.feed_service import FeedService
 from ClimbingDashboard.Api.media_service import MediaService
 from ClimbingDashboard.Config.constants import (
     DEFAULT_MAX_VIDEO_UPLOAD_BYTES,
+    GRADE_ORDER,
 )
+from ClimbingDashboard.Exceptions.api_data_error import ApiDataError
+from ClimbingDashboard.Exceptions.storage_error import StorageError
 from ClimbingDashboard.Models.readable_media_file import ReadableMediaFile
 from ClimbingDashboard.Models.user_account import UserAccount
 from ClimbingDashboard.Storage.base_video_transcoder import BaseVideoTranscoder
@@ -43,9 +47,7 @@ class ApiService:
         selected_database_path = Path(database_path)
         self.storage = SqliteStorage(selected_database_path)
         self.media_file_storage = LocalMediaFileStorage(
-            uploads_path
-            if uploads_path is not None
-            else selected_database_path.parent / "uploads",
+            uploads_path if uploads_path is not None else selected_database_path.parent / "uploads",
             max_video_upload_bytes,
             video_transcoder,
         )
@@ -53,6 +55,7 @@ class ApiService:
             location_normalizer if location_normalizer is not None else LocationNormalizer()
         )
         self.dashboard_stats_service = DashboardStatsService()
+        self.feed_service = FeedService(self.storage)
         self.boulder_service = BoulderService(
             self.storage,
             self.location_normalizer,
@@ -68,12 +71,43 @@ class ApiService:
     def get_boulders(self, current_user: UserAccount | None = None) -> BouldersPayload:
         return self.boulder_service.get_boulders(current_user)
 
+    def get_feed(self, current_user: UserAccount | None = None) -> dict[str, object]:
+        return self.feed_service.get_feed(current_user)
+
+    def get_boulder_suggestions(self, current_user: UserAccount | None = None) -> dict[str, object]:
+        try:
+            records = self.storage.read_boulders(current_user.id if current_user else None)
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read boulder suggestions: {exc}") from exc
+        grades = {record.own_grade for record in records}
+        return {
+            "areas": sorted({record.area for record in records if record.area}),
+            "sectors": sorted({record.sector for record in records if record.sector}),
+            "grades": [grade for grade in GRADE_ORDER if grade in grades],
+        }
+
+    def get_boulder_detail(
+        self, name: str, area: str, sector: str, current_user: UserAccount | None = None
+    ) -> dict[str, object]:
+        try:
+            records = self.storage.read_boulders(
+                current_user.id if current_user else None,
+                boulder_identity=(name, area, sector),
+            )
+        except StorageError as exc:
+            raise ApiDataError(f"Could not read boulder detail: {exc}") from exc
+        return {
+            "records": [record.to_payload() for record in records],
+            "grade_order": list(GRADE_ORDER),
+        }
+
     def save_boulder(
         self,
         request: BoulderCreateRequest,
         current_user: UserAccount,
-    ) -> BouldersPayload:
-        return self.boulder_service.save_boulder(request, current_user)
+        dashboard: bool = True,
+    ) -> dict[str, object]:
+        return self.boulder_service.save_boulder(request, current_user, dashboard)
 
     def update_boulder(
         self,

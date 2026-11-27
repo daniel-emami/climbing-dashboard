@@ -59,9 +59,44 @@ def get_boulders(request: Request) -> dict[str, object]:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.get("/api/feed")
+def get_feed(request: Request) -> dict[str, object]:
+    """Return one viewer's latest ascents and videos with ascent comments."""
+
+    try:
+        return get_api_service(request).get_feed(current_user_from_request(request))
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/api/boulders/suggestions")
+def get_boulder_suggestions(request: Request) -> dict[str, object]:
+    """Return form suggestions for the current viewer."""
+
+    try:
+        return get_api_service(request).get_boulder_suggestions(current_user_from_request(request))
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/api/boulders/detail")
+def get_boulder_detail(
+    request: Request, name: str, area: str, sector: str = ""
+) -> dict[str, object]:
+    """Return visible ascents for one boulder problem."""
+
+    try:
+        return get_api_service(request).get_boulder_detail(
+            name, area, sector, current_user_from_request(request)
+        )
+    except ApiDataError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @router.post("/api/boulders")
 def add_boulder(
     request: Request,
+    dashboard: bool = True,
     payload: dict[str, Any] = JSON_BODY,
 ) -> dict[str, object]:
     """Append a climbed boulder to the database."""
@@ -69,7 +104,7 @@ def add_boulder(
     try:
         current_user = require_current_user(request)
         boulder = BoulderCreateRequest.from_payload(payload)
-        return get_api_service(request).save_boulder(boulder, current_user)
+        return get_api_service(request).save_boulder(boulder, current_user, dashboard)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ApiDataError as exc:

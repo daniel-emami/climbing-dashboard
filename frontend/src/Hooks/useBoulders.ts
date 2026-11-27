@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import {
   addBoulder,
@@ -18,28 +18,43 @@ type UseBouldersOptions = {
 
 export function useBoulders({ onError }: UseBouldersOptions) {
   const [data, setData] = useState<BouldersResponse | null>(null);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const requestGeneration = useRef(0);
 
   const loadStoredData = useCallback(async () => {
+    const generation = requestGeneration.current;
+    setIsInitialLoading(true);
     try {
       const payload = await fetchBoulders();
-      setData(payload);
-      onError(null);
+      if (generation === requestGeneration.current) {
+        setData(payload);
+        onError(null);
+      }
     } catch (unknownError: unknown) {
-      onError(unknownError instanceof Error ? unknownError.message : "Unknown error");
+      if (generation === requestGeneration.current) {
+        onError(unknownError instanceof Error ? unknownError.message : "Unknown error");
+      }
     } finally {
-      setIsInitialLoading(false);
+      if (generation === requestGeneration.current) {
+        setHasLoaded(true);
+        setIsInitialLoading(false);
+      }
     }
   }, [onError]);
 
-  useEffect(() => {
-    void loadStoredData();
-  }, [loadStoredData]);
+  const resetData = () => {
+    requestGeneration.current += 1;
+    setData(null);
+    setHasLoaded(false);
+    setIsInitialLoading(false);
+  };
 
   const handleAddBoulder = async (
     request: BoulderCreateRequest,
-    currentUsername: string | null
+    currentUsername: string | null,
+    dashboard = true
   ) => {
     if (!currentUsername) {
       onError("You must be logged in to save boulders.");
@@ -47,8 +62,11 @@ export function useBoulders({ onError }: UseBouldersOptions) {
     }
     setIsSaving(true);
     try {
-      const payload = await addBoulder({ ...request, climber: currentUsername });
-      setData(payload);
+      const payload = await addBoulder({ ...request, climber: currentUsername }, dashboard);
+      if ("records" in payload) {
+        setData(payload);
+        setHasLoaded(true);
+      }
       onError(null);
     } catch (unknownError: unknown) {
       onError(unknownError instanceof Error ? unknownError.message : "Unknown error");
@@ -74,6 +92,7 @@ export function useBoulders({ onError }: UseBouldersOptions) {
         boulder: { ...boulder, climber: currentUsername }
       });
       setData(payload);
+      setHasLoaded(true);
       onError(null);
     } catch (unknownError: unknown) {
       onError(unknownError instanceof Error ? unknownError.message : "Unknown error");
@@ -95,6 +114,7 @@ export function useBoulders({ onError }: UseBouldersOptions) {
     try {
       const payload = await deleteBoulder(request);
       setData(payload);
+      setHasLoaded(true);
       onError(null);
     } catch (unknownError: unknown) {
       onError(unknownError instanceof Error ? unknownError.message : "Unknown error");
@@ -106,6 +126,7 @@ export function useBoulders({ onError }: UseBouldersOptions) {
 
   const handleImportedBoulders = (payload: BouldersResponse) => {
     setData(payload);
+    setHasLoaded(true);
     onError(null);
   };
 
@@ -116,7 +137,9 @@ export function useBoulders({ onError }: UseBouldersOptions) {
     handleImportedBoulders,
     handleUpdateBoulder,
     isInitialLoading,
+    hasLoaded,
     isSaving,
-    loadStoredData
+    loadStoredData,
+    resetData
   };
 }

@@ -26,3 +26,6 @@ data/uploads/
 # Local editor folders
 .idea/
 .vscode/
+
+# Agents & Skills
+.agents/

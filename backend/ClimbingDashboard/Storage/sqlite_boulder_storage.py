@@ -18,13 +18,36 @@ class SqliteBoulderStorage:
     def __init__(self, database_path: str | Path) -> None:
         self.database_path = Path(database_path)
 
-    def read_boulders(self, private_user_id: int | None = None) -> list[BoulderRecord]:
+    def read_boulders(
+        self,
+        private_user_id: int | None = None,
+        feed_limit: int | None = None,
+        boulder_identity: tuple[str, str, str] | None = None,
+    ) -> list[BoulderRecord]:
         """Read all stored ascent records joined with their boulder problem."""
 
+        order = (
+            "ORDER BY COALESCE(ascents.climbed_on, ascents.created_at) DESC, "
+            "('ascent-' || ascents.id) DESC LIMIT ?"
+            if feed_limit is not None
+            else "ORDER BY ascents.id"
+        )
+        identity_filter = (
+            "AND lower(trim(problems.name)) = lower(trim(?)) "
+            "AND lower(trim(problems.area)) = lower(trim(?)) "
+            "AND lower(trim(problems.sector)) = lower(trim(?))"
+            if boulder_identity
+            else ""
+        )
+        params: tuple[object, ...] = (private_user_id, private_user_id)
+        if boulder_identity:
+            params += boulder_identity
+        if feed_limit is not None:
+            params += (feed_limit,)
         try:
             with self._connect() as connection:
                 rows = connection.execute(
-                    """
+                    f"""
                     SELECT
                         ascents.id,
                         problems.name,
@@ -53,11 +76,12 @@ class SqliteBoulderStorage:
                                 AND lower(users.username) = lower(ascents.climber)
                             )
                         )
-                    WHERE ascents.visibility = 'public'
-                        OR (? IS NOT NULL AND ascents.user_id = ?)
-                    ORDER BY ascents.id
+                    WHERE (ascents.visibility = 'public'
+                        OR (? IS NOT NULL AND ascents.user_id = ?))
+                    {identity_filter}
+                    {order}
                     """,
-                    (private_user_id, private_user_id),
+                    params,
                 ).fetchall()
         except sqlite3.Error as exc:
             raise StorageError(f"Failed to read ascents: {exc}") from exc
