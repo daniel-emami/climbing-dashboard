@@ -23,6 +23,11 @@
   flex: none;
 }
 
+.shortActionLabel,
+.compactIcon {
+  display: none;
+}
+
 .importButton,
 .signInButton {
   min-height: 38px;
@@ -112,6 +117,48 @@
 
   .addAscentButton {
     display: none;
+  }
+
+  .signedIn .actions {
+    flex-wrap: nowrap;
+    gap: 4px;
+    max-width: calc(100vw - 112px);
+  }
+
+  .signedIn .fullActionLabel {
+    display: none;
+  }
+
+  .signedIn .shortActionLabel {
+    display: inline;
+  }
+
+  .signedIn .compactIcon {
+    display: block;
+    width: 18px;
+    height: 18px;
+  }
+
+  .signedIn .signInButton {
+    display: inline-grid;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    place-items: center;
+    padding: 0;
+  }
+
+  .signedIn .importButton {
+    min-height: 40px;
+    flex: none;
+    padding: 0 8px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .signedIn .profileButton {
+    width: 40px;
+    padding: 3px;
   }
 }
 

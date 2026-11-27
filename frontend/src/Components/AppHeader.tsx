@@ -41,7 +41,7 @@ export default function AppHeader({
   const isDashboard = !isOnBoulderPage && !isOnBouldererPage;
 
   return (
-    <header className={`${styles.workspaceHeader} ${headerStyles.header}`}>
+    <header className={`${styles.workspaceHeader} ${headerStyles.header} ${currentUser ? headerStyles.signedIn : ""}`}>
       <button aria-label="Tick Tracker home" className={`${styles.brandButton} ${headerStyles.brand}`} type="button" onClick={onOpenDashboardHome}>
         <span className={styles.brandMark} aria-hidden="true">
           TT
@@ -73,17 +73,25 @@ export default function AppHeader({
       )}
 
       <div className={`${styles.headerAccount} ${headerStyles.accountActions} ${headerStyles.actions}`}>
-        <button className={headerStyles.importButton} type="button" onClick={(event) => onOpenImport(event.currentTarget)}>
-          Import TheTopo
+        <button aria-label="Import TheTopo" className={headerStyles.importButton} type="button" onClick={(event) => onOpenImport(event.currentTarget)}>
+          <span className={headerStyles.fullActionLabel}>Import TheTopo</span>
+          <span aria-hidden="true" className={headerStyles.shortActionLabel}>Import</span>
         </button>
         {currentUser?.is_admin && (
-          <button className={headerStyles.signInButton} disabled={isAuthSaving} type="button" onClick={(event) => onResetPassword(event.currentTarget)}>
-            Reset password
+          <button aria-label="Reset password" title="Reset password" className={headerStyles.signInButton} disabled={isAuthSaving} type="button" onClick={(event) => onResetPassword(event.currentTarget)}>
+            <span className={headerStyles.fullActionLabel}>Reset password</span>
+            <svg aria-hidden="true" className={headerStyles.compactIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="8" cy="8" r="5" />
+              <path d="m11.5 11.5 9 9M17 17l3-3M20 20l2-2" />
+            </svg>
           </button>
         )}
         {currentUser ? (
-          <button className={headerStyles.signInButton} disabled={isAuthSaving} type="button" onClick={() => { void onLogout().catch(() => {}); }}>
-            {isAuthSaving ? "Signing out..." : "Sign out"}
+          <button aria-label={isAuthSaving ? "Signing out..." : "Sign out"} title="Sign out" className={headerStyles.signInButton} disabled={isAuthSaving} type="button" onClick={() => { void onLogout().catch(() => {}); }}>
+            <span className={headerStyles.fullActionLabel}>{isAuthSaving ? "Signing out..." : "Sign out"}</span>
+            <svg aria-hidden="true" className={headerStyles.compactIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 4H4v16h6M14 8l4 4-4 4M8 12h12" />
+            </svg>
           </button>
         ) : (
           <button className={headerStyles.signInButton} disabled={isAuthLoading} onClick={(event) => onSignIn(event.currentTarget)} type="button">
