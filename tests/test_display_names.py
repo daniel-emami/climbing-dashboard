@@ -21,7 +21,7 @@ def test_display_name_is_public_while_username_remains_identity(tmp_path: Path) 
     dashboard = service.save_boulder(
         BoulderCreateRequest(
             name="Test Boulder",
-            grade_27crags="6a",
+            grade_thetopo="6a",
             guide_grade="6a",
             own_grade="6a",
             area="Test Area",

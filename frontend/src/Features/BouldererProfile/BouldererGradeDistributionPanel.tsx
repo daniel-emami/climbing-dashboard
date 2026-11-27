@@ -69,7 +69,7 @@ export default function BouldererGradeDistributionPanel({
         role="group"
         aria-label="Profile grade source"
       >
-        {(["grade_27crags", "guide_grade", "own_grade"] as GradeField[]).map((source) => (
+        {(["grade_thetopo", "guide_grade", "own_grade"] as GradeField[]).map((source) => (
           <button
             className={gradeSource === source ? sharedStyles.active : ""}
             key={source}

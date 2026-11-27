@@ -26,12 +26,16 @@ class BoulderMedia:
     user_id: int | None = None
     visibility: str = ASCENT_VISIBILITY_PRIVATE
     climber_display_name: str = ""
+    own_grade: str = ""
+    grade_thetopo: str = ""
 
     def to_payload(self) -> dict[str, object]:
         """Return a frontend-friendly representation."""
 
         return {
             "id": self.id,
+            "own_grade": self.own_grade,
+            "grade_thetopo": self.grade_thetopo,
             "boulder_name": self.boulder_name,
             "area": self.area,
             "sector": self.sector,

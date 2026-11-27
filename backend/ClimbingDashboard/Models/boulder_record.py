@@ -11,7 +11,7 @@ class BoulderRecord:
     """One climbed outdoor boulder."""
 
     name: str
-    grade_27crags: str
+    grade_thetopo: str
     guide_grade: str
     own_grade: str
     area: str
@@ -30,7 +30,7 @@ class BoulderRecord:
 
         return {
             "name": self.name,
-            "grade_27crags": self.grade_27crags,
+            "grade_thetopo": self.grade_thetopo,
             "guide_grade": self.guide_grade,
             "own_grade": self.own_grade,
             "area": self.area,

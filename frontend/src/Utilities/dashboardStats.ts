@@ -25,17 +25,17 @@ export function buildStats(records: BoulderRecord[], gradeOrder: string[]): Dash
     flash_rate: records.length === 0 ? 0 : flashCount / records.length,
     areas: areaCounts(records),
     grade_counts: {
-      grade_27crags: orderedGradeCounts(records, "grade_27crags", gradeOrder),
+      grade_thetopo: orderedGradeCounts(records, "grade_thetopo", gradeOrder),
       guide_grade: orderedGradeCounts(records, "guide_grade", gradeOrder),
       own_grade: orderedGradeCounts(records, "own_grade", gradeOrder)
     },
     area_counts_by_grade_source: {
-      grade_27crags: areaCounts(records, "grade_27crags"),
+      grade_thetopo: areaCounts(records, "grade_thetopo"),
       guide_grade: areaCounts(records, "guide_grade"),
       own_grade: areaCounts(records, "own_grade")
     },
     area_grade_matrix_by_grade_source: {
-      grade_27crags: areaGradeMatrix(records, "grade_27crags"),
+      grade_thetopo: areaGradeMatrix(records, "grade_thetopo"),
       guide_grade: areaGradeMatrix(records, "guide_grade"),
       own_grade: areaGradeMatrix(records, "own_grade")
     }
@@ -53,7 +53,7 @@ export function recordMatchesSearch(record: BoulderRecord, searchQuery: string):
     record.sector,
     record.climber,
     record.climber_display_name,
-    record.grade_27crags,
+    record.grade_thetopo,
     record.guide_grade,
     record.own_grade,
     record.climbed_on ?? "",

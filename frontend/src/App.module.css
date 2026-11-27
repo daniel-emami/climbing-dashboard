@@ -4,6 +4,10 @@
   padding: 22px;
 }
 
+.feedShell {
+  min-height: 100dvh;
+}
+
 .workspaceHeader {
   position: sticky;
   top: 0;
@@ -311,16 +315,15 @@
 
 .dashboardLayout {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
 
-.controlRail {
-  position: sticky;
-  top: 86px;
-  display: grid;
-  gap: 16px;
+.feedLayout {
+  display: block;
+  width: min(760px, 100%);
+  margin: 24px auto 0;
 }
 
 .dashboardMain {
@@ -330,10 +333,6 @@
 @media (max-width: 1050px) {
   .dashboardLayout {
     grid-template-columns: 1fr;
-  }
-
-  .controlRail {
-    position: static;
   }
 
   .headerAccount {

@@ -9,17 +9,24 @@ from ClimbingDashboard.Storage.sqlite_user_schema import ensure_users_schema
 
 
 class SqliteSchema:
-    """Creates the current SQLite schema used by the application."""
+    """Creates and upgrades the SQLite schema used by the application."""
 
     def __init__(self, database_path: str | Path) -> None:
         self.database_path = Path(database_path)
 
     def ensure_schema(self) -> None:
-        """Create the current tables when the local database is empty."""
+        """Create missing tables and upgrade existing databases without losing records."""
 
         try:
             with self._connect() as connection:
                 self._create_tables(connection)
+                columns = {
+                    row["name"] for row in connection.execute("PRAGMA table_info(ascents)")
+                }
+                if "grade_27crags" in columns and "grade_thetopo" not in columns:
+                    connection.execute(
+                        "ALTER TABLE ascents RENAME COLUMN grade_27crags TO grade_thetopo"
+                    )
         except sqlite3.Error as exc:
             raise StorageError(f"Failed to create SQLite schema: {exc}") from exc
 
@@ -53,7 +60,7 @@ class SqliteSchema:
                 boulder_id INTEGER NOT NULL,
                 user_id INTEGER,
                 climber TEXT NOT NULL DEFAULT '',
-                grade_27crags TEXT NOT NULL DEFAULT '',
+                grade_thetopo TEXT NOT NULL DEFAULT '',
                 guide_grade TEXT NOT NULL DEFAULT '',
                 own_grade TEXT NOT NULL DEFAULT '',
                 flash INTEGER NOT NULL DEFAULT 0,

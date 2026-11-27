@@ -238,8 +238,12 @@ for their owner, and direct file playback applies the same rule.
 Excel exports use this workbook shape:
 
 ```text
-Navn | 27Crags grade | Guide grade | Own grade | Område | Sector | Flash | Dato | Climber | Rating | Visibility
+Navn | TheTopo grade | Guide grade | Own grade | Område | Sector | Flash | Dato | Climber | Rating | Visibility
 ```
+
+TheTopo grades use `grade_thetopo` in the API and database. Startup automatically
+migrates existing databases while preserving grades. Deploy the matching frontend
+and backend together when upgrading.
 
 A boulder problem is unique by `Navn`, `Område`, and `Sector`. An ascent is unique
 by that boulder problem plus `Climber`, so several climbers can log the same boulder

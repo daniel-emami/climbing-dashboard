@@ -103,7 +103,7 @@ def _boulder(
 ) -> BoulderCreateRequest:
     return BoulderCreateRequest(
         name=name,
-        grade_27crags=grade,
+        grade_thetopo=grade,
         guide_grade=grade,
         own_grade=grade,
         area=area,

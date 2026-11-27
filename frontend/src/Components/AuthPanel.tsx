@@ -1,8 +1,5 @@
 import { useState, type FormEvent, type Ref } from "react";
 import type {
-  AdminPasswordResetRequest,
-  AdminPasswordResetResponse,
-  AuthUser,
   LoginRequest,
   SignupRequest
 } from "../Types/authTypes";
@@ -10,13 +7,11 @@ import sharedStyles from "../Styles/Shared.module.css";
 import styles from "./AuthPanel.module.css";
 
 type AuthPanelProps = {
-  user: AuthUser | null;
+  embedded?: boolean;
+  hideHeading?: boolean;
   isLoading: boolean;
   isSaving: boolean;
   onLogin: (request: LoginRequest) => Promise<void>;
-  onLogout: () => Promise<void>;
-  onOpenProfile: (username: string) => void;
-  onResetPassword: (request: AdminPasswordResetRequest) => Promise<AdminPasswordResetResponse>;
   onSignup: (request: SignupRequest) => Promise<void>;
   usernameInputRef?: Ref<HTMLInputElement>;
 };
@@ -24,13 +19,11 @@ type AuthPanelProps = {
 type AuthMode = "login" | "signup";
 
 export default function AuthPanel({
-  user,
+  embedded = false,
+  hideHeading = false,
   isLoading,
   isSaving,
   onLogin,
-  onLogout,
-  onOpenProfile,
-  onResetPassword,
   onSignup,
   usernameInputRef
 }: AuthPanelProps) {
@@ -39,99 +32,32 @@ export default function AuthPanel({
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [inviteCode, setInviteCode] = useState("");
-  const [resetUsername, setResetUsername] = useState("");
-  const [passwordReset, setPasswordReset] = useState<AdminPasswordResetResponse | null>(null);
-  const [isCopied, setIsCopied] = useState(false);
-
   const submitAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (mode === "login") {
-      await onLogin({ username, password });
-    } else {
-      await onSignup({
-        username,
-        display_name: displayName,
-        password,
-        invite_code: inviteCode
-      });
+    try {
+      if (mode === "login") {
+        await onLogin({ username, password });
+      } else {
+        await onSignup({
+          username,
+          display_name: displayName,
+          password,
+          invite_code: inviteCode
+        });
+      }
+      setPassword("");
+      setInviteCode("");
+    } catch {
+      // Keep the entered values in place while the parent displays the error.
     }
-    setPassword("");
-    setInviteCode("");
   };
-
-  const submitPasswordReset = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setPasswordReset(null);
-    setIsCopied(false);
-    const result = await onResetPassword({ username: resetUsername });
-    setPasswordReset(result);
-    setResetUsername("");
-  };
-
-  const copyTemporaryPassword = async () => {
-    if (!passwordReset) {
-      return;
-    }
-    await navigator.clipboard.writeText(passwordReset.temporary_password);
-    setIsCopied(true);
-  };
-
-  if (user) {
-    return (
-      <section className={sharedStyles.controlPanel}>
-        <div className={sharedStyles.controlHeading}>
-          <span>Account</span>
-          <strong>{user.display_name || user.username}</strong>
-        </div>
-        <p className={styles.helpText}>@{user.username}</p>
-        <button type="button" onClick={() => onOpenProfile(user.username)}>
-          View Profile
-        </button>
-        {user.is_admin && (
-          <form className={styles.adminReset} onSubmit={(event) => void submitPasswordReset(event)}>
-            <label>
-              Reset a user's password
-              <div className={styles.resetRow}>
-                <input
-                  required
-                  autoComplete="off"
-                  placeholder="Username"
-                  value={resetUsername}
-                  onChange={(event) => setResetUsername(event.target.value)}
-                />
-                <button className={sharedStyles.primaryButton} disabled={isSaving} type="submit">
-                  {isSaving ? "Generating..." : "Generate"}
-                </button>
-              </div>
-            </label>
-            {passwordReset && (
-              <div className={styles.resetResult} role="status">
-                <span>
-                  New password for <strong>@{passwordReset.username}</strong>
-                </span>
-                <div className={styles.resetRow}>
-                  <input readOnly aria-label="Generated password" value={passwordReset.temporary_password} />
-                  <button type="button" onClick={() => void copyTemporaryPassword()}>
-                    {isCopied ? "Copied" : "Copy"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </form>
-        )}
-        <button disabled={isSaving} type="button" onClick={() => void onLogout()}>
-          {isSaving ? "Signing out..." : "Log Out"}
-        </button>
-      </section>
-    );
-  }
 
   return (
-    <section className={sharedStyles.controlPanel}>
-      <div className={sharedStyles.controlHeading}>
+    <section className={`${sharedStyles.controlPanel} ${embedded ? styles.embedded : ""}`}>
+      {!hideHeading && <div className={sharedStyles.controlHeading}>
         <span>Account</span>
-        <strong>{isLoading ? "Checking..." : "Sign in"}</strong>
-      </div>
+        <strong>{isLoading ? "Checking..." : "Login"}</strong>
+      </div>}
 
       <div
         className={`${sharedStyles.segmentedControl} ${styles.modeControl}`}

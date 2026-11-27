@@ -15,6 +15,7 @@ import {
 } from "../../Utilities/activityFeedUtils";
 import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./ActivityFeed.module.css";
+import FeedBoulderTitle from "./FeedBoulderTitle";
 
 type ActivityAscentFeedItemProps = {
   comments: AscentComment[];
@@ -55,44 +56,39 @@ export default function ActivityAscentFeedItem({
   onStartEditingComment,
   onSubmitComment
 }: ActivityAscentFeedItemProps) {
+  const grade = formatGrade(record);
   const rating = formatRating(record.rating);
   const ascentId = record.ascent_id;
 
   return (
     <li className={styles.item} key={itemKey}>
-      <button
-        aria-label={`Open ${record.climber_display_name || record.climber}'s profile`}
-        className={styles.avatar}
-        type="button"
-        onClick={() => onOpenBoulderer(record.climber)}
-      >
-        {initials(record.climber_display_name)}
-      </button>
-      <div className={styles.body}>
-        <p className={styles.copy}>
+      <div className={styles.actorRow}>
+        <button
+          aria-label={`Open ${record.climber_display_name || record.climber}'s profile`}
+          className={styles.avatar}
+          type="button"
+          onClick={() => onOpenBoulderer(record.climber)}
+        >
+          {initials(record.climber_display_name)}
+        </button>
+        <div className={styles.actorText}>
           <button
             className={sharedStyles.profileLinkButton}
             type="button"
             onClick={() => onOpenBoulderer(record.climber)}
           >
             {record.climber_display_name || "Unknown climber"}
-          </button>{" "}
-          {record.flash ? "flashed" : "logged"}{" "}
-          <button
-            className={styles.boulderLink}
-            type="button"
-            onClick={() => onOpenBoulder(boulderIdentityFromRecord(record))}
-          >
-            {record.name}
           </button>
-        </p>
+          <span>{record.flash ? " flashed an ascent" : " logged an ascent"}</span>
+        </div>
+      </div>
+      <div className={styles.body}>
+        <FeedBoulderTitle identity={boulderIdentityFromRecord(record)} grade={grade} onOpenBoulder={onOpenBoulder} />
         <p className={styles.meta}>
-          {formatLocation(record)} · {formatGrade(record)}
+          {formatLocation(record)} · Climbed {formatDate(record.climbed_on)}
           {rating ? ` · ${rating}` : ""}
         </p>
-        <p className={styles.time}>
-          Climbed {formatDate(record.climbed_on)} · Added {formatDate(record.added_at)}
-        </p>
+        <p className={styles.time}>Added {formatDate(record.added_at)}</p>
         <div className={styles.comments}>
           {comments.length > 0 && (
             <ol className={styles.commentList}>

@@ -6,7 +6,7 @@ import styles from "./BoulderForm.module.css";
 
 const EMPTY_FORM: BoulderCreateRequest = {
   name: "",
-  grade_27crags: "",
+  grade_thetopo: "",
   guide_grade: "",
   own_grade: "",
   area: "",
@@ -96,11 +96,11 @@ export default function BoulderForm({
 
       <div className={styles.gradeFields}>
         <label>
-          27Crags
+          TheTopo
           <input
             list="known-grades"
-            value={form.grade_27crags}
-            onChange={(event) => updateForm("grade_27crags", event.target.value)}
+            value={form.grade_thetopo}
+            onChange={(event) => updateForm("grade_thetopo", event.target.value)}
           />
         </label>
         <label>

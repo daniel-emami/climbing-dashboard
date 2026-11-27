@@ -5,7 +5,7 @@ export type BoulderTableSortKey =
   | "area"
   | "sector"
   | "climber"
-  | "grade_27crags"
+  | "grade_thetopo"
   | "guide_grade"
   | "own_grade"
   | "flash"
@@ -26,7 +26,7 @@ export const BOULDER_TABLE_HEADERS: Array<{ key: BoulderTableSortKey; label: str
   { key: "sector", label: "Sector" },
   { key: "climber", label: "Climber" },
   { key: "visibility", label: "Visible" },
-  { key: "grade_27crags", label: "27Crags" },
+  { key: "grade_thetopo", label: "TheTopo" },
   { key: "guide_grade", label: "Guide" },
   { key: "own_grade", label: "Own" },
   { key: "flash", label: "Flash" },
@@ -43,7 +43,7 @@ export function boulderTableRecordKey(record: BoulderRecord): string {
 export function boulderRecordToDraft(record: BoulderRecord): BoulderCreateRequest {
   return {
     name: record.name,
-    grade_27crags: record.grade_27crags,
+    grade_thetopo: record.grade_thetopo,
     guide_grade: record.guide_grade,
     own_grade: record.own_grade,
     area: record.area,
@@ -71,7 +71,7 @@ export function compareBoulderTableRecords(
   if (sortKey === "climbed_on") {
     return compareText(left.climbed_on ?? "", right.climbed_on ?? "");
   }
-  if (sortKey === "grade_27crags" || sortKey === "guide_grade" || sortKey === "own_grade") {
+  if (sortKey === "grade_thetopo" || sortKey === "guide_grade" || sortKey === "own_grade") {
     return compareGrades(left[sortKey], right[sortKey], gradeRank);
   }
   return compareText(left[sortKey], right[sortKey]);

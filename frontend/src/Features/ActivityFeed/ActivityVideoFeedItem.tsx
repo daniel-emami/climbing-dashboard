@@ -4,10 +4,12 @@ import {
   boulderIdentityFromMedia,
   formatDateTime,
   formatMediaLocation,
+  formatGrade,
   initials
 } from "../../Utilities/activityFeedUtils";
 import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./ActivityFeed.module.css";
+import FeedBoulderTitle from "./FeedBoulderTitle";
 
 type ActivityVideoFeedItemProps = {
   itemKey: string;
@@ -22,34 +24,31 @@ export default function ActivityVideoFeedItem({
   onOpenBoulder,
   onOpenBoulderer
 }: ActivityVideoFeedItemProps) {
+  const grade = formatGrade(media);
   return (
     <li className={styles.item} key={itemKey}>
-      <button
-        aria-label={`Open ${media.climber_display_name || media.climber}'s profile`}
-        className={styles.avatar}
-        type="button"
-        onClick={() => onOpenBoulderer(media.climber)}
-      >
-        {initials(media.climber_display_name)}
-      </button>
-      <div className={styles.body}>
-        <p className={styles.copy}>
+      <div className={styles.actorRow}>
+        <button
+          aria-label={`Open ${media.climber_display_name || media.climber}'s profile`}
+          className={styles.avatar}
+          type="button"
+          onClick={() => onOpenBoulderer(media.climber)}
+        >
+          {initials(media.climber_display_name)}
+        </button>
+        <div className={styles.actorText}>
           <button
             className={sharedStyles.profileLinkButton}
             type="button"
             onClick={() => onOpenBoulderer(media.climber)}
           >
             {media.climber_display_name || "Unknown climber"}
-          </button>{" "}
-          uploaded a video to{" "}
-          <button
-            className={styles.boulderLink}
-            type="button"
-            onClick={() => onOpenBoulder(boulderIdentityFromMedia(media))}
-          >
-            {media.boulder_name}
           </button>
-        </p>
+          <span> uploaded a video</span>
+        </div>
+      </div>
+      <div className={styles.body}>
+        <FeedBoulderTitle identity={boulderIdentityFromMedia(media)} grade={grade} onOpenBoulder={onOpenBoulder} />
         <p className={styles.meta}>{formatMediaLocation(media)}</p>
         <p className={styles.time}>
           Uploaded {formatDateTime(media.created_at)}

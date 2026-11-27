@@ -110,7 +110,7 @@ def _save_ascent(service: ApiService, user: UserAccount, visibility: str) -> Non
 def _boulder_request(visibility: str) -> BoulderCreateRequest:
     return BoulderCreateRequest(
         name="Shared Boulder",
-        grade_27crags="6a",
+        grade_thetopo="6a",
         guide_grade="6a",
         own_grade="6a",
         area="Test Area",

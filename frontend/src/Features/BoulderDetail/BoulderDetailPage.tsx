@@ -57,7 +57,7 @@ function latestDate(records: BoulderRecord[]): string | null {
 
 function gradeSummary(
   records: BoulderRecord[],
-  field: "grade_27crags" | "guide_grade" | "own_grade",
+  field: "grade_thetopo" | "guide_grade" | "own_grade",
   gradeOrder: string[]
 ): GradeSummary[] {
   const counts = new Map<string, number>();
@@ -180,8 +180,8 @@ export default function BoulderDetailPage({
           </div>
           <dl className={styles.gradeList}>
             <div>
-              <dt>27Crags</dt>
-              <dd>{formatGradeSummary(gradeSummary(records, "grade_27crags", gradeOrder))}</dd>
+              <dt>TheTopo</dt>
+              <dd>{formatGradeSummary(gradeSummary(records, "grade_thetopo", gradeOrder))}</dd>
             </div>
             <div>
               <dt>Guide</dt>

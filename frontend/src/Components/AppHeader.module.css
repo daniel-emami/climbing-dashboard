@@ -1,3 +1,56 @@
+.header.header {
+  grid-template-columns: minmax(150px, 1fr) auto minmax(0, 1.8fr);
+  padding: 10px 14px;
+}
+
+.nav {
+  width: auto;
+  min-width: 300px;
+}
+
+.actions.actions {
+  justify-self: end;
+}
+
+.accountActions.accountActions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.profileButton.profileButton {
+  width: auto;
+  grid-template-columns: 34px;
+  flex: none;
+}
+
+.shortActionLabel,
+.compactIcon {
+  display: none;
+}
+
+.importButton,
+.signInButton {
+  min-height: 38px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-heading);
+  padding: 0 12px;
+  font-weight: 850;
+}
+
+.importButton:hover,
+.signInButton:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+.importButton:focus-visible,
+.signInButton:focus-visible {
+  outline: 3px solid var(--color-focus-outline);
+  outline-offset: 2px;
+}
+
 .addAscentButton {
   min-height: 38px;
   flex: none;
@@ -19,8 +72,103 @@
   outline-offset: 2px;
 }
 
+@media (max-width: 1050px) {
+  .header.header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .nav {
+    order: 3;
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+}
+
 @media (max-width: 760px) {
+  .header.header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .brand.brand {
+    width: auto;
+  }
+
+  .brand span span {
+    display: none;
+  }
+
+  .actions.actions {
+    width: auto;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+    max-width: calc(100vw - 104px);
+  }
+
+  .importButton,
+  .signInButton {
+    padding: 0 9px;
+  }
+
+  .nav {
+    min-width: 0;
+  }
+
   .addAscentButton {
+    display: none;
+  }
+
+  .signedIn .actions {
+    flex-wrap: nowrap;
+    gap: 4px;
+    max-width: calc(100vw - 112px);
+  }
+
+  .signedIn .fullActionLabel {
+    display: none;
+  }
+
+  .signedIn .shortActionLabel {
+    display: inline;
+  }
+
+  .signedIn .compactIcon {
+    display: block;
+    width: 18px;
+    height: 18px;
+  }
+
+  .signedIn .signInButton {
+    display: inline-grid;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    place-items: center;
+    padding: 0;
+  }
+
+  .signedIn .importButton {
+    min-height: 40px;
+    flex: none;
+    padding: 0 8px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .signedIn .profileButton {
+    width: 40px;
+    padding: 3px;
+  }
+}
+
+@media (max-width: 600px) {
+  .brand.brand {
+    grid-template-columns: 42px;
+    gap: 0;
+  }
+
+  .brand > span:last-child {
     display: none;
   }
 }

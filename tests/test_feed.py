@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from io import BytesIO
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from ClimbingDashboard.Api.api_app import create_app
@@ -14,6 +15,50 @@ from ClimbingDashboard.Storage.base_video_transcoder import BaseVideoTranscoder
 class CopyVideoTranscoder(BaseVideoTranscoder):
     def transcode_to_mp4(self, source_path: Path, target_path: Path) -> None:
         target_path.write_bytes(source_path.read_bytes())
+
+
+@pytest.mark.parametrize("own_grade", ["6c", ""])
+def test_feed_exposes_linked_climbers_grades_for_ascents_and_videos(
+    tmp_path: Path, own_grade: str
+) -> None:
+    app = create_app(tmp_path / "grades.db")
+    auth = app.state.auth_service
+    auth.invite_code = "invite"
+    uploader = auth.signup(SignupRequest("uploader", "password123", "invite"))
+    other = auth.signup(SignupRequest("other", "password123", "invite"))
+    service = app.state.api_service
+    service.save_boulder(
+        BoulderCreateRequest("Problem", "7a", "7b", "7c", "Area", "", ""), other.user
+    )
+    service.media_file_storage.video_transcoder = CopyVideoTranscoder()
+    with TestClient(app) as client:
+        client.cookies.set(app.state.settings.session_cookie_name, uploader.token)
+        saved = client.post(
+            "/api/boulders?dashboard=false",
+            json={
+                "name": "Problem", "area": "Area", "own_grade": own_grade,
+                "grade_thetopo": "6b+", "guide_grade": "6a",
+            },
+        )
+        assert saved.status_code == 200
+        service.save_boulder_video(
+            BoulderMediaUploadRequest("Problem", "Area", "", "Video"),
+            BytesIO(b"video"), "video.mp4", "video/mp4", uploader.user,
+        )
+        # Public grades must work for visitors, independent of their own ascents.
+        client.cookies.clear()
+        response = client.get("/api/feed")
+    assert response.status_code == 200
+    items = response.json()["items"]
+    record = next(
+        item["record"] for item in items
+        if item["kind"] == "ascent" and item["record"]["climber"] == "uploader"
+    )
+    media = next(item["media"] for item in items if item["kind"] == "video")
+    assert media["ascent_id"] == record["ascent_id"]
+    for payload in (record, media):
+        assert payload["own_grade"] == own_grade
+        assert payload["grade_thetopo"] == "6b+"
 
 
 def test_feed_returns_visible_ascents_and_their_comments_in_one_response(tmp_path: Path) -> None:

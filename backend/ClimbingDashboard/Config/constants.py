@@ -25,7 +25,7 @@ GRADE_ORDER = (
 )
 
 GRADE_SOURCE_FIELDS = (
-    "grade_27crags",
+    "grade_thetopo",
     "guide_grade",
     "own_grade",
 )
@@ -39,7 +39,7 @@ ASCENT_VISIBILITY_OPTIONS = (
 
 BOULDER_EXPORT_COLUMNS = (
     "Navn",
-    "27Crags grade",
+    "TheTopo grade",
     "Guide grade",
     "Own grade",
     "Område",

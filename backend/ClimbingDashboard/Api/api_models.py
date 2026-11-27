@@ -22,7 +22,7 @@ class BoulderCreateRequest:
     def __init__(
         self,
         name: str,
-        grade_27crags: str | None,
+        grade_thetopo: str | None,
         guide_grade: str | None,
         own_grade: str | None,
         area: str,
@@ -36,7 +36,7 @@ class BoulderCreateRequest:
         """Create a request object after primitive payload conversion."""
 
         self.name = self._required_text(name, "name")
-        self.grade_27crags = self._optional_text(grade_27crags)
+        self.grade_thetopo = self._optional_text(grade_thetopo)
         self.guide_grade = self._optional_text(guide_grade)
         self.own_grade = self._optional_text(own_grade)
         self.area = self._required_text(area, "area")
@@ -53,7 +53,7 @@ class BoulderCreateRequest:
 
         return cls(
             name=payload.get("name", ""),
-            grade_27crags=payload.get("grade_27crags", ""),
+            grade_thetopo=payload.get("grade_thetopo", ""),
             guide_grade=payload.get("guide_grade", ""),
             own_grade=payload.get("own_grade", ""),
             area=payload.get("area", ""),
@@ -70,7 +70,7 @@ class BoulderCreateRequest:
 
         return BoulderRecord(
             name=self.name,
-            grade_27crags=self.grade_27crags,
+            grade_thetopo=self.grade_thetopo,
             guide_grade=self.guide_grade,
             own_grade=self.own_grade,
             area=self.area,
