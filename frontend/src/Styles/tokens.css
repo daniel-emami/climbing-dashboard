@@ -43,3 +43,35 @@
   --shadow-active: 0 4px 12px rgba(162, 123, 92, 0.24);
   --focus-ring: 0 0 0 3px rgba(162, 123, 92, 0.24);
 }
+
+:root[data-feed-theme="true"] {
+  --color-page: #101820;
+  --color-surface: #1b2731;
+  --color-surface-subtle: #24343e;
+  --color-surface-glass: rgba(27, 39, 49, 0.96);
+  --color-text: #eff4f2;
+  --color-heading: #eff4f2;
+  --color-body: #d7e2e0;
+  --color-muted: #a9b9bd;
+  --color-muted-strong: #c3d0d0;
+  --color-primary: #91d6c0;
+  --color-primary-dark: #b6ebd9;
+  --color-primary-hover: #a7e2cf;
+  --color-primary-soft: #25483f;
+  --color-primary-faint: #203831;
+  --color-on-primary: #0e2420;
+  --color-secondary: #a3bfce;
+  --color-secondary-dark: #d0e3e9;
+  --color-secondary-hover: #d9ecf0;
+  --color-secondary-soft: #2a414d;
+  --color-accent: #a4e0cc;
+  --color-control-text: #eff4f2;
+  --color-border: #334650;
+  --color-control-border: #68828d;
+  --color-divider: #30414c;
+  --color-nav-background: #17232b;
+  --color-avatar-background: #304c55;
+  --color-focus-outline: rgba(145, 214, 192, 0.42);
+  --shadow-active: 0 4px 12px rgba(145, 214, 192, 0.16);
+  --focus-ring: 0 0 0 3px rgba(145, 214, 192, 0.24);
+}

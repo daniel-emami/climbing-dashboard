@@ -4,6 +4,10 @@
   padding: 22px;
 }
 
+.feedShell {
+  min-height: 100dvh;
+}
+
 .workspaceHeader {
   position: sticky;
   top: 0;
@@ -314,6 +318,12 @@
   grid-template-columns: 320px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+}
+
+.feedLayout {
+  display: block;
+  width: min(760px, 100%);
+  margin: 24px auto 0;
 }
 
 .controlRail {

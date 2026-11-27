@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { exportBoulders, fetchBoulderDetail } from "./Api/boulderApi";
 import { fetchBoulderSuggestions, type BoulderSuggestions } from "./Api/suggestionsApi";
 import AppHeader from "./Components/AppHeader";
@@ -6,6 +6,9 @@ import AddAscentDialog from "./Components/AddAscentDialog";
 import DashboardControlRail from "./Components/DashboardControlRail";
 import DashboardPageContent from "./Components/DashboardPageContent";
 import DashboardToolbar from "./Components/DashboardToolbar";
+import FeedUtilityDialog from "./Components/FeedUtilityDialog";
+import AuthPanel from "./Components/AuthPanel";
+import TheTopoImportPanel from "./Components/TheTopoImportPanel";
 import ErrorState from "./Components/ErrorState";
 import LoadingState from "./Components/LoadingState";
 import BoulderDetailPage from "./Features/BoulderDetail";
@@ -38,7 +41,11 @@ export default function App() {
   const [ascentError, setAscentError] = useState<string | null>(null);
   const [ascentNotice, setAscentNotice] = useState<string | null>(null);
   const [isAddAscentOpen, setIsAddAscentOpen] = useState(false);
+  const [isFeedToolsOpen, setIsFeedToolsOpen] = useState(false);
+  const [isFeedSignInOpen, setIsFeedSignInOpen] = useState(false);
   const ascentTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const toolsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const signInTriggerRef = useRef<HTMLButtonElement | null>(null);
   const authUsernameInputRef = useRef<HTMLInputElement | null>(null);
   const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("own_grade");
   const [activePage, setActivePage] = useState<DashboardPage>("feed");
@@ -60,6 +67,20 @@ export default function App() {
     selectedBoulder,
     selectedBouldererUsername
   } = useHashRoute();
+  const isFeedPage = activePage === "feed" && !selectedBoulder && !selectedBouldererUsername;
+
+  useLayoutEffect(() => {
+    if (isFeedPage) document.documentElement.dataset.feedTheme = "true";
+    else delete document.documentElement.dataset.feedTheme;
+    return () => { delete document.documentElement.dataset.feedTheme; };
+  }, [isFeedPage]);
+
+  useEffect(() => {
+    if (!isFeedPage) {
+      setIsFeedToolsOpen(false);
+      setIsFeedSignInOpen(false);
+    }
+  }, [isFeedPage]);
   const {
     data,
     handleAddBoulder: saveBoulder,
@@ -212,7 +233,34 @@ export default function App() {
     setIsAddAscentOpen(true);
   };
 
+  const closeFeedTools = () => {
+    setIsFeedToolsOpen(false);
+    toolsTriggerRef.current?.focus();
+  };
+
+  const openFeedTools = (trigger: HTMLButtonElement) => {
+    toolsTriggerRef.current = trigger;
+    setIsFeedToolsOpen(true);
+  };
+
+  const closeFeedSignIn = () => {
+    setIsFeedSignInOpen(false);
+    signInTriggerRef.current?.focus();
+  };
+
+  const openFeedSignIn = (trigger: HTMLButtonElement) => {
+    signInTriggerRef.current = trigger;
+    setError(null);
+    setIsFeedSignInOpen(true);
+  };
+
   const goToSignIn = () => {
+    if (isFeedPage) {
+      signInTriggerRef.current = ascentTriggerRef.current;
+      closeAddAscent();
+      window.setTimeout(() => setIsFeedSignInOpen(true), 0);
+      return;
+    }
     closeAddAscent();
     window.setTimeout(() => {
       const usernameInput = authUsernameInputRef.current;
@@ -283,6 +331,29 @@ export default function App() {
     onSuggestionsNeeded: () => { void loadSuggestions(); }
   };
 
+  const authPanelProps = {
+    user: currentUser,
+    isLoading: isAuthLoading,
+    isSaving: isAuthSaving,
+    onLogin: handleLogin,
+    onLogout: handleLogout,
+    onOpenProfile: handleOpenBoulderer,
+    onResetPassword: handleResetPassword,
+    onSignup: handleSignup,
+    usernameInputRef: authUsernameInputRef
+  };
+
+  const importPanelProps = {
+    currentUsername: currentUser?.username ?? null,
+    onImported: (payload: Parameters<typeof handleImportedBoulders>[0]) => {
+      handleImportedBoulders(payload);
+      invalidateFeed();
+      setSuggestions(null);
+      if (isFeedPage) closeFeedTools();
+    },
+    onError: setError
+  };
+
   const handleOpenDashboardHome = () => {
     setActivePage("feed");
     openDashboardHome();
@@ -311,16 +382,19 @@ export default function App() {
   };
 
   return (
-    <main className={styles.shell}>
+    <main className={`${styles.shell} ${isFeedPage ? styles.feedShell : ""}`}>
       <AppHeader
         activePage={activePage}
         currentUser={currentUser}
         isAuthLoading={isAuthLoading}
+        isFeedPage={isFeedPage}
         isOnBoulderPage={Boolean(selectedBoulder)}
         isOnBouldererPage={Boolean(selectedBouldererUsername)}
         onOpenDashboardHome={handleOpenDashboardHome}
         onOpenProfile={handleOpenBoulderer}
         onAddAscent={openAddAscent}
+        onOpenTools={openFeedTools}
+        onSignIn={openFeedSignIn}
         onSelectPage={setActivePage}
       />
 
@@ -394,29 +468,10 @@ export default function App() {
             />
           )}
 
-          <div className={styles.dashboardLayout}>
-            <DashboardControlRail
-              authPanelProps={{
-                user: currentUser,
-                isLoading: isAuthLoading,
-                isSaving: isAuthSaving,
-                onLogin: handleLogin,
-                onLogout: handleLogout,
-                onOpenProfile: handleOpenBoulderer,
-                onResetPassword: handleResetPassword,
-                onSignup: handleSignup,
-                usernameInputRef: authUsernameInputRef
-              }}
-              importPanelProps={{
-                currentUsername: currentUser?.username ?? null,
-                onImported: (payload) => {
-                  handleImportedBoulders(payload);
-                  invalidateFeed();
-                  setSuggestions(null);
-                },
-                onError: setError
-              }}
-            />
+          <div className={`${styles.dashboardLayout} ${isFeedPage ? styles.feedLayout : ""}`}>
+            {!isFeedPage && (
+              <DashboardControlRail authPanelProps={authPanelProps} importPanelProps={importPanelProps} />
+            )}
 
             <DashboardPageContent
               activeAreaMapGradeField={activeAreaMapGradeField}
@@ -453,6 +508,25 @@ export default function App() {
         onDismiss={closeAddAscent}
         onSignIn={goToSignIn}
       />
+      {isFeedPage && (
+        <>
+          <FeedUtilityDialog isOpen={isFeedToolsOpen} onDismiss={closeFeedTools} title="Tools" variant="drawer">
+            {error && <ErrorState message={error} />}
+            {currentUser && <AuthPanel {...authPanelProps} embedded />}
+            <TheTopoImportPanel {...importPanelProps} embedded />
+          </FeedUtilityDialog>
+          <FeedUtilityDialog initialFocusRef={authUsernameInputRef} isOpen={isFeedSignInOpen} onDismiss={closeFeedSignIn} title="Sign in" variant="signIn">
+            {error && <ErrorState message={error} />}
+            <AuthPanel
+              {...authPanelProps}
+              embedded
+              hideHeading
+              onLogin={async (request) => { await handleLogin(request); closeFeedSignIn(); }}
+              onSignup={async (request) => { await handleSignup(request); closeFeedSignIn(); }}
+            />
+          </FeedUtilityDialog>
+        </>
+      )}
       {ascentNotice && <div className={styles.ascentNotice} role="status">{ascentNotice}</div>}
     </main>
   );

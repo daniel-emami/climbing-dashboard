@@ -1,31 +1,72 @@
-.panel.panel {
-  padding-bottom: 4px;
+.feed {
+  min-width: 0;
+}
+
+.feedHeading {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.feedHeading h1 {
+  font-size: clamp(1.6rem, 3vw, 2.15rem);
+}
+
+.kicker {
+  color: var(--color-primary);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.empty {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  color: var(--color-muted-strong);
+  padding: 28px;
 }
 
 .list {
   display: grid;
-  gap: 0;
+  gap: 14px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .item {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 12px;
-  padding: 13px 0;
-  border-top: 1px solid var(--color-divider);
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-panel);
 }
 
-.item:first-child {
-  border-top: 0;
-  padding-top: 2px;
+.actorRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.actorText {
+  min-width: 0;
+  color: var(--color-muted-strong);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.actorText button {
+  color: var(--color-heading);
+  font-size: 0.96rem;
 }
 
 .avatar {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
+  flex: none;
   display: grid;
   place-items: center;
   border: 1px solid var(--color-control-border);
@@ -50,45 +91,39 @@
 
 .body {
   min-width: 0;
+  margin: 12px 0 0 50px;
 }
 
-.copy,
 .meta,
 .time {
   margin: 0;
 }
 
-.copy {
-  color: var(--color-body);
-  font-weight: 850;
-  line-height: 1.35;
-}
-
-.copy strong {
-  color: var(--color-heading);
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 
 .boulderLink {
   max-width: 100%;
   border: 0;
   background: transparent;
-  color: var(--color-accent);
+  color: var(--color-heading);
   padding: 0;
   overflow: hidden;
   text-align: left;
   text-overflow: ellipsis;
   font: inherit;
+  font-size: 1.16rem;
   font-weight: 900;
-  text-decoration: underline;
-  text-decoration-color: var(--color-primary);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  vertical-align: baseline;
+  text-decoration: none;
 }
 
 .boulderLink:hover {
-  color: var(--color-heading);
-  text-decoration-color: currentColor;
+  color: var(--color-primary-dark);
+  text-decoration: underline;
 }
 
 .boulderLink:focus-visible {
@@ -97,8 +132,21 @@
   outline-offset: 3px;
 }
 
+.grade {
+  max-width: 100%;
+  border: 1px solid var(--color-control-border);
+  border-radius: 999px;
+  background: var(--color-surface-subtle);
+  color: var(--color-heading);
+  padding: 3px 9px;
+  font-size: 0.76rem;
+  font-weight: 850;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
 .meta {
-  margin-top: 4px;
+  margin-top: 8px;
   color: var(--color-muted-strong);
   font-size: 0.8rem;
   font-weight: 850;
@@ -106,17 +154,15 @@
 }
 
 .time {
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--color-muted);
   font-size: 0.76rem;
   font-weight: 800;
 }
 
 .mediaList {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 8px;
-  margin: 10px 0 0;
+  width: min(420px, 100%);
+  margin: 14px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -131,7 +177,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-control);
-  background: var(--color-heading);
+  background: var(--color-page);
   object-fit: contain;
 }
 
@@ -146,7 +192,9 @@
 .comments {
   display: grid;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 16px;
+  border-top: 1px solid var(--color-divider);
+  padding-top: 14px;
 }
 
 .commentList {
@@ -163,7 +211,7 @@
   border: 1px solid var(--color-divider);
   border-radius: var(--radius-control);
   background: var(--color-surface-subtle);
-  padding: 8px 9px;
+  padding: 10px 12px;
 }
 
 .commentItem p {
@@ -208,7 +256,7 @@
 .commentEditForm input {
   width: 100%;
   min-width: 0;
-  min-height: 32px;
+  min-height: 40px;
   border: 1px solid var(--color-control-border);
   border-radius: var(--radius-control);
   background: var(--color-surface);
@@ -228,7 +276,7 @@
 .commentForm button,
 .commentEditForm button,
 .commentActions button {
-  min-height: 30px;
+  min-height: 38px;
   border: 1px solid var(--color-control-border);
   border-radius: var(--radius-control);
   background: var(--color-surface);
@@ -250,4 +298,22 @@
   border-color: var(--color-danger-border);
   background: var(--color-danger-soft);
   color: var(--color-danger);
+}
+
+@media (max-width: 760px) {
+  .feedHeading {
+    margin-bottom: 14px;
+  }
+
+  .item {
+    padding: 14px;
+  }
+
+  .body {
+    margin-left: 0;
+  }
+
+  .mediaList {
+    width: 100%;
+  }
 }

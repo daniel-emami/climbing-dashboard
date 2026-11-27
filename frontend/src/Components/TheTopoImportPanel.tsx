@@ -6,6 +6,7 @@ import sharedStyles from "../Styles/Shared.module.css";
 import styles from "./TheTopoImportPanel.module.css";
 
 type TheTopoImportPanelProps = {
+  embedded?: boolean;
   currentUsername: string | null;
   onImported: (payload: BouldersResponse) => void;
   onError: (message: string) => void;
@@ -16,6 +17,7 @@ function boulderKey(boulder: BoulderRecord): string {
 }
 
 export default function TheTopoImportPanel({
+  embedded = false,
   currentUsername,
   onImported,
   onError
@@ -84,7 +86,7 @@ export default function TheTopoImportPanel({
   };
 
   return (
-    <section className={sharedStyles.controlPanel}>
+    <section className={`${sharedStyles.controlPanel} ${embedded ? styles.embedded : ""}`}>
       <form className={styles.form} onSubmit={(event) => void handlePreview(event)}>
         <div className={sharedStyles.controlHeading}>
           <span>Import</span>

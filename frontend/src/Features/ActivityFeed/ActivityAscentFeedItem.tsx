@@ -60,24 +60,28 @@ export default function ActivityAscentFeedItem({
 
   return (
     <li className={styles.item} key={itemKey}>
-      <button
-        aria-label={`Open ${record.climber_display_name || record.climber}'s profile`}
-        className={styles.avatar}
-        type="button"
-        onClick={() => onOpenBoulderer(record.climber)}
-      >
-        {initials(record.climber_display_name)}
-      </button>
-      <div className={styles.body}>
-        <p className={styles.copy}>
+      <div className={styles.actorRow}>
+        <button
+          aria-label={`Open ${record.climber_display_name || record.climber}'s profile`}
+          className={styles.avatar}
+          type="button"
+          onClick={() => onOpenBoulderer(record.climber)}
+        >
+          {initials(record.climber_display_name)}
+        </button>
+        <div className={styles.actorText}>
           <button
             className={sharedStyles.profileLinkButton}
             type="button"
             onClick={() => onOpenBoulderer(record.climber)}
           >
             {record.climber_display_name || "Unknown climber"}
-          </button>{" "}
-          {record.flash ? "flashed" : "logged"}{" "}
+          </button>
+          <span>{record.flash ? " flashed an ascent" : " logged an ascent"}</span>
+        </div>
+      </div>
+      <div className={styles.body}>
+        <div className={styles.titleRow}>
           <button
             className={styles.boulderLink}
             type="button"
@@ -85,14 +89,13 @@ export default function ActivityAscentFeedItem({
           >
             {record.name}
           </button>
-        </p>
+          <span className={styles.grade}>{formatGrade(record)}</span>
+        </div>
         <p className={styles.meta}>
-          {formatLocation(record)} · {formatGrade(record)}
+          {formatLocation(record)} · Climbed {formatDate(record.climbed_on)}
           {rating ? ` · ${rating}` : ""}
         </p>
-        <p className={styles.time}>
-          Climbed {formatDate(record.climbed_on)} · Added {formatDate(record.added_at)}
-        </p>
+        <p className={styles.time}>Added {formatDate(record.added_at)}</p>
         <div className={styles.comments}>
           {comments.length > 0 && (
             <ol className={styles.commentList}>

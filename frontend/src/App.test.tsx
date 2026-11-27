@@ -42,6 +42,27 @@ test("opening the feed loads feed data without loading logbook data", async () =
   await waitFor(() => expect(paths).toContain("/api/boulders"));
 });
 
+test("Feed keeps import in Tools while Logbook keeps the control rail", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const path = String(input);
+    const body = path === "/api/auth/me" ? { user: null }
+      : path === "/api/feed" ? { items: [] }
+      : emptyBoulders;
+    return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
+  }));
+
+  render(<App />);
+  await screen.findByRole("heading", { name: "Latest activity" });
+  expect(screen.queryByRole("button", { name: "Preview Boulders" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Tools" }));
+  const tools = await screen.findByRole("dialog", { name: "Tools" });
+  expect(within(tools).getByRole("button", { name: "Preview Boulders" })).toBeTruthy();
+  fireEvent.click(within(tools).getByRole("button", { name: "Close Tools" }));
+  fireEvent.click(screen.getByRole("button", { name: "Logbook" }));
+  expect(await screen.findByRole("button", { name: "Preview Boulders" })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Tools" })).toBeNull();
+});
+
 test("opening Add Ascent loads suggestions without loading the logbook", async () => {
   const paths: string[] = [];
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
@@ -153,7 +174,7 @@ test("a failed save keeps Add Ascent open with its draft and an error", async ()
   expect(screen.getByRole("dialog", { name: "Add Ascent" })).toBe(dialog);
 });
 
-test("signed-out Add Ascent sends the user to the sign-in panel", async () => {
+test("signed-out Add Ascent opens the sign-in dialog", async () => {
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
     const body = String(input) === "/api/auth/me" ? { user: null } : { items: [] };
     return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
@@ -165,6 +186,7 @@ test("signed-out Add Ascent sends the user to the sign-in panel", async () => {
   expect(within(dialog).getByText("Sign in to add an ascent to your logbook.")).toBeTruthy();
   fireEvent.click(within(dialog).getByRole("button", { name: "Go to sign in" }));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Ascent" })).toBeNull());
+  expect(await screen.findByRole("dialog", { name: "Sign in" })).toBeTruthy();
   await waitFor(() => expect(document.activeElement).toBe(document.querySelector("input[autocomplete='username']")));
 });
 

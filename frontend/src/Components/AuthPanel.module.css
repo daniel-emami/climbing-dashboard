@@ -40,3 +40,10 @@
 .resetResult input {
   font-family: var(--font-mono);
 }
+
+.embedded {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}

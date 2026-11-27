@@ -6,7 +6,6 @@ import {
 } from "../../Api/ascentCommentApi";
 import type { FeedItem } from "../../Api/feedApi";
 import type { AscentComment, BoulderPageIdentity } from "../../Types/boulderTypes";
-import sharedStyles from "../../Styles/Shared.module.css";
 import ActivityAscentFeedItem from "./ActivityAscentFeedItem";
 import styles from "./ActivityFeed.module.css";
 import ActivityVideoFeedItem from "./ActivityVideoFeedItem";
@@ -150,13 +149,13 @@ export default function ActivityFeed({
   };
 
   return (
-    <section className={`${sharedStyles.panel} ${styles.panel}`}>
-      <div className={sharedStyles.panelHeading}>
-        <span className={sharedStyles.sectionKicker}>Feed</span>
-        <h2>Latest activity</h2>
+    <section className={styles.feed}>
+      <div className={styles.feedHeading}>
+        <span className={styles.kicker}>Feed</span>
+        <h1>Latest activity</h1>
       </div>
       {items.length === 0 ? (
-        <div className={sharedStyles.emptyDetailSlot}>-</div>
+        <p className={styles.empty}>No activity yet. Add an ascent to get things started.</p>
       ) : (
         <ol className={styles.list}>
           {items.map((item) => {

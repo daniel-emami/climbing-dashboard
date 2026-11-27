@@ -10,6 +10,8 @@ import sharedStyles from "../Styles/Shared.module.css";
 import styles from "./AuthPanel.module.css";
 
 type AuthPanelProps = {
+  embedded?: boolean;
+  hideHeading?: boolean;
   user: AuthUser | null;
   isLoading: boolean;
   isSaving: boolean;
@@ -24,6 +26,8 @@ type AuthPanelProps = {
 type AuthMode = "login" | "signup";
 
 export default function AuthPanel({
+  embedded = false,
+  hideHeading = false,
   user,
   isLoading,
   isSaving,
@@ -45,18 +49,22 @@ export default function AuthPanel({
 
   const submitAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (mode === "login") {
-      await onLogin({ username, password });
-    } else {
-      await onSignup({
-        username,
-        display_name: displayName,
-        password,
-        invite_code: inviteCode
-      });
+    try {
+      if (mode === "login") {
+        await onLogin({ username, password });
+      } else {
+        await onSignup({
+          username,
+          display_name: displayName,
+          password,
+          invite_code: inviteCode
+        });
+      }
+      setPassword("");
+      setInviteCode("");
+    } catch {
+      // Keep the entered values in place while the parent displays the error.
     }
-    setPassword("");
-    setInviteCode("");
   };
 
   const submitPasswordReset = async (event: FormEvent<HTMLFormElement>) => {
@@ -78,11 +86,11 @@ export default function AuthPanel({
 
   if (user) {
     return (
-      <section className={sharedStyles.controlPanel}>
-        <div className={sharedStyles.controlHeading}>
+      <section className={`${sharedStyles.controlPanel} ${embedded ? styles.embedded : ""}`}>
+        {!hideHeading && <div className={sharedStyles.controlHeading}>
           <span>Account</span>
           <strong>{user.display_name || user.username}</strong>
-        </div>
+        </div>}
         <p className={styles.helpText}>@{user.username}</p>
         <button type="button" onClick={() => onOpenProfile(user.username)}>
           View Profile
@@ -127,11 +135,11 @@ export default function AuthPanel({
   }
 
   return (
-    <section className={sharedStyles.controlPanel}>
-      <div className={sharedStyles.controlHeading}>
+    <section className={`${sharedStyles.controlPanel} ${embedded ? styles.embedded : ""}`}>
+      {!hideHeading && <div className={sharedStyles.controlHeading}>
         <span>Account</span>
         <strong>{isLoading ? "Checking..." : "Sign in"}</strong>
-      </div>
+      </div>}
 
       <div
         className={`${sharedStyles.segmentedControl} ${styles.modeControl}`}

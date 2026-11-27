@@ -89,3 +89,10 @@
   font-size: 0.74rem;
   font-weight: 750;
 }
+
+.embedded {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}

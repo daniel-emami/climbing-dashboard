@@ -24,24 +24,28 @@ export default function ActivityVideoFeedItem({
 }: ActivityVideoFeedItemProps) {
   return (
     <li className={styles.item} key={itemKey}>
-      <button
-        aria-label={`Open ${media.climber_display_name || media.climber}'s profile`}
-        className={styles.avatar}
-        type="button"
-        onClick={() => onOpenBoulderer(media.climber)}
-      >
-        {initials(media.climber_display_name)}
-      </button>
-      <div className={styles.body}>
-        <p className={styles.copy}>
+      <div className={styles.actorRow}>
+        <button
+          aria-label={`Open ${media.climber_display_name || media.climber}'s profile`}
+          className={styles.avatar}
+          type="button"
+          onClick={() => onOpenBoulderer(media.climber)}
+        >
+          {initials(media.climber_display_name)}
+        </button>
+        <div className={styles.actorText}>
           <button
             className={sharedStyles.profileLinkButton}
             type="button"
             onClick={() => onOpenBoulderer(media.climber)}
           >
             {media.climber_display_name || "Unknown climber"}
-          </button>{" "}
-          uploaded a video to{" "}
+          </button>
+          <span> uploaded a video</span>
+        </div>
+      </div>
+      <div className={styles.body}>
+        <div className={styles.titleRow}>
           <button
             className={styles.boulderLink}
             type="button"
@@ -49,7 +53,7 @@ export default function ActivityVideoFeedItem({
           >
             {media.boulder_name}
           </button>
-        </p>
+        </div>
         <p className={styles.meta}>{formatMediaLocation(media)}</p>
         <p className={styles.time}>
           Uploaded {formatDateTime(media.created_at)}
