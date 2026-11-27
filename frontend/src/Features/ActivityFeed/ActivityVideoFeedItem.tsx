@@ -4,10 +4,12 @@ import {
   boulderIdentityFromMedia,
   formatDateTime,
   formatMediaLocation,
+  formatGrade,
   initials
 } from "../../Utilities/activityFeedUtils";
 import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./ActivityFeed.module.css";
+import FeedBoulderTitle from "./FeedBoulderTitle";
 
 type ActivityVideoFeedItemProps = {
   itemKey: string;
@@ -22,6 +24,7 @@ export default function ActivityVideoFeedItem({
   onOpenBoulder,
   onOpenBoulderer
 }: ActivityVideoFeedItemProps) {
+  const grade = formatGrade(media);
   return (
     <li className={styles.item} key={itemKey}>
       <div className={styles.actorRow}>
@@ -45,15 +48,7 @@ export default function ActivityVideoFeedItem({
         </div>
       </div>
       <div className={styles.body}>
-        <div className={styles.titleRow}>
-          <button
-            className={styles.boulderLink}
-            type="button"
-            onClick={() => onOpenBoulder(boulderIdentityFromMedia(media))}
-          >
-            {media.boulder_name}
-          </button>
-        </div>
+        <FeedBoulderTitle identity={boulderIdentityFromMedia(media)} grade={grade} onOpenBoulder={onOpenBoulder} />
         <p className={styles.meta}>{formatMediaLocation(media)}</p>
         <p className={styles.time}>
           Uploaded {formatDateTime(media.created_at)}

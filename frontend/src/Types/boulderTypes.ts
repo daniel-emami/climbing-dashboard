@@ -1,6 +1,6 @@
 export type BoulderRecord = {
   name: string;
-  grade_27crags: string;
+  grade_thetopo: string;
   guide_grade: string;
   own_grade: string;
   area: string;
@@ -33,17 +33,17 @@ export type DashboardStats = {
   flash_rate: number;
   areas: AreaCount[];
   grade_counts: {
-    grade_27crags: GradeCount[];
+    grade_thetopo: GradeCount[];
     guide_grade: GradeCount[];
     own_grade: GradeCount[];
   };
   area_counts_by_grade_source: {
-    grade_27crags: AreaCount[];
+    grade_thetopo: AreaCount[];
     guide_grade: AreaCount[];
     own_grade: AreaCount[];
   };
   area_grade_matrix_by_grade_source: {
-    grade_27crags: Array<Record<string, number | string>>;
+    grade_thetopo: Array<Record<string, number | string>>;
     guide_grade: Array<Record<string, number | string>>;
     own_grade: Array<Record<string, number | string>>;
   };
@@ -57,7 +57,7 @@ export type BouldersResponse = {
 
 export type BoulderCreateRequest = {
   name: string;
-  grade_27crags: string;
+  grade_thetopo: string;
   guide_grade: string;
   own_grade: string;
   area: string;
@@ -139,6 +139,8 @@ export type AscentCommentUpdateRequest = {
 };
 
 export type BoulderMedia = {
+  own_grade: string;
+  grade_thetopo: string;
   id: number;
   boulder_name: string;
   area: string;
@@ -175,4 +177,4 @@ export type BoulderUpdateRequest = {
   boulder: BoulderCreateRequest;
 };
 
-export type GradeField = "grade_27crags" | "guide_grade" | "own_grade";
+export type GradeField = "grade_thetopo" | "guide_grade" | "own_grade";

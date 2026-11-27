@@ -35,13 +35,17 @@ export function writeBoulderHash(identity: BoulderPageIdentity | null) {
     clearHashRoute();
     return;
   }
+  window.history.pushState(null, "", boulderHref(identity));
+}
+
+export function boulderHref(identity: BoulderPageIdentity): string {
   const params = new URLSearchParams({
     view: "boulder",
     name: identity.name,
     area: identity.area,
     sector: identity.sector
   });
-  window.history.pushState(null, "", `#${params.toString()}`);
+  return `#${params.toString()}`;
 }
 
 export function writeBouldererHash(username: string | null) {

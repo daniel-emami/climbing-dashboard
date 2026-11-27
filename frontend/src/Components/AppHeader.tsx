@@ -10,7 +10,6 @@ type AppHeaderProps = {
   currentUser: AuthUser | null;
   isAuthLoading: boolean;
   isAuthSaving: boolean;
-  isFeedPage: boolean;
   isOnBoulderPage: boolean;
   isOnBouldererPage: boolean;
   onOpenDashboardHome: () => void;
@@ -18,6 +17,7 @@ type AppHeaderProps = {
   onAddAscent: (trigger: HTMLButtonElement) => void;
   onOpenImport: (trigger: HTMLButtonElement) => void;
   onSignIn: (trigger: HTMLButtonElement) => void;
+  onResetPassword: (trigger: HTMLButtonElement) => void;
   onLogout: () => Promise<void>;
   onSelectPage: (page: DashboardPage) => void;
 };
@@ -27,7 +27,6 @@ export default function AppHeader({
   currentUser,
   isAuthLoading,
   isAuthSaving,
-  isFeedPage,
   isOnBoulderPage,
   isOnBouldererPage,
   onOpenDashboardHome,
@@ -35,14 +34,15 @@ export default function AppHeader({
   onAddAscent,
   onOpenImport,
   onSignIn,
+  onResetPassword,
   onLogout,
   onSelectPage
 }: AppHeaderProps) {
   const isDashboard = !isOnBoulderPage && !isOnBouldererPage;
 
   return (
-    <header className={`${styles.workspaceHeader} ${isFeedPage ? headerStyles.feedHeader : ""}`}>
-      <button aria-label={isFeedPage ? "Tick Tracker home" : undefined} className={`${styles.brandButton} ${isFeedPage ? headerStyles.feedBrand : ""}`} type="button" onClick={onOpenDashboardHome}>
+    <header className={`${styles.workspaceHeader} ${headerStyles.header}`}>
+      <button aria-label="Tick Tracker home" className={`${styles.brandButton} ${headerStyles.brand}`} type="button" onClick={onOpenDashboardHome}>
         <span className={styles.brandMark} aria-hidden="true">
           TT
         </span>
@@ -53,7 +53,7 @@ export default function AppHeader({
       </button>
 
       {isDashboard ? (
-        <nav className={`${styles.headerNav} ${isFeedPage ? headerStyles.feedNav : ""}`} aria-label="Dashboard pages">
+        <nav className={`${styles.headerNav} ${headerStyles.nav}`} aria-label="Dashboard pages">
           {DASHBOARD_PAGES.map((page) => (
             <button
               aria-current={activePage === page.key ? "page" : undefined}
@@ -72,24 +72,23 @@ export default function AppHeader({
         </div>
       )}
 
-      <div className={`${styles.headerAccount} ${headerStyles.accountActions} ${isFeedPage ? headerStyles.feedActions : ""}`}>
-        {isFeedPage && (
-          <button className={headerStyles.importButton} type="button" onClick={(event) => onOpenImport(event.currentTarget)}>
-            Import TheTopo
+      <div className={`${styles.headerAccount} ${headerStyles.accountActions} ${headerStyles.actions}`}>
+        <button className={headerStyles.importButton} type="button" onClick={(event) => onOpenImport(event.currentTarget)}>
+          Import TheTopo
+        </button>
+        {currentUser?.is_admin && (
+          <button className={headerStyles.signInButton} disabled={isAuthSaving} type="button" onClick={(event) => onResetPassword(event.currentTarget)}>
+            Reset password
           </button>
         )}
         {currentUser ? (
           <button className={headerStyles.signInButton} disabled={isAuthSaving} type="button" onClick={() => { void onLogout().catch(() => {}); }}>
-            {isAuthSaving ? "Signing out..." : "Log Out"}
-          </button>
-        ) : isFeedPage ? (
-          <button className={headerStyles.signInButton} disabled={isAuthLoading} onClick={(event) => onSignIn(event.currentTarget)} type="button">
-            {isAuthLoading ? "Checking..." : "Sign in"}
+            {isAuthSaving ? "Signing out..." : "Sign out"}
           </button>
         ) : (
-          <span className={styles.signedOutChip}>
-            {isAuthLoading ? "Checking account" : "Sign in below"}
-          </span>
+          <button className={headerStyles.signInButton} disabled={isAuthLoading} onClick={(event) => onSignIn(event.currentTarget)} type="button">
+            {isAuthLoading ? "Checking..." : "Login"}
+          </button>
         )}
         {isDashboard && (
           <button className={headerStyles.addAscentButton} type="button" onClick={(event) => onAddAscent(event.currentTarget)}>

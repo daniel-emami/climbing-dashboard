@@ -3,11 +3,11 @@ import { exportBoulders, fetchBoulderDetail } from "./Api/boulderApi";
 import { fetchBoulderSuggestions, type BoulderSuggestions } from "./Api/suggestionsApi";
 import AppHeader from "./Components/AppHeader";
 import AddAscentDialog from "./Components/AddAscentDialog";
-import DashboardControlRail from "./Components/DashboardControlRail";
 import DashboardPageContent from "./Components/DashboardPageContent";
 import DashboardToolbar from "./Components/DashboardToolbar";
-import FeedUtilityDialog from "./Components/FeedUtilityDialog";
+import UtilityDialog from "./Components/UtilityDialog";
 import AuthPanel from "./Components/AuthPanel";
+import AdminPasswordResetPanel from "./Components/AdminPasswordResetPanel";
 import TheTopoImportPanel from "./Components/TheTopoImportPanel";
 import ErrorState from "./Components/ErrorState";
 import LoadingState from "./Components/LoadingState";
@@ -31,7 +31,7 @@ import { useSelectedBoulderContent } from "./Hooks/useSelectedBoulderContent";
 import styles from "./App.module.css";
 
 const DASHBOARD_GRADE_SOURCE_FIELDS: GradeField[] = [
-  "grade_27crags",
+  "grade_thetopo",
   "own_grade",
   "guide_grade"
 ];
@@ -41,11 +41,13 @@ export default function App() {
   const [ascentError, setAscentError] = useState<string | null>(null);
   const [ascentNotice, setAscentNotice] = useState<string | null>(null);
   const [isAddAscentOpen, setIsAddAscentOpen] = useState(false);
-  const [isFeedImportOpen, setIsFeedImportOpen] = useState(false);
-  const [isFeedSignInOpen, setIsFeedSignInOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false);
+  const passwordResetTriggerRef = useRef<HTMLButtonElement | null>(null);
   const ascentTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const toolsTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const signInTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const importTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const loginTriggerRef = useRef<HTMLButtonElement | null>(null);
   const authUsernameInputRef = useRef<HTMLInputElement | null>(null);
   const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("own_grade");
   const [activePage, setActivePage] = useState<DashboardPage>("feed");
@@ -69,12 +71,6 @@ export default function App() {
   } = useHashRoute();
   const isFeedPage = activePage === "feed" && !selectedBoulder && !selectedBouldererUsername;
 
-  useEffect(() => {
-    if (!isFeedPage) {
-      setIsFeedImportOpen(false);
-      setIsFeedSignInOpen(false);
-    }
-  }, [isFeedPage]);
   const {
     data,
     handleAddBoulder: saveBoulder,
@@ -227,40 +223,36 @@ export default function App() {
     setIsAddAscentOpen(true);
   };
 
-  const closeFeedImport = () => {
-    setIsFeedImportOpen(false);
-    toolsTriggerRef.current?.focus();
+  const closeImport = () => {
+    setIsImportOpen(false);
+    importTriggerRef.current?.focus();
   };
 
-  const openFeedImport = (trigger: HTMLButtonElement) => {
-    toolsTriggerRef.current = trigger;
-    setIsFeedImportOpen(true);
+  const openImport = (trigger: HTMLButtonElement) => {
+    importTriggerRef.current = trigger;
+    setIsImportOpen(true);
   };
 
-  const closeFeedSignIn = () => {
-    setIsFeedSignInOpen(false);
-    signInTriggerRef.current?.focus();
+  const closeLogin = () => {
+    setIsLoginOpen(false);
+    loginTriggerRef.current?.focus();
   };
 
-  const openFeedSignIn = (trigger: HTMLButtonElement) => {
-    signInTriggerRef.current = trigger;
+  const openLogin = (trigger: HTMLButtonElement) => {
+    loginTriggerRef.current = trigger;
     setError(null);
-    setIsFeedSignInOpen(true);
+    setIsLoginOpen(true);
   };
 
   const goToSignIn = () => {
-    if (isFeedPage) {
-      signInTriggerRef.current = ascentTriggerRef.current;
-      closeAddAscent();
-      window.setTimeout(() => setIsFeedSignInOpen(true), 0);
-      return;
-    }
+    loginTriggerRef.current = ascentTriggerRef.current;
     closeAddAscent();
-    window.setTimeout(() => {
-      const usernameInput = authUsernameInputRef.current;
-      usernameInput?.scrollIntoView?.({ block: "center", behavior: "smooth" });
-      usernameInput?.focus();
-    }, 0);
+    window.setTimeout(() => setIsLoginOpen(true), 0);
+  };
+
+  const closePasswordReset = () => {
+    setIsPasswordResetOpen(false);
+    passwordResetTriggerRef.current?.focus();
   };
 
   const handleAddBoulder = async (request: BoulderCreateRequest) => {
@@ -326,13 +318,9 @@ export default function App() {
   };
 
   const authPanelProps = {
-    user: currentUser,
     isLoading: isAuthLoading,
     isSaving: isAuthSaving,
     onLogin: handleLogin,
-    onLogout: handleLogout,
-    onOpenProfile: handleOpenBoulderer,
-    onResetPassword: handleResetPassword,
     onSignup: handleSignup,
     usernameInputRef: authUsernameInputRef
   };
@@ -343,7 +331,7 @@ export default function App() {
       handleImportedBoulders(payload);
       invalidateFeed();
       setSuggestions(null);
-      if (isFeedPage) closeFeedImport();
+      closeImport();
     },
     onError: setError
   };
@@ -382,14 +370,18 @@ export default function App() {
         currentUser={currentUser}
         isAuthLoading={isAuthLoading}
         isAuthSaving={isAuthSaving}
-        isFeedPage={isFeedPage}
         isOnBoulderPage={Boolean(selectedBoulder)}
         isOnBouldererPage={Boolean(selectedBouldererUsername)}
         onOpenDashboardHome={handleOpenDashboardHome}
         onOpenProfile={handleOpenBoulderer}
         onAddAscent={openAddAscent}
-        onOpenImport={openFeedImport}
-        onSignIn={openFeedSignIn}
+        onOpenImport={openImport}
+        onSignIn={openLogin}
+        onResetPassword={(trigger) => {
+          passwordResetTriggerRef.current = trigger;
+          setError(null);
+          setIsPasswordResetOpen(true);
+        }}
         onLogout={handleLogout}
         onSelectPage={setActivePage}
       />
@@ -465,10 +457,6 @@ export default function App() {
           )}
 
           <div className={`${styles.dashboardLayout} ${isFeedPage ? styles.feedLayout : ""}`}>
-            {!isFeedPage && (
-              <DashboardControlRail authPanelProps={authPanelProps} importPanelProps={importPanelProps} />
-            )}
-
             <DashboardPageContent
               activeAreaMapGradeField={activeAreaMapGradeField}
               activeAreaMapGradeLabel={activeAreaMapGradeLabel}
@@ -504,23 +492,27 @@ export default function App() {
         onDismiss={closeAddAscent}
         onSignIn={goToSignIn}
       />
-      {isFeedPage && (
-        <>
-          <FeedUtilityDialog isOpen={isFeedImportOpen} onDismiss={closeFeedImport} title="Import TheTopo" variant="drawer">
-            {error && <ErrorState message={error} />}
-            <TheTopoImportPanel {...importPanelProps} embedded />
-          </FeedUtilityDialog>
-          <FeedUtilityDialog initialFocusRef={authUsernameInputRef} isOpen={isFeedSignInOpen} onDismiss={closeFeedSignIn} title="Sign in" variant="signIn">
-            {error && <ErrorState message={error} />}
-            <AuthPanel
-              {...authPanelProps}
-              embedded
-              hideHeading
-              onLogin={async (request) => { await handleLogin(request); closeFeedSignIn(); }}
-              onSignup={async (request) => { await handleSignup(request); closeFeedSignIn(); }}
-            />
-          </FeedUtilityDialog>
-        </>
+      <UtilityDialog isOpen={isImportOpen} onDismiss={closeImport} title="Import TheTopo" variant="drawer">
+        {error && <ErrorState message={error} />}
+        <TheTopoImportPanel {...importPanelProps} embedded />
+      </UtilityDialog>
+      <UtilityDialog initialFocusRef={authUsernameInputRef} isOpen={isLoginOpen} onDismiss={closeLogin} title="Login" variant="modal">
+        {error && <ErrorState message={error} />}
+        {!currentUser && (
+          <AuthPanel
+            {...authPanelProps}
+            embedded
+            hideHeading
+            onLogin={async (request) => { await handleLogin(request); closeLogin(); }}
+            onSignup={async (request) => { await handleSignup(request); closeLogin(); }}
+          />
+        )}
+      </UtilityDialog>
+      {currentUser?.is_admin && isPasswordResetOpen && (
+        <UtilityDialog isOpen onDismiss={closePasswordReset} title="Reset password" variant="modal">
+          {error && <ErrorState message={error} />}
+          <AdminPasswordResetPanel isSaving={isAuthSaving} onResetPassword={handleResetPassword} />
+        </UtilityDialog>
       )}
       {ascentNotice && <div className={styles.ascentNotice} role="status">{ascentNotice}</div>}
     </main>

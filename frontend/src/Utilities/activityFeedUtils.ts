@@ -53,13 +53,8 @@ export function formatMediaLocation(media: BoulderMedia): string {
   return [media.area, media.sector].filter(Boolean).join(" / ");
 }
 
-export function formatGrade(record: BoulderRecord): string {
-  const grades = [
-    record.own_grade ? `Own ${record.own_grade}` : "",
-    record.grade_27crags ? `27Crags ${record.grade_27crags}` : "",
-    record.guide_grade ? `Guide ${record.guide_grade}` : ""
-  ].filter(Boolean);
-  return grades.length > 0 ? grades.join(" · ") : "Ungraded";
+export function formatGrade(record: { own_grade: string; grade_thetopo: string }): string {
+  return record.own_grade.trim() || record.grade_thetopo.trim();
 }
 
 export function formatRating(rating: number | null): string {

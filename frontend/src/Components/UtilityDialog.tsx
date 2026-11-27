@@ -1,16 +1,16 @@
 import { useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
-import styles from "./FeedUtilityDialog.module.css";
+import styles from "./UtilityDialog.module.css";
 
-type FeedUtilityDialogProps = {
+type UtilityDialogProps = {
   children: ReactNode;
   initialFocusRef?: RefObject<HTMLInputElement | null>;
   isOpen: boolean;
   onDismiss: () => void;
   title: string;
-  variant: "drawer" | "signIn";
+  variant: "drawer" | "modal";
 };
 
-export default function FeedUtilityDialog({ children, initialFocusRef, isOpen, onDismiss, title, variant }: FeedUtilityDialogProps) {
+export default function UtilityDialog({ children, initialFocusRef, isOpen, onDismiss, title, variant }: UtilityDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -25,12 +25,12 @@ export default function FeedUtilityDialog({ children, initialFocusRef, isOpen, o
       if (typeof dialog.close === "function") dialog.close();
       else dialog.removeAttribute("open");
     }
-  }, [isOpen]);
+  }, [isOpen, initialFocusRef]);
 
   return (
     <dialog
       aria-labelledby={titleId}
-      className={`${styles.dialog} ${variant === "drawer" ? styles.drawer : styles.signIn}`}
+      className={`${styles.dialog} ${variant === "drawer" ? styles.drawer : styles.modal}`}
       onCancel={(event) => { event.preventDefault(); onDismiss(); }}
       onClick={(event) => { if (event.target === event.currentTarget) onDismiss(); }}
       ref={dialogRef}

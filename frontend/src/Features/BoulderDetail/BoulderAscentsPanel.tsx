@@ -22,7 +22,7 @@ function compareDates(left: string | null, right: string | null): number {
 function recordToRequest(record: BoulderRecord): BoulderCreateRequest {
   return {
     name: record.name,
-    grade_27crags: record.grade_27crags,
+    grade_thetopo: record.grade_thetopo,
     guide_grade: record.guide_grade,
     own_grade: record.own_grade,
     area: record.area,
@@ -110,7 +110,7 @@ export default function BoulderAscentsPanel({
             <tr>
               <th>Climber</th>
               <th>Own grade</th>
-              <th>27Crags</th>
+              <th>TheTopo</th>
               <th>Guide</th>
               <th>Flash</th>
               <th>Date</th>
@@ -135,7 +135,7 @@ export default function BoulderAscentsPanel({
                   </button>
                 </th>
                 <td>{record.own_grade}</td>
-                <td>{record.grade_27crags}</td>
+                <td>{record.grade_thetopo}</td>
                 <td>{record.guide_grade}</td>
                 <td>{record.flash ? "Yes" : ""}</td>
                 <td>{record.climbed_on ?? ""}</td>

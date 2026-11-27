@@ -15,6 +15,7 @@ import {
 } from "../../Utilities/activityFeedUtils";
 import sharedStyles from "../../Styles/Shared.module.css";
 import styles from "./ActivityFeed.module.css";
+import FeedBoulderTitle from "./FeedBoulderTitle";
 
 type ActivityAscentFeedItemProps = {
   comments: AscentComment[];
@@ -55,6 +56,7 @@ export default function ActivityAscentFeedItem({
   onStartEditingComment,
   onSubmitComment
 }: ActivityAscentFeedItemProps) {
+  const grade = formatGrade(record);
   const rating = formatRating(record.rating);
   const ascentId = record.ascent_id;
 
@@ -81,16 +83,7 @@ export default function ActivityAscentFeedItem({
         </div>
       </div>
       <div className={styles.body}>
-        <div className={styles.titleRow}>
-          <button
-            className={styles.boulderLink}
-            type="button"
-            onClick={() => onOpenBoulder(boulderIdentityFromRecord(record))}
-          >
-            {record.name}
-          </button>
-          <span className={styles.grade}>{formatGrade(record)}</span>
-        </div>
+        <FeedBoulderTitle identity={boulderIdentityFromRecord(record)} grade={grade} onOpenBoulder={onOpenBoulder} />
         <p className={styles.meta}>
           {formatLocation(record)} · Climbed {formatDate(record.climbed_on)}
           {rating ? ` · ${rating}` : ""}

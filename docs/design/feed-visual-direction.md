@@ -1,6 +1,6 @@
 # Feed visual direction
 
-The Feed is the first page to receive the new visual design. Logbook, Map, and detail pages keep their existing appearance until the Feed has been evaluated.
+The Feed establishes the shared header and utility controls for Feed, Logbook, Map, boulder detail, and boulderer profile pages. Each page keeps its own main content layout; Logbook and Map use the available width without an account/import sidebar.
 
 ## Current palette: cool ink and soft mint
 
@@ -25,8 +25,9 @@ The active values live in `frontend/src/Styles/tokens.css` under the Feed theme 
 ## Layout decisions
 
 - Recent activity is the main content. Feed cards sit in a centered column on laptops and use the available width on phones.
-- Climber and boulder are the first visual cues, followed by grade, location, and date.
+- Climber and boulder are the first visual cues. Both ascent and video cards show the climber’s own grade inline with the boulder name, falling back to TheTopo grade. If neither exists, the grade is omitted. Location and date follow below.
+- Feed card titles, climber names, and grades use pale sage (`#C8E4DB`). Body text uses soft white (`#DCE6E3`), with muted sage for metadata (`#B2C5BF`) and timestamps (`#9DB1AA`). These colors are scoped to Feed cards.
 - Videos are limited to 420px inline on laptops and retain native full-screen controls. They fill the card width on phones.
 - All comments and the comment field remain visible because discussions are typically short.
-- Account access stays in the header. Sign-in opens a dialog. TheTopo import opens from Tools in a side drawer on laptops and a full-screen sheet on phones.
+- Account access stays in the shared header on every page. Login opens a dialog on laptops and phones. Admins can open Reset password beside Sign out. Import TheTopo opens a side drawer on laptops and a full-screen sheet on phones.
 - Add Ascent remains in the header on laptops and fixed near the bottom on phones.

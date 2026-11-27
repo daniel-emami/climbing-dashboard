@@ -22,7 +22,7 @@ class ExcelBoulderExporter:
 
         for row_index, boulder in enumerate(boulders, start=2):
             worksheet.cell(row_index, 1, boulder.name)
-            worksheet.cell(row_index, 2, boulder.grade_27crags)
+            worksheet.cell(row_index, 2, boulder.grade_thetopo)
             worksheet.cell(row_index, 3, boulder.guide_grade)
             worksheet.cell(row_index, 4, boulder.own_grade)
             worksheet.cell(row_index, 5, boulder.area)

@@ -51,6 +51,8 @@ class SqliteMediaStorage:
                         media.created_at,
                         media.updated_at,
                         COALESCE(ascents.visibility, 'private') AS visibility,
+                        COALESCE(ascents.own_grade, '') AS own_grade,
+                        COALESCE(ascents.grade_thetopo, '') AS grade_thetopo,
                         COALESCE(NULLIF(users.display_name, ''), media.climber)
                             AS climber_display_name
                     FROM boulder_media AS media
@@ -113,6 +115,8 @@ class SqliteMediaStorage:
                         media.created_at,
                         media.updated_at,
                         COALESCE(ascents.visibility, 'private') AS visibility,
+                        COALESCE(ascents.own_grade, '') AS own_grade,
+                        COALESCE(ascents.grade_thetopo, '') AS grade_thetopo,
                         COALESCE(NULLIF(users.display_name, ''), media.climber)
                             AS climber_display_name
                     FROM boulder_media AS media
@@ -191,6 +195,8 @@ class SqliteMediaStorage:
                         media.created_at,
                         media.updated_at,
                         COALESCE(ascents.visibility, 'private') AS visibility,
+                        COALESCE(ascents.own_grade, '') AS own_grade,
+                        COALESCE(ascents.grade_thetopo, '') AS grade_thetopo,
                         COALESCE(NULLIF(users.display_name, ''), media.climber)
                             AS climber_display_name
                     FROM boulder_media AS media
@@ -391,6 +397,8 @@ class SqliteMediaStorage:
                 media.created_at,
                 media.updated_at,
                 COALESCE(ascents.visibility, 'private') AS visibility,
+                COALESCE(ascents.own_grade, '') AS own_grade,
+                COALESCE(ascents.grade_thetopo, '') AS grade_thetopo,
                 COALESCE(NULLIF(users.display_name, ''), media.climber)
                     AS climber_display_name
             FROM boulder_media AS media
@@ -433,6 +441,8 @@ class SqliteMediaStorage:
             updated_at=str(row["updated_at"]),
             user_id=None if row["user_id"] is None else int(row["user_id"]),
             visibility=str(row["visibility"]),
+            own_grade=str(row["own_grade"]),
+            grade_thetopo=str(row["grade_thetopo"]),
             climber_display_name=str(row["climber_display_name"]),
         )
 

@@ -1,20 +1,20 @@
-.feedHeader.feedHeader {
-  grid-template-columns: minmax(190px, 1fr) auto minmax(290px, 1fr);
+.header.header {
+  grid-template-columns: minmax(150px, 1fr) auto minmax(0, 1.8fr);
   padding: 10px 14px;
 }
 
-.feedNav {
+.nav {
   width: auto;
   min-width: 300px;
 }
 
-.feedActions.feedActions {
+.actions.actions {
   justify-self: end;
 }
 
 .accountActions.accountActions {
   justify-content: flex-end;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .profileButton.profileButton {
@@ -68,11 +68,11 @@
 }
 
 @media (max-width: 1050px) {
-  .feedHeader.feedHeader {
+  .header.header {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .feedNav {
+  .nav {
     order: 3;
     grid-column: 1 / -1;
     justify-self: stretch;
@@ -80,24 +80,25 @@
 }
 
 @media (max-width: 760px) {
-  .feedHeader.feedHeader {
+  .header.header {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
   }
 
-  .feedBrand.feedBrand {
+  .brand.brand {
     width: auto;
   }
 
-  .feedBrand span span {
+  .brand span span {
     display: none;
   }
 
-  .feedActions.feedActions {
+  .actions.actions {
     width: auto;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 6px;
     justify-content: flex-end;
+    max-width: calc(100vw - 104px);
   }
 
   .importButton,
@@ -105,7 +106,7 @@
     padding: 0 9px;
   }
 
-  .feedNav {
+  .nav {
     min-width: 0;
   }
 
@@ -114,13 +115,13 @@
   }
 }
 
-@media (max-width: 420px) {
-  .feedBrand.feedBrand {
+@media (max-width: 600px) {
+  .brand.brand {
     grid-template-columns: 42px;
     gap: 0;
   }
 
-  .feedBrand > span:last-child {
+  .brand > span:last-child {
     display: none;
   }
 }

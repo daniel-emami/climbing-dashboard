@@ -315,7 +315,7 @@
 
 .dashboardLayout {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -326,13 +326,6 @@
   margin: 24px auto 0;
 }
 
-.controlRail {
-  position: sticky;
-  top: 86px;
-  display: grid;
-  gap: 16px;
-}
-
 .dashboardMain {
   min-width: 0;
 }
@@ -340,10 +333,6 @@
 @media (max-width: 1050px) {
   .dashboardLayout {
     grid-template-columns: 1fr;
-  }
-
-  .controlRail {
-    position: static;
   }
 
   .headerAccount {

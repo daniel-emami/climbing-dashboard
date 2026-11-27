@@ -145,7 +145,7 @@ export default function TheTopoImportPanel({
                   <strong>{boulder.name}</strong>
                   <small>
                     {[boulder.area, boulder.sector].filter(Boolean).join(" / ")} ·{" "}
-                    {boulder.climber || preview.username} · {boulder.grade_27crags || "-"} ·{" "}
+                    {boulder.climber || preview.username} · {boulder.grade_thetopo || "-"} ·{" "}
                     {boulder.climbed_on ?? "-"}
                   </small>
                 </span>

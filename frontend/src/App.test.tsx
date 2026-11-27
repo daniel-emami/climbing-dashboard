@@ -11,14 +11,15 @@ const emptyBoulders = {
     flash_count: 0,
     flash_rate: 0,
     areas: [],
-    grade_counts: { grade_27crags: [], guide_grade: [], own_grade: [] },
-    area_counts_by_grade_source: { grade_27crags: [], guide_grade: [], own_grade: [] },
-    area_grade_matrix_by_grade_source: { grade_27crags: [], guide_grade: [], own_grade: [] }
+    grade_counts: { grade_thetopo: [], guide_grade: [], own_grade: [] },
+    area_counts_by_grade_source: { grade_thetopo: [], guide_grade: [], own_grade: [] },
+    area_grade_matrix_by_grade_source: { grade_thetopo: [], guide_grade: [], own_grade: [] }
   }
 };
 
 afterEach(() => {
   cleanup();
+  window.history.replaceState(null, "", window.location.pathname);
   vi.unstubAllGlobals();
 });
 
@@ -42,7 +43,12 @@ test("opening the feed loads feed data without loading logbook data", async () =
   await waitFor(() => expect(paths).toContain("/api/boulders"));
 });
 
-test("Feed opens Import TheTopo while Logbook keeps the control rail", async () => {
+test("Feed, Logbook, and Map share header dialogs without sidebar cards", async () => {
+  vi.stubGlobal("ResizeObserver", class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  });
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
     const path = String(input);
     const body = path === "/api/auth/me" ? { user: null }
@@ -58,9 +64,23 @@ test("Feed opens Import TheTopo while Logbook keeps the control rail", async () 
   const importDialog = await screen.findByRole("dialog", { name: "Import TheTopo" });
   expect(within(importDialog).getByRole("button", { name: "Preview Boulders" })).toBeTruthy();
   fireEvent.click(within(importDialog).getByRole("button", { name: "Close Import TheTopo" }));
-  fireEvent.click(screen.getByRole("button", { name: "Logbook" }));
-  expect(await screen.findByRole("button", { name: "Preview Boulders" })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Import TheTopo" })).toBeNull();
+  for (const page of ["Logbook", "Map"]) {
+    fireEvent.click(screen.getByRole("button", { name: page }));
+    await waitFor(() => expect(screen.getByRole("button", { name: page }).getAttribute("aria-current")).toBe("page"));
+    expect(screen.queryByRole("button", { name: "Preview Boulders" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Username" })).toBeNull();
+    expect(screen.queryByText("Sign in below")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Import TheTopo" }));
+    const drawer = await screen.findByRole("dialog", { name: "Import TheTopo" });
+    expect(within(drawer).getByRole("button", { name: "Preview Boulders" })).toBeTruthy();
+    fireEvent.click(within(drawer).getByRole("button", { name: "Close Import TheTopo" }));
+    const loginTrigger = screen.getByRole("button", { name: "Login" });
+    fireEvent.click(loginTrigger);
+    const login = await screen.findByRole("dialog", { name: "Login" });
+    expect(within(login).getByLabelText("Username")).toBe(document.activeElement);
+    fireEvent.click(within(login).getByRole("button", { name: "Close Login" }));
+    expect(document.activeElement).toBe(loginTrigger);
+  }
 });
 
 test("opening Add Ascent loads suggestions without loading the logbook", async () => {
@@ -186,7 +206,7 @@ test("signed-out Add Ascent opens the sign-in dialog", async () => {
   expect(within(dialog).getByText("Sign in to add an ascent to your logbook.")).toBeTruthy();
   fireEvent.click(within(dialog).getByRole("button", { name: "Go to sign in" }));
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Ascent" })).toBeNull());
-  expect(await screen.findByRole("dialog", { name: "Sign in" })).toBeTruthy();
+  expect(await screen.findByRole("dialog", { name: "Login" })).toBeTruthy();
   await waitFor(() => expect(document.activeElement).toBe(document.querySelector("input[autocomplete='username']")));
 });
 
@@ -213,7 +233,7 @@ test("opening a boulder from the feed reads only that boulder's detail", async (
   const paths: string[] = [];
   const record = {
     name: "Problem", area: "Area", sector: "", climber: "climber",
-    climber_display_name: "Climber", grade_27crags: "6a", guide_grade: "6a", own_grade: "6a",
+    climber_display_name: "Climber", grade_thetopo: "6a", guide_grade: "6a", own_grade: "6a",
     flash: false, climbed_on: null, rating: null, visibility: "public",
     ascent_id: 1, added_at: "2026-01-01 00:00:00"
   };
@@ -229,7 +249,70 @@ test("opening a boulder from the feed reads only that boulder's detail", async (
     return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
   }));
   render(<App />);
-  fireEvent.click(await screen.findByRole("button", { name: "Problem" }));
+  fireEvent.click(await screen.findByRole("link", { name: "Problem" }));
   await waitFor(() => expect(paths.some((path) => path.startsWith("/api/boulders/detail?"))).toBe(true));
   expect(paths).not.toContain("/api/boulders");
+});
+
+test.each([
+  ["6c", "6b+", "6c"],
+  ["", "6b+", "6b+"],
+  ["  ", "6b+", "6b+"],
+  ["", "", null]
+])("both feed card types prefer own grade %j over TheTopo %j", async (ownGrade, theTopoGrade, expected) => {
+  const record = {
+    name: "Ascent problem", area: "Area", sector: "", climber: "climber",
+    climber_display_name: "Climber", grade_thetopo: theTopoGrade, guide_grade: "7a", own_grade: ownGrade,
+    flash: false, climbed_on: null, rating: null, visibility: "public",
+    ascent_id: 1, added_at: "2026-01-01 00:00:00"
+  };
+  const media = {
+    id: 1, boulder_name: "Video problem", area: "Area", sector: "", ascent_id: 1,
+    user_id: 1, climber: "climber", climber_display_name: "Climber", visibility: "public",
+    media_type: "video", url: "/api/boulders/media/1/content", original_filename: "video.mp4",
+    mime_type: "video/mp4", file_size: 10, caption: "", created_at: "2026-01-01 00:00:00",
+    updated_at: "2026-01-01 00:00:00", own_grade: ownGrade, grade_thetopo: theTopoGrade
+  };
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const body = String(input) === "/api/auth/me" ? { user: null }
+      : { items: [{ kind: "ascent", record, comments: [] }, { kind: "video", media }] };
+    return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
+  }));
+  render(<App />);
+  await screen.findByRole("link", { name: "Video problem" });
+  expect(screen.getByRole("link", { name: "Ascent problem" })).toBeTruthy();
+  if (expected) expect(screen.getAllByText(expected, { exact: true })).toHaveLength(2);
+  else expect(screen.queryByText("Ungraded")).toBeNull();
+  expect(screen.queryByText("7a")).toBeNull();
+  if (expected !== theTopoGrade && theTopoGrade) expect(screen.queryByText(theTopoGrade, { exact: true })).toBeNull();
+});
+
+test.each([true, false])("password reset is available only to admins (admin=%s)", async (isAdmin) => {
+  const requests: Array<{ path: string; body: unknown }> = [];
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const path = String(input);
+    requests.push({ path, body: init?.body ? JSON.parse(String(init.body)) : null });
+    const body = path === "/api/auth/me"
+      ? { user: { id: 1, username: "climber", display_name: "Climber", profile_picture_url: null, is_admin: isAdmin } }
+      : path === "/api/auth/admin/reset-password" ? { username: "friend", temporary_password: "temporary123" }
+      : { items: [] };
+    return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
+  }));
+  render(<App />);
+  await screen.findByRole("button", { name: "Sign out" });
+  expect(screen.queryByRole("button", { name: "View Profile" })).toBeNull();
+  if (!isAdmin) {
+    expect(screen.queryByRole("button", { name: "Reset password" })).toBeNull();
+    return;
+  }
+  const trigger = screen.getByRole("button", { name: "Reset password" });
+  fireEvent.click(trigger);
+  const dialog = await screen.findByRole("dialog", { name: "Reset password" });
+  fireEvent.change(within(dialog).getByPlaceholderText("Username"), { target: { value: "friend" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Generate" }));
+  await waitFor(() => expect(within(dialog).getByLabelText<HTMLInputElement>("Generated password").value).toBe("temporary123"));
+  expect(requests).toContainEqual({ path: "/api/auth/admin/reset-password", body: { username: "friend" } });
+  expect(within(dialog).queryByRole("button", { name: "Sign out" })).toBeNull();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close Reset password" }));
+  expect(document.activeElement).toBe(trigger);
 });

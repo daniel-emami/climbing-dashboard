@@ -53,7 +53,7 @@ class SqliteBoulderStorage:
                         problems.name,
                         problems.area,
                         problems.sector,
-                        ascents.grade_27crags,
+                        ascents.grade_thetopo,
                         ascents.guide_grade,
                         ascents.own_grade,
                         ascents.climber,
@@ -89,7 +89,7 @@ class SqliteBoulderStorage:
         return [
             BoulderRecord(
                 name=str(row["name"]),
-                grade_27crags=str(row["grade_27crags"]),
+                grade_thetopo=str(row["grade_thetopo"]),
                 guide_grade=str(row["guide_grade"]),
                 own_grade=str(row["own_grade"]),
                 area=str(row["area"]),
@@ -139,7 +139,7 @@ class SqliteBoulderStorage:
                             boulder_id,
                             user_id,
                             climber,
-                            grade_27crags,
+                            grade_thetopo,
                             guide_grade,
                             own_grade,
                             flash,
@@ -200,7 +200,7 @@ class SqliteBoulderStorage:
                         boulder_id = ?,
                         user_id = ?,
                         climber = ?,
-                        grade_27crags = ?,
+                        grade_thetopo = ?,
                         guide_grade = ?,
                         own_grade = ?,
                         flash = ?,
@@ -360,7 +360,7 @@ class SqliteBoulderStorage:
     ) -> tuple[str, str, str, str, int, str | None, int | None, str]:
         return (
             record.climber,
-            record.grade_27crags,
+            record.grade_thetopo,
             record.guide_grade,
             record.own_grade,
             1 if record.flash else 0,

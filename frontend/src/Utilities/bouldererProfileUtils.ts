@@ -19,5 +19,5 @@ export function locationLabel(record: BoulderRecord): string {
 }
 
 export function ownGradeLabel(record: BoulderRecord): string {
-  return record.own_grade || record.grade_27crags || record.guide_grade || "-";
+  return record.own_grade || record.grade_thetopo || record.guide_grade || "-";
 }

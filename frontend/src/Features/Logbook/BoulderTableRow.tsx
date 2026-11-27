@@ -141,13 +141,13 @@ export default function BoulderTableRow({
       <td>
         {isEditing ? (
           <input
-            aria-label="27Crags grade"
+            aria-label="TheTopo grade"
             className={styles.inlineInput}
-            value={editableRecord.grade_27crags}
-            onChange={(event) => onUpdateDraft("grade_27crags", event.target.value)}
+            value={editableRecord.grade_thetopo}
+            onChange={(event) => onUpdateDraft("grade_thetopo", event.target.value)}
           />
         ) : (
-          record.grade_27crags
+          record.grade_thetopo
         )}
       </td>
       <td>
