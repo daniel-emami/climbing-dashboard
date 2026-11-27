@@ -42,7 +42,7 @@ test("opening the feed loads feed data without loading logbook data", async () =
   await waitFor(() => expect(paths).toContain("/api/boulders"));
 });
 
-test("Feed keeps import in Tools while Logbook keeps the control rail", async () => {
+test("Feed opens Import TheTopo while Logbook keeps the control rail", async () => {
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
     const path = String(input);
     const body = path === "/api/auth/me" ? { user: null }
@@ -54,13 +54,13 @@ test("Feed keeps import in Tools while Logbook keeps the control rail", async ()
   render(<App />);
   await screen.findByRole("heading", { name: "Latest activity" });
   expect(screen.queryByRole("button", { name: "Preview Boulders" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Tools" }));
-  const tools = await screen.findByRole("dialog", { name: "Tools" });
-  expect(within(tools).getByRole("button", { name: "Preview Boulders" })).toBeTruthy();
-  fireEvent.click(within(tools).getByRole("button", { name: "Close Tools" }));
+  fireEvent.click(screen.getByRole("button", { name: "Import TheTopo" }));
+  const importDialog = await screen.findByRole("dialog", { name: "Import TheTopo" });
+  expect(within(importDialog).getByRole("button", { name: "Preview Boulders" })).toBeTruthy();
+  fireEvent.click(within(importDialog).getByRole("button", { name: "Close Import TheTopo" }));
   fireEvent.click(screen.getByRole("button", { name: "Logbook" }));
   expect(await screen.findByRole("button", { name: "Preview Boulders" })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Tools" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Import TheTopo" })).toBeNull();
 });
 
 test("opening Add Ascent loads suggestions without loading the logbook", async () => {

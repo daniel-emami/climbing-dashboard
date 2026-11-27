@@ -9,14 +9,16 @@ type AppHeaderProps = {
   activePage: DashboardPage;
   currentUser: AuthUser | null;
   isAuthLoading: boolean;
+  isAuthSaving: boolean;
   isFeedPage: boolean;
   isOnBoulderPage: boolean;
   isOnBouldererPage: boolean;
   onOpenDashboardHome: () => void;
   onOpenProfile: (username: string) => void;
   onAddAscent: (trigger: HTMLButtonElement) => void;
-  onOpenTools: (trigger: HTMLButtonElement) => void;
+  onOpenImport: (trigger: HTMLButtonElement) => void;
   onSignIn: (trigger: HTMLButtonElement) => void;
+  onLogout: () => Promise<void>;
   onSelectPage: (page: DashboardPage) => void;
 };
 
@@ -24,14 +26,16 @@ export default function AppHeader({
   activePage,
   currentUser,
   isAuthLoading,
+  isAuthSaving,
   isFeedPage,
   isOnBoulderPage,
   isOnBouldererPage,
   onOpenDashboardHome,
   onOpenProfile,
   onAddAscent,
-  onOpenTools,
+  onOpenImport,
   onSignIn,
+  onLogout,
   onSelectPage
 }: AppHeaderProps) {
   const isDashboard = !isOnBoulderPage && !isOnBouldererPage;
@@ -68,30 +72,15 @@ export default function AppHeader({
         </div>
       )}
 
-      <div className={`${styles.headerAccount} ${isFeedPage ? headerStyles.feedActions : ""}`}>
+      <div className={`${styles.headerAccount} ${headerStyles.accountActions} ${isFeedPage ? headerStyles.feedActions : ""}`}>
         {isFeedPage && (
-          <button className={headerStyles.toolsButton} type="button" onClick={(event) => onOpenTools(event.currentTarget)}>
-            Tools
+          <button className={headerStyles.importButton} type="button" onClick={(event) => onOpenImport(event.currentTarget)}>
+            Import TheTopo
           </button>
         )}
         {currentUser ? (
-          <button
-            aria-label={isFeedPage ? `Account: ${currentUser.display_name || currentUser.username}` : undefined}
-            className={`${styles.accountChip} ${isFeedPage ? headerStyles.feedAccountChip : ""}`}
-            type="button"
-            onClick={() => onOpenProfile(currentUser.username)}
-          >
-            <span className={styles.accountAvatar} aria-hidden="true">
-              {currentUser.profile_picture_url ? (
-                <img alt="" src={profilePictureUrl(currentUser.profile_picture_url)} />
-              ) : (
-                initials(currentUser.display_name || currentUser.username) || "@"
-              )}
-            </span>
-            <span className={styles.accountText}>
-              <strong>{currentUser.display_name || currentUser.username}</strong>
-              <span>@{currentUser.username}</span>
-            </span>
+          <button className={headerStyles.signInButton} disabled={isAuthSaving} type="button" onClick={() => { void onLogout().catch(() => {}); }}>
+            {isAuthSaving ? "Signing out..." : "Log Out"}
           </button>
         ) : isFeedPage ? (
           <button className={headerStyles.signInButton} disabled={isAuthLoading} onClick={(event) => onSignIn(event.currentTarget)} type="button">
@@ -105,6 +94,22 @@ export default function AppHeader({
         {isDashboard && (
           <button className={headerStyles.addAscentButton} type="button" onClick={(event) => onAddAscent(event.currentTarget)}>
             <span aria-hidden="true">+</span> Add Ascent
+          </button>
+        )}
+        {currentUser && (
+          <button
+            aria-label={`View Profile: ${currentUser.display_name || currentUser.username}`}
+            className={`${styles.accountChip} ${headerStyles.profileButton}`}
+            type="button"
+            onClick={() => onOpenProfile(currentUser.username)}
+          >
+            <span className={styles.accountAvatar} aria-hidden="true">
+              {currentUser.profile_picture_url ? (
+                <img alt="" src={profilePictureUrl(currentUser.profile_picture_url)} />
+              ) : (
+                initials(currentUser.display_name || currentUser.username) || "@"
+              )}
+            </span>
           </button>
         )}
       </div>

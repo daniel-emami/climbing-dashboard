@@ -12,16 +12,18 @@
   justify-self: end;
 }
 
-.feedAccountChip.feedAccountChip {
+.accountActions.accountActions {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+.profileButton.profileButton {
   width: auto;
   grid-template-columns: 34px;
+  flex: none;
 }
 
-.feedAccountChip > span:last-child {
-  display: none;
-}
-
-.toolsButton,
+.importButton,
 .signInButton {
   min-height: 38px;
   border: 1px solid var(--color-control-border);
@@ -32,13 +34,13 @@
   font-weight: 850;
 }
 
-.toolsButton:hover,
+.importButton:hover,
 .signInButton:hover {
   border-color: var(--color-primary);
   color: var(--color-primary-dark);
 }
 
-.toolsButton:focus-visible,
+.importButton:focus-visible,
 .signInButton:focus-visible {
   outline: 3px solid var(--color-focus-outline);
   outline-offset: 2px;
@@ -98,16 +100,7 @@
     justify-content: flex-end;
   }
 
-  .feedAccountChip.feedAccountChip {
-    width: auto;
-    grid-template-columns: 34px;
-  }
-
-  .feedAccountChip > span:last-child {
-    display: none;
-  }
-
-  .toolsButton,
+  .importButton,
   .signInButton {
     padding: 0 9px;
   }

@@ -41,7 +41,7 @@ export default function App() {
   const [ascentError, setAscentError] = useState<string | null>(null);
   const [ascentNotice, setAscentNotice] = useState<string | null>(null);
   const [isAddAscentOpen, setIsAddAscentOpen] = useState(false);
-  const [isFeedToolsOpen, setIsFeedToolsOpen] = useState(false);
+  const [isFeedImportOpen, setIsFeedImportOpen] = useState(false);
   const [isFeedSignInOpen, setIsFeedSignInOpen] = useState(false);
   const ascentTriggerRef = useRef<HTMLButtonElement | null>(null);
   const toolsTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -77,7 +77,7 @@ export default function App() {
 
   useEffect(() => {
     if (!isFeedPage) {
-      setIsFeedToolsOpen(false);
+      setIsFeedImportOpen(false);
       setIsFeedSignInOpen(false);
     }
   }, [isFeedPage]);
@@ -233,14 +233,14 @@ export default function App() {
     setIsAddAscentOpen(true);
   };
 
-  const closeFeedTools = () => {
-    setIsFeedToolsOpen(false);
+  const closeFeedImport = () => {
+    setIsFeedImportOpen(false);
     toolsTriggerRef.current?.focus();
   };
 
-  const openFeedTools = (trigger: HTMLButtonElement) => {
+  const openFeedImport = (trigger: HTMLButtonElement) => {
     toolsTriggerRef.current = trigger;
-    setIsFeedToolsOpen(true);
+    setIsFeedImportOpen(true);
   };
 
   const closeFeedSignIn = () => {
@@ -349,7 +349,7 @@ export default function App() {
       handleImportedBoulders(payload);
       invalidateFeed();
       setSuggestions(null);
-      if (isFeedPage) closeFeedTools();
+      if (isFeedPage) closeFeedImport();
     },
     onError: setError
   };
@@ -387,14 +387,16 @@ export default function App() {
         activePage={activePage}
         currentUser={currentUser}
         isAuthLoading={isAuthLoading}
+        isAuthSaving={isAuthSaving}
         isFeedPage={isFeedPage}
         isOnBoulderPage={Boolean(selectedBoulder)}
         isOnBouldererPage={Boolean(selectedBouldererUsername)}
         onOpenDashboardHome={handleOpenDashboardHome}
         onOpenProfile={handleOpenBoulderer}
         onAddAscent={openAddAscent}
-        onOpenTools={openFeedTools}
+        onOpenImport={openFeedImport}
         onSignIn={openFeedSignIn}
+        onLogout={handleLogout}
         onSelectPage={setActivePage}
       />
 
@@ -510,9 +512,8 @@ export default function App() {
       />
       {isFeedPage && (
         <>
-          <FeedUtilityDialog isOpen={isFeedToolsOpen} onDismiss={closeFeedTools} title="Tools" variant="drawer">
+          <FeedUtilityDialog isOpen={isFeedImportOpen} onDismiss={closeFeedImport} title="Import TheTopo" variant="drawer">
             {error && <ErrorState message={error} />}
-            {currentUser && <AuthPanel {...authPanelProps} embedded />}
             <TheTopoImportPanel {...importPanelProps} embedded />
           </FeedUtilityDialog>
           <FeedUtilityDialog initialFocusRef={authUsernameInputRef} isOpen={isFeedSignInOpen} onDismiss={closeFeedSignIn} title="Sign in" variant="signIn">
