@@ -58,12 +58,16 @@ export default function BoulderForm({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await onSubmit({
-      ...form,
-      climber: currentUsername ?? form.climber,
-      climbed_on: form.climbed_on || null
-    });
-    setForm({ ...EMPTY_FORM, climber: currentUsername ?? form.climber });
+    try {
+      await onSubmit({
+        ...form,
+        climber: currentUsername ?? form.climber,
+        climbed_on: form.climbed_on || null
+      });
+      setForm({ ...EMPTY_FORM, climber: currentUsername ?? form.climber });
+    } catch {
+      // Keep the draft in place; the dialog displays the save error.
+    }
   };
 
   const updateRating = (value: string) => {
@@ -71,12 +75,7 @@ export default function BoulderForm({
   };
 
   return (
-    <form className={sharedStyles.controlPanel} onFocusCapture={onSuggestionsNeeded} onSubmit={(event) => void handleSubmit(event)}>
-      <div className={sharedStyles.controlHeading}>
-        <span>Log climb</span>
-        <strong>New Boulder</strong>
-      </div>
-
+    <form className={`${sharedStyles.controlPanel} ${styles.dialogForm}`} onFocusCapture={onSuggestionsNeeded} onSubmit={(event) => void handleSubmit(event)}>
       <label>
         Climber
         <input
@@ -204,11 +203,11 @@ export default function BoulderForm({
       </datalist>
 
       <button
-        className={sharedStyles.primaryButton}
+        className={`${sharedStyles.primaryButton} ${styles.submitButton}`}
         disabled={isSaving || !currentUsername}
         type="submit"
       >
-        {isSaving ? "Saving..." : currentUsername ? "Log Boulder" : "Login To Save"}
+        {isSaving ? "Saving..." : "Save Ascent"}
       </button>
     </form>
   );

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { exportBoulders, fetchBoulderDetail } from "./Api/boulderApi";
 import { fetchBoulderSuggestions, type BoulderSuggestions } from "./Api/suggestionsApi";
 import AppHeader from "./Components/AppHeader";
+import AddAscentDialog from "./Components/AddAscentDialog";
 import DashboardControlRail from "./Components/DashboardControlRail";
 import DashboardPageContent from "./Components/DashboardPageContent";
 import DashboardToolbar from "./Components/DashboardToolbar";
@@ -34,6 +35,11 @@ const DASHBOARD_GRADE_SOURCE_FIELDS: GradeField[] = [
 
 export default function App() {
   const [error, setError] = useState<string | null>(null);
+  const [ascentError, setAscentError] = useState<string | null>(null);
+  const [ascentNotice, setAscentNotice] = useState<string | null>(null);
+  const [isAddAscentOpen, setIsAddAscentOpen] = useState(false);
+  const ascentTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const authUsernameInputRef = useRef<HTMLInputElement | null>(null);
   const [activeAreaMapGradeField, setActiveAreaMapGradeField] = useState<GradeField>("own_grade");
   const [activePage, setActivePage] = useState<DashboardPage>("feed");
   const [selectedClimber, setSelectedClimber] = useState("");
@@ -188,10 +194,46 @@ export default function App() {
     }
   }, [knownClimbers, selectedClimber]);
 
+  useEffect(() => {
+    if (!ascentNotice) return;
+    const timeout = window.setTimeout(() => setAscentNotice(null), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [ascentNotice]);
+
+  const closeAddAscent = () => {
+    setIsAddAscentOpen(false);
+    ascentTriggerRef.current?.focus();
+  };
+
+  const openAddAscent = (trigger: HTMLButtonElement) => {
+    ascentTriggerRef.current = trigger;
+    setAscentError(null);
+    setAscentNotice(null);
+    setIsAddAscentOpen(true);
+  };
+
+  const goToSignIn = () => {
+    closeAddAscent();
+    window.setTimeout(() => {
+      const usernameInput = authUsernameInputRef.current;
+      usernameInput?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+      usernameInput?.focus();
+    }, 0);
+  };
+
   const handleAddBoulder = async (request: BoulderCreateRequest) => {
-    await saveBoulder(request, currentUser?.username ?? null, Boolean(data));
-    invalidateFeed();
-    setSuggestions(null);
+    try {
+      await saveBoulder(request, currentUser?.username ?? null, Boolean(data));
+      invalidateFeed();
+      setSuggestions(null);
+      setAscentError(null);
+      setAscentNotice("Ascent added");
+      closeAddAscent();
+    } catch (unknownError: unknown) {
+      setAscentError(unknownError instanceof Error ? unknownError.message : "Could not save ascent");
+      setError(null);
+      throw unknownError;
+    }
   };
 
   const handleUpdateBoulder = async (
@@ -230,6 +272,17 @@ export default function App() {
     ? suggestions
     : null;
 
+  const ascentFormProps = {
+    isSaving,
+    knownAreas: data ? knownAreas : visibleSuggestions?.areas ?? [],
+    knownGrades: data ? knownGrades : visibleSuggestions?.grades ?? [],
+    knownSectors: data ? knownSectors : visibleSuggestions?.sectors ?? [],
+    currentDisplayName: currentUser?.display_name ?? null,
+    currentUsername: currentUser?.username ?? null,
+    onSubmit: handleAddBoulder,
+    onSuggestionsNeeded: () => { void loadSuggestions(); }
+  };
+
   const handleOpenDashboardHome = () => {
     setActivePage("feed");
     openDashboardHome();
@@ -267,6 +320,7 @@ export default function App() {
         isOnBouldererPage={Boolean(selectedBouldererUsername)}
         onOpenDashboardHome={handleOpenDashboardHome}
         onOpenProfile={handleOpenBoulderer}
+        onAddAscent={openAddAscent}
         onSelectPage={setActivePage}
       />
 
@@ -350,7 +404,8 @@ export default function App() {
                 onLogout: handleLogout,
                 onOpenProfile: handleOpenBoulderer,
                 onResetPassword: handleResetPassword,
-                onSignup: handleSignup
+                onSignup: handleSignup,
+                usernameInputRef: authUsernameInputRef
               }}
               importPanelProps={{
                 currentUsername: currentUser?.username ?? null,
@@ -360,16 +415,6 @@ export default function App() {
                   setSuggestions(null);
                 },
                 onError: setError
-              }}
-              boulderFormProps={{
-                isSaving,
-                knownAreas: data ? knownAreas : visibleSuggestions?.areas ?? [],
-                knownGrades: data ? knownGrades : visibleSuggestions?.grades ?? [],
-                knownSectors: data ? knownSectors : visibleSuggestions?.sectors ?? [],
-                currentDisplayName: currentUser?.display_name ?? null,
-                currentUsername: currentUser?.username ?? null,
-                onSubmit: handleAddBoulder,
-                onSuggestionsNeeded: () => { void loadSuggestions(); }
               }}
             />
 
@@ -395,8 +440,20 @@ export default function App() {
               visibleData={visibleData}
             />
           </div>
+          <button className={styles.mobileAddAscent} type="button" onClick={(event) => openAddAscent(event.currentTarget)}>
+            <span aria-hidden="true">+</span> Add Ascent
+          </button>
         </>
       )}
+      <AddAscentDialog
+        error={ascentError}
+        formProps={ascentFormProps}
+        isOpen={isAddAscentOpen}
+        isSignedIn={Boolean(currentUser)}
+        onDismiss={closeAddAscent}
+        onSignIn={goToSignIn}
+      />
+      {ascentNotice && <div className={styles.ascentNotice} role="status">{ascentNotice}</div>}
     </main>
   );
 }

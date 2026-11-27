@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import App from "./App";
 
@@ -42,17 +42,19 @@ test("opening the feed loads feed data without loading logbook data", async () =
   await waitFor(() => expect(paths).toContain("/api/boulders"));
 });
 
-test("using the new boulder form loads suggestions without loading the logbook", async () => {
+test("opening Add Ascent loads suggestions without loading the logbook", async () => {
   const paths: string[] = [];
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
     const path = String(input);
     paths.push(path);
-    const body = path === "/api/auth/me" ? { user: null } : path === "/api/feed" ? { items: [] } : { areas: [], grades: [], sectors: [] };
+    const body = path === "/api/auth/me" ? { user: { id: 1, username: "climber", display_name: "Climber", profile_picture_url: null, is_admin: false } } : path === "/api/feed" ? { items: [] } : { areas: [], grades: [], sectors: [] };
     return new Response(JSON.stringify(body), { status: path === "/api/boulders" ? 500 : 200, headers: { "Content-Type": "application/json" } });
   }));
   render(<App />);
   await waitFor(() => expect(paths).toContain("/api/feed"));
-  fireEvent.focus(screen.getByRole("textbox", { name: "Name" }));
+  fireEvent.click(screen.getAllByRole("button", { name: "Add Ascent" })[0]);
+  const dialog = await screen.findByRole("dialog", { name: "Add Ascent" });
+  fireEvent.focus(within(dialog).getByRole("textbox", { name: "Name" }));
   await waitFor(() => expect(paths).toContain("/api/boulders/suggestions"));
   expect(paths).not.toContain("/api/boulders");
 });
@@ -90,12 +92,80 @@ test("saving an ascent refreshes the visible feed", async () => {
   }));
   render(<App />);
   await waitFor(() => expect(paths.filter((path) => path === "/api/feed")).toHaveLength(1));
-  fireEvent.change(screen.getByRole("textbox", { name: "Name" }), { target: { value: "New Problem" } });
-  fireEvent.change(screen.getByLabelText("Area"), { target: { value: "New Area" } });
-  fireEvent.click(screen.getByRole("button", { name: "Log Boulder" }));
+  fireEvent.click(screen.getAllByRole("button", { name: "Add Ascent" })[0]);
+  const dialog = await screen.findByRole("dialog", { name: "Add Ascent" });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: "Name" }), { target: { value: "New Problem" } });
+  fireEvent.change(within(dialog).getByLabelText("Area"), { target: { value: "New Area" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Save Ascent" }));
   await waitFor(() => expect(paths.filter((path) => path === "/api/feed")).toHaveLength(2));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Ascent" })).toBeNull());
+  expect(screen.getByRole("status").textContent).toBe("Ascent added");
   expect(paths).toContain("/api/boulders?dashboard=false");
   expect(paths).not.toContain("/api/boulders");
+});
+
+test("closing Add Ascent keeps the draft when it is reopened", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const path = String(input);
+    const body = path === "/api/auth/me"
+      ? { user: { id: 1, username: "climber", display_name: "Climber", profile_picture_url: null, is_admin: false } }
+      : path === "/api/feed" ? { items: [] } : { areas: [], grades: [], sectors: [] };
+    return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
+  }));
+  render(<App />);
+  await screen.findByRole("heading", { name: "Latest activity" });
+  const trigger = screen.getAllByRole("button", { name: "Add Ascent" })[0];
+  fireEvent.click(trigger);
+  const dialog = await screen.findByRole("dialog", { name: "Add Ascent" });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: "Name" }), { target: { value: "Project" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close Add Ascent" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Ascent" })).toBeNull());
+  fireEvent.click(trigger);
+  const reopened = await screen.findByRole("dialog", { name: "Add Ascent" });
+  expect(within(reopened).getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Project");
+  fireEvent(reopened, new Event("cancel", { cancelable: true }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Ascent" })).toBeNull());
+  expect(document.activeElement).toBe(trigger);
+});
+
+test("a failed save keeps Add Ascent open with its draft and an error", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const path = String(input);
+    const body = path === "/api/auth/me"
+      ? { user: { id: 1, username: "climber", display_name: "Climber", profile_picture_url: null, is_admin: false } }
+      : path === "/api/feed" ? { items: [] }
+      : path === "/api/boulders?dashboard=false" ? { detail: "Save failed" }
+      : { areas: [], grades: [], sectors: [] };
+    return new Response(JSON.stringify(body), {
+      status: path === "/api/boulders?dashboard=false" ? 500 : 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  }));
+  render(<App />);
+  await screen.findByRole("heading", { name: "Latest activity" });
+  fireEvent.click(screen.getAllByRole("button", { name: "Add Ascent" })[0]);
+  const dialog = await screen.findByRole("dialog", { name: "Add Ascent" });
+  fireEvent.change(within(dialog).getByRole("textbox", { name: "Name" }), { target: { value: "Project" } });
+  fireEvent.change(within(dialog).getByLabelText("Area"), { target: { value: "Area" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Save Ascent" }));
+  await within(dialog).findByRole("alert");
+  expect(within(dialog).getByRole<HTMLInputElement>("textbox", { name: "Name" }).value).toBe("Project");
+  expect(screen.getByRole("dialog", { name: "Add Ascent" })).toBe(dialog);
+});
+
+test("signed-out Add Ascent sends the user to the sign-in panel", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const body = String(input) === "/api/auth/me" ? { user: null } : { items: [] };
+    return new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } });
+  }));
+  render(<App />);
+  await screen.findByRole("heading", { name: "Latest activity" });
+  fireEvent.click(screen.getAllByRole("button", { name: "Add Ascent" })[0]);
+  const dialog = await screen.findByRole("dialog", { name: "Add Ascent" });
+  expect(within(dialog).getByText("Sign in to add an ascent to your logbook.")).toBeTruthy();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Go to sign in" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Ascent" })).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(document.querySelector("input[autocomplete='username']")));
 });
 
 test("reopening the feed retries a failed read", async () => {

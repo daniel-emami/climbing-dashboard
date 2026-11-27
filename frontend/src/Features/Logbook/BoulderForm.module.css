@@ -21,3 +21,18 @@
     grid-template-columns: 1fr;
   }
 }
+
+.dialogForm {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.dialogForm .submitButton {
+  position: sticky;
+  bottom: -20px;
+  z-index: 1;
+  min-height: 46px;
+  box-shadow: 0 -10px 20px var(--color-surface);
+}

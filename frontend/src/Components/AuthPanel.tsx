@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type Ref } from "react";
 import type {
   AdminPasswordResetRequest,
   AdminPasswordResetResponse,
@@ -18,6 +18,7 @@ type AuthPanelProps = {
   onOpenProfile: (username: string) => void;
   onResetPassword: (request: AdminPasswordResetRequest) => Promise<AdminPasswordResetResponse>;
   onSignup: (request: SignupRequest) => Promise<void>;
+  usernameInputRef?: Ref<HTMLInputElement>;
 };
 
 type AuthMode = "login" | "signup";
@@ -30,7 +31,8 @@ export default function AuthPanel({
   onLogout,
   onOpenProfile,
   onResetPassword,
-  onSignup
+  onSignup,
+  usernameInputRef
 }: AuthPanelProps) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [username, setUsername] = useState("");
@@ -158,6 +160,7 @@ export default function AuthPanel({
         <label>
           Username
           <input
+            ref={usernameInputRef}
             required
             autoComplete="username"
             value={username}

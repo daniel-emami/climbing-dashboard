@@ -3,6 +3,7 @@ import { DASHBOARD_PAGES, type DashboardPage } from "../Routing/hashRoutes";
 import type { AuthUser } from "../Types/authTypes";
 import { initials } from "../Utilities/displayText";
 import styles from "../App.module.css";
+import headerStyles from "./AppHeader.module.css";
 
 type AppHeaderProps = {
   activePage: DashboardPage;
@@ -12,6 +13,7 @@ type AppHeaderProps = {
   isOnBouldererPage: boolean;
   onOpenDashboardHome: () => void;
   onOpenProfile: (username: string) => void;
+  onAddAscent: (trigger: HTMLButtonElement) => void;
   onSelectPage: (page: DashboardPage) => void;
 };
 
@@ -23,6 +25,7 @@ export default function AppHeader({
   isOnBouldererPage,
   onOpenDashboardHome,
   onOpenProfile,
+  onAddAscent,
   onSelectPage
 }: AppHeaderProps) {
   const isDashboard = !isOnBoulderPage && !isOnBouldererPage;
@@ -60,6 +63,11 @@ export default function AppHeader({
       )}
 
       <div className={styles.headerAccount}>
+        {isDashboard && (
+          <button className={headerStyles.addAscentButton} type="button" onClick={(event) => onAddAscent(event.currentTarget)}>
+            <span aria-hidden="true">+</span> Add Ascent
+          </button>
+        )}
         {currentUser ? (
           <button
             className={styles.accountChip}
